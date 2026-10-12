@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import '../models.dart';
+import '../models/models.dart';
 
 /// A prediction for one OCR-extracted item name.
 class ItemPrediction {

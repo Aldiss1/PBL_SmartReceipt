@@ -28,7 +28,7 @@ class ReceiptProvider with ChangeNotifier {
       _totalSpendingThisMonth = await _dbHelper.getTotalSpendingThisMonth();
       _spendingByCategory = await _dbHelper.getSpendingByCategory();
     } catch (e) {
-      print('Error loading data: $e');
+      debugPrint('Error loading data: $e');
     }
 
     _isLoading = false;

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-import 'app_nav.dart';
-import 'app_widgets.dart';
-import 'models.dart';
-import 'theme_controller.dart';
+import '../theme/app_colors.dart';
+import '../navigation/app_nav.dart';
+import '../widgets/app_widgets.dart';
+import '../models/models.dart';
+import '../theme/theme_controller.dart';
 
 /// Screen 6 - Transaction Saved.
 ///
@@ -92,8 +92,8 @@ class TransactionSavedScreen extends StatelessWidget {
                             _row('Jumlah Item', '${items.length} item'),
                             const SizedBox(height: 12),
                             _row('Metode', paymentMethod),
-                             Padding(
-                              padding: EdgeInsets.symmetric(vertical: 14),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               child: Divider(height: 1, color: AppColors.border),
                             ),
                             Row(
@@ -109,7 +109,7 @@ class TransactionSavedScreen extends StatelessWidget {
                                 const Spacer(),
                                 Text(
                                   rupiah(_total),
-                                  style:  TextStyle(
+                                  style: TextStyle(
                                     fontSize: 19,
                                     fontWeight: FontWeight.w800,
                                     color: AppColors.textDark,

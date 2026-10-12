@@ -2,14 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-import 'app_widgets.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_widgets.dart';
 import 'category_classification.dart';
-import 'ocr/image_quality.dart';
-import 'ocr/ocr_raw_text.dart';
-import 'ocr/ocr_service.dart';
-import 'receipt_mock.dart';
-import 'theme_controller.dart';
+import '../ocr/image_quality.dart';
+import '../ocr/ocr_raw_text.dart';
+import '../ocr/ocr_service.dart';
+import '../widgets/receipt_mock.dart';
+import '../theme/theme_controller.dart';
 
 /// Screen 3 - OCR Processing.
 ///
@@ -367,13 +367,13 @@ class _QualityNotice extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-           Icon(Icons.warning_amber_rounded, color: AppColors.amber, size: 20),
+          Icon(Icons.warning_amber_rounded, color: AppColors.amber, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                 Text(
+                Text(
                   'Kualitas gambar perlu diperhatikan',
                   style: TextStyle(
                     fontSize: 13,
@@ -385,7 +385,7 @@ class _QualityNotice extends StatelessWidget {
                 for (final String issue in report.issues)
                   Text(
                     '• $issue',
-                    style:  TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       height: 1.4,
                       color: AppColors.textLabel,
@@ -417,7 +417,7 @@ class _RawTextCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-           Text(
+          Text(
             'Teks Terdeteksi',
             style: TextStyle(
               fontSize: 13.5,
@@ -437,7 +437,7 @@ class _RawTextCard extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 3),
                       child: Text(
                         line.text,
-                        style:  TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           height: 1.35,
                           color: AppColors.textLabel,
@@ -484,11 +484,11 @@ class _FailureView extends StatelessWidget {
                     Container(
                       width: 96,
                       height: 96,
-                      decoration:  BoxDecoration(
+                      decoration: BoxDecoration(
                         color: AppColors.redSoft,
                         shape: BoxShape.circle,
                       ),
-                      child:  Icon(
+                      child: Icon(
                         Icons.error_outline,
                         size: 52,
                         color: AppColors.red,
@@ -498,7 +498,7 @@ class _FailureView extends StatelessWidget {
                     Text(
                       failure.message,
                       textAlign: TextAlign.center,
-                      style:  TextStyle(
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textDark,
@@ -509,7 +509,7 @@ class _FailureView extends StatelessWidget {
                       Text(
                         failure.hint!,
                         textAlign: TextAlign.center,
-                        style:  TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           height: 1.5,
                           color: AppColors.textMuted,
@@ -602,7 +602,7 @@ class _StepRow extends StatelessWidget {
               ),
             )
           else if (done)
-             Icon(Icons.check_circle, size: 18, color: AppColors.green),
+            Icon(Icons.check_circle, size: 18, color: AppColors.green),
         ],
       ),
     );

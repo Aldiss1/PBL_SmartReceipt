@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-import 'app_widgets.dart';
-import 'charts.dart';
-import 'models.dart';
-import 'theme_controller.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_widgets.dart';
+import '../widgets/charts.dart';
+import '../models/models.dart';
+import '../theme/theme_controller.dart';
 
 /// Screen 10 - Spending Prediction.
 class SpendingPredictionScreen extends StatelessWidget {
@@ -73,39 +73,46 @@ class _PredictionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final List<Color>? bannerGradient = AppColors.spendBannerGradient;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: AppColors.heroGradient,
-          stops: const <double>[0, 0.5, 1],
-        ),
+        color: AppColors.spendBanner,
+        gradient: bannerGradient == null
+            ? null
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: bannerGradient,
+                stops: const <double>[0.0, 0.5, 1.0],
+              ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
-              const Text(
+              Text(
                 'Prediksi Bulan Depan',
-                style: TextStyle(fontSize: 12.5, color: Color(0xFF9BA3B5)),
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.onSpendBannerMuted,
+                ),
               ),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: AppColors.spendBannerObjectBg,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
+                child: Text(
                   'Okt 2026',
                   style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFFC7CBD6),
+                    color: AppColors.onSpendBannerSubtle,
                   ),
                 ),
               ),
@@ -114,10 +121,10 @@ class _PredictionCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             rupiah(SpendingPredictionScreen._predicted),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w800,
-              color: Colors.white,
+              color: AppColors.onSpendBanner,
             ),
           ),
           const SizedBox(height: 14),
@@ -126,20 +133,24 @@ class _PredictionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                 decoration: BoxDecoration(
-                  color: AppColors.orange.withValues(alpha: 0.18),
+                  color: AppColors.spendBannerObjectBg,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Icon(Icons.trending_up, size: 15, color: AppColors.orange),
+                    Icon(
+                      Icons.trending_up,
+                      size: 15,
+                      color: AppColors.spendBannerAccent,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       '+11.3% dari bulan ini',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.orange,
+                        color: AppColors.spendBannerAccent,
                       ),
                     ),
                   ],

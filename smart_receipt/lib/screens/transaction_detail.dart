@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-import 'app_nav.dart';
-import 'app_widgets.dart';
-import 'models.dart';
-import 'theme_controller.dart';
+import '../theme/app_colors.dart';
+import '../navigation/app_nav.dart';
+import '../widgets/app_widgets.dart';
+import '../models/models.dart';
+import '../theme/theme_controller.dart';
 
 /// Screen 8 - Transaction Detail.
 class TransactionDetailScreen extends StatelessWidget {
@@ -97,16 +97,20 @@ class _ReceiptHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final List<Color>? bannerGradient = AppColors.spendBannerGradient;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: AppColors.heroGradient,
-          stops: const <double>[0, 0.5, 1],
-        ),
+        color: AppColors.spendBanner,
+        gradient: bannerGradient == null
+            ? null
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: bannerGradient,
+                stops: const <double>[0.0, 0.5, 1.0],
+              ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,10 +121,14 @@ class _ReceiptHeader extends StatelessWidget {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: AppColors.spendBannerObjectBg,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(Icons.storefront_outlined, size: 23, color: AppColors.orange),
+                child: Icon(
+                  Icons.storefront_outlined,
+                  size: 23,
+                  color: AppColors.spendBannerAccent,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -131,16 +139,19 @@ class _ReceiptHeader extends StatelessWidget {
                       transaction.store,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: AppColors.onSpendBanner,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       formatDateTime(transaction.date),
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF9BA3B5)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.onSpendBannerMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -148,17 +159,20 @@ class _ReceiptHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Total Pembayaran',
-            style: TextStyle(fontSize: 12, color: Color(0xFF9BA3B5)),
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.onSpendBannerMuted,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             rupiah(transaction.total),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 30,
               fontWeight: FontWeight.w800,
-              color: Colors.white,
+              color: AppColors.onSpendBanner,
             ),
           ),
           const SizedBox(height: 14),
@@ -186,20 +200,20 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: AppColors.spendBannerObjectBg,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(icon, size: 13, color: AppColors.orange),
+          Icon(icon, size: 13, color: AppColors.spendBannerAccent),
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: Color(0xFFC7CBD6),
+              color: AppColors.onSpendBannerSubtle,
             ),
           ),
         ],

@@ -1,4 +1,4 @@
-import 'models.dart';
+import '../models/models.dart';
 
 /// Placeholder data mirroring the MVP dataset until the local database lands.
 final List<Transaction> kSampleTransactions = <Transaction>[

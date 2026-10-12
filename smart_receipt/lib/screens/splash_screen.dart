@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-import 'app_nav.dart';
-import 'theme_controller.dart';
+import '../theme/app_colors.dart';
+import '../navigation/app_nav.dart';
+import '../theme/theme_controller.dart';
 
 /// Screen 1 - SmartReceipt logo / launch screen.
 class SplashScreen extends StatefulWidget {

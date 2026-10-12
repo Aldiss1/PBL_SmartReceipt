@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-import 'app_nav.dart';
-import 'app_route.dart';
-import 'app_widgets.dart';
+import '../theme/app_colors.dart';
+import '../navigation/app_nav.dart';
+import '../navigation/app_route.dart';
+import '../widgets/app_widgets.dart';
 import 'empty_state.dart';
-import 'models.dart';
-import 'sample_data.dart';
-import 'theme_controller.dart';
+import '../models/models.dart';
+import '../data/sample_data.dart';
+import '../theme/theme_controller.dart';
 import 'transaction_detail.dart';
 
 /// Screen 7 - Transaction History.

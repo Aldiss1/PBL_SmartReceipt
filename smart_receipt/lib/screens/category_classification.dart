@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-import 'app_route.dart';
-import 'app_widgets.dart';
-import 'models.dart';
-import 'ocr/ocr_service.dart';
-import 'ocr/receipt_classifier.dart';
-import 'ocr/receipt_parser.dart';
+import '../theme/app_colors.dart';
+import '../navigation/app_route.dart';
+import '../widgets/app_widgets.dart';
+import '../models/models.dart';
+import '../ocr/ocr_service.dart';
+import '../ocr/receipt_classifier.dart';
+import '../ocr/receipt_parser.dart';
 import 'review_transaction.dart';
-import 'theme_controller.dart';
+import '../theme/theme_controller.dart';
 
 /// Screen 5 - Category Classification.
 ///
@@ -72,7 +72,7 @@ class _CategoryClassificationScreenState
                       title: 'Hasil Klasifikasi',
                       trailing: Text(
                         '${predictions.length} item',
-                        style:  TextStyle(
+                        style: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textMuted,
@@ -139,7 +139,7 @@ class _StoreSummary extends StatelessWidget {
                   scan.parsed.store,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style:  TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textDark,
@@ -150,7 +150,7 @@ class _StoreSummary extends StatelessWidget {
                   date != null
                       ? '${formatDateTime(date)} • ${scan.parsed.paymentMethod}'
                       : 'Hasil OCR • ${scan.parsed.paymentMethod}',
-                  style:  TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textMuted,
                   ),
@@ -175,10 +175,10 @@ class _NoItemsCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
-      child:  Row(
+      child: Row(
         children: <Widget>[
           Icon(Icons.info_outline, color: AppColors.amber),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               'OCR tidak menemukan baris item yang bisa diklasifikasi. '

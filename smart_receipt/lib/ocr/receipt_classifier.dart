@@ -8,12 +8,24 @@ class ItemPrediction {
     required this.name,
     required this.category,
     required this.confidence,
+    this.needsReview = false,
   });
 
   final String name;
   final String category;
   final double confidence;
+
+  /// True when the model's confidence sits below its review threshold, i.e.
+  /// the user should confirm the category on the review screen.
+  final bool needsReview;
 }
+
+/// Rule-based fallback classifier used when the exported TF-IDF + Naive Bayes
+/// model cannot be loaded.
+///
+/// The primary path is [TfidfNaiveBayesEngine]; this lexicon only exists so the
+/// scan flow never dead-ends. Prefer the model whenever it is available, since
+/// its confidence is calibrated while this one is heuristic.
 
 /// On-device Naive Bayes classifier over TF-IDF-like token weights.
 ///

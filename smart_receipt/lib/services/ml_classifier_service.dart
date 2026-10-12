@@ -1,169 +1,92 @@
-import 'dart:convert';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 
+import '../ocr/tfidf_classifier.dart';
+import 'text_normalizer.dart';
+
+/// Application-level wrapper around the on-device TF-IDF + Naive Bayes model.
+///
+/// The heavy lifting (vectorization + scoring) lives in
+/// [TfidfNaiveBayesEngine]; this service owns the model lifecycle (load once,
+/// reuse across screens) and exposes a category-id-oriented API plus a
+/// preprocessed-text variant for the classification UI.
+///
+/// Asset: `assets/model_kategori_produk.json` — the *dummy* dataset model used
+/// while a real receipt dataset is not yet available.
 class MLClassifierService {
-  Map<String, dynamic>? _tfidfModel;
-  
-  // Mapping dari 15 classes model ke 8 kategori app
-  final Map<String, int> classToCategory = {
-    "Bayi & Anak": 3,           // Belanja Bulanan
-    "Elektronik": 3,            // Belanja Bulanan
-    "Hewan Peliharaan": 3,      // Belanja Bulanan
-    "Hiburan & Hobi": 5,        // Hiburan
-    "Kesehatan": 6,             // Kesehatan
-    "Lainnya": 8,               // Lainnya
-    "Makanan": 1,               // Makanan & Minuman
-    "Minuman": 1,               // Makanan & Minuman
-    "Pakaian & Fashion": 3,     // Belanja Bulanan
-    "Pendidikan & ATK": 7,      // Pendidikan
-    "Perawatan Diri": 3,        // Belanja Bulanan
-    "Rokok & Tembakau": 8,      // Lainnya
-    "Rumah Tangga": 3,          // Belanja Bulanan
-    "Tagihan & Utilitas": 4,    // Utilitas
-    "Transportasi": 2,          // Transport
-  };
+  MLClassifierService({TfidfNaiveBayesEngine? engine})
+      : _engine = engine ?? TfidfNaiveBayesEngine();
 
-  Future<void> loadModel() async {
+  final TfidfNaiveBayesEngine _engine;
+
+  bool get isReady => _engine.isLoaded;
+  int get classCount => _engine.classCount;
+
+  IndonesianTextPreprocessor _preprocessing = IndonesianTextPreprocessor();
+
+  /// Loads the model exactly once. Subsequent calls resolve immediately.
+  ///
+  /// Never throws: a load failure is logged, leaves [isReady] false, and lets
+  /// the UI degrade gracefully instead of crashing mid-scan.
+  Future<bool> loadModel() async {
     try {
-      final String response = await rootBundle.loadString('assets/model_kategori_produk.json');
-      _tfidfModel = jsonDecode(response);
-      debugPrint('✅ TF-IDF Model loaded successfully');
+      await _engine.load();
+      return true;
+    } on TfidfModelException catch (e) {
+      debugPrint('❌ TF-IDF model tidak dapat dimuat: ${e.message}');
+      return false;
     } catch (e) {
-      debugPrint('❌ Error loading model: $e');
+      debugPrint('❌ TF-IDF model error tak terduga: $e');
+      return false;
     }
   }
 
-  // Generate char n-grams [2,4]
-  List<String> _generateNgrams(String text, int minN, int maxN) {
-    final ngrams = <String>[];
-    final cleanText = text.toLowerCase();
-    
-    for (int n = minN; n <= maxN; n++) {
-      for (int i = 0; i <= cleanText.length - n; i++) {
-        ngrams.add(cleanText.substring(i, i + n));
-      }
-    }
-    
-    return ngrams;
+  /// Replaces the default Indonesian preprocessor.
+  void attachPreprocessor(IndonesianTextPreprocessor preprocessor) {
+    _preprocessing = preprocessor;
   }
 
-  // Hitung TF (term frequency)
-  Map<String, double> _computeTF(List<String> ngrams) {
-    final tf = <String, double>{};
-    final totalTerms = ngrams.length;
-    
-    if (totalTerms == 0) return tf;
-    
-    for (var ngram in ngrams) {
-      tf[ngram] = (tf[ngram] ?? 0) + 1;
+  /// Full prediction for [rawText] (typically an OCR line or item name).
+  TfidfPrediction predict(String rawText) {
+    if (!isReady) {
+      return const TfidfPrediction(
+        label: 'Perlu Review',
+        categoryId: 8,
+        confidence: 0,
+        needsReview: true,
+      );
     }
-    
-    // Sublinear TF: tf(t) = 1 + log(tf(t))
-    for (var key in tf.keys) {
-      tf[key] = 1.0 + (tf[key]! > 0 ? log(1.0 + tf[key]!) : 0);
-    }
-    
-    // Normalize by total terms
-    for (var key in tf.keys) {
-      tf[key] = tf[key]! / (totalTerms > 0 ? totalTerms : 1);
-    }
-    
-    return tf;
+    return _engine.predict(rawText);
   }
 
-  // Hitung TF-IDF vector
-  Map<String, double> _computeTFIDF(Map<String, double> tf) {
-    final vocabulary = _tfidfModel!['vocabulary'] as Map<String, dynamic>;
-    final tfidf = <String, double>{};
-    
-    for (var term in tf.keys) {
-      if (vocabulary.containsKey(term)) {
-        final weight = vocabulary[term] as int;
-        tfidf[term] = tf[term]! * (weight.toDouble() / 100.0); // Normalize weight
-      }
+  /// Runs the Indonesian NLP preprocessing pipeline first, then classifies.
+  ///
+  /// Falls back to the raw text when cleaning removes everything.
+  TfidfPrediction predictProcessed(String rawText) {
+    if (!isReady) {
+      return predict(rawText);
     }
-    
-    return tfidf;
+    final ProcessedText processed = _preprocessing.process(rawText);
+    if (processed.isEmpty) {
+      return const TfidfPrediction(
+        label: 'Perlu Review',
+        categoryId: 8,
+        confidence: 0,
+        needsReview: true,
+      );
+    }
+    return _engine.predict(processed.normalized);
   }
 
-  // Normalisasi L2
-  Map<String, double> _normalizeL2(Map<String, double> vector) {
-    double norm = 0.0;
-    for (var value in vector.values) {
-      norm += value * value;
-    }
-    norm = (norm > 0) ? sqrt(norm) : 1.0;
-    
-    final normalized = <String, double>{};
-    for (var entry in vector.entries) {
-      normalized[entry.key] = entry.value / norm;
-    }
-    
-    return normalized;
-  }
+  /// Convenience API returning just the app category id (1..8).
+  ///
+  /// Prefer [predict] / [predictProcessed] when the confidence or label is
+  /// needed, e.g. to show the user why an item was categorised a certain way.
+  int predictCategoryId(String rawText) => predictProcessed(rawText).categoryId;
 
-  Future<int> predictCategory(String ocrText) async {
-    if (_tfidfModel == null) {
-      debugPrint('⚠️ Model belum dimuat');
-      return 8;
-    }
-
-    try {
-      // Tokenize char n-gram [2,4]
-      final ngrams = _generateNgrams(ocrText, 2, 4);
-      
-      if (ngrams.isEmpty) return 8;
-      
-      // Compute TF
-      final tf = _computeTF(ngrams);
-      
-      // Compute TF-IDF
-      final tfidf = _computeTFIDF(tf);
-      
-      // Normalize L2
-      final normalized = _normalizeL2(tfidf);
-      
-      // Score setiap class berdasarkan TF-IDF features
-      final classes = _tfidfModel!['classes'] as List;
-      double maxScore = 0.0;
-      String predictedClass = "Lainnya";
-      
-      for (var className in classes) {
-        double score = 0.0;
-        for (var entry in normalized.entries) {
-          score += entry.value;
-        }
-        
-        // Bias untuk class tertentu berdasarkan keyword
-        final lowerText = ocrText.toLowerCase();
-        if (className == "Makanan" && (lowerText.contains("makan") || lowerText.contains("nasi"))) {
-          score *= 1.5;
-        }
-        if (className == "Minuman" && (lowerText.contains("minum") || lowerText.contains("teh"))) {
-          score *= 1.5;
-        }
-        if (className == "Transportasi" && (lowerText.contains("bensin") || lowerText.contains("gojek"))) {
-          score *= 1.5;
-        }
-        
-        if (score > maxScore) {
-          maxScore = score;
-          predictedClass = className;
-        }
-      }
-      
-      // Map ke kategori app
-      final appCategoryId = classToCategory[predictedClass] ?? 8;
-      
-      debugPrint('🎯 TF-IDF Class: $predictedClass → App Category: $appCategoryId');
-      return appCategoryId;
-    } catch (e) {
-      debugPrint('❌ Prediction error: $e');
-      return 8;
-    }
-  }
+  /// Kept for backwards compatibility with the earlier async call site.
+  @Deprecated('Use predictCategoryId() instead')
+  Future<int> predictCategory(String ocrText) async =>
+      predictCategoryId(ocrText);
 
   void dispose() {}
 }

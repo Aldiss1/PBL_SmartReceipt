@@ -7,6 +7,8 @@ import '../models/models.dart';
 import '../ocr/ocr_service.dart';
 import '../ocr/receipt_classifier.dart';
 import '../ocr/receipt_parser.dart';
+import '../ocr/tfidf_classifier.dart';
+import '../services/ml_classifier_service.dart';
 import 'review_transaction.dart';
 import '../theme/theme_controller.dart';
 
@@ -15,6 +17,11 @@ import '../theme/theme_controller.dart';
 /// Runs the on-device TF-IDF + Naive Bayes classifier over the item names that
 /// were extracted by OCR, then forwards the classified items to the review
 /// screen.
+///
+/// Classification is performed by the exported model
+/// (`assets/model_kategori_produk.json`, the dummy dataset model) executed by
+/// [TfidfNaiveBayesEngine] through [MLClassifierService]. Items the model is
+/// unsure about are flagged for manual confirmation instead of guessing.
 class CategoryClassificationScreen extends StatefulWidget {
   const CategoryClassificationScreen({super.key, required this.scan});
 
@@ -27,17 +34,68 @@ class CategoryClassificationScreen extends StatefulWidget {
 
 class _CategoryClassificationScreenState
     extends State<CategoryClassificationScreen> {
-  final ReceiptClassifier _classifier = ReceiptClassifier();
+  final ReceiptClassifier _fallbackClassifier = ReceiptClassifier();
+  final MLClassifierService _ml = MLClassifierService();
 
-  late final List<ItemPrediction> _predictions;
+  late final List<String> _names;
+  List<ItemPrediction> _predictions = const <ItemPrediction>[];
+  int _reviewCount = 0;
+  bool _modelReady = false;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    final List<String> names = widget.scan.parsed.items
+    _names = widget.scan.parsed.items
         .map((ParsedItem i) => i.name)
         .toList();
-    _predictions = _classifier.classifyAll(names);
+    _loadAndClassify();
+  }
+
+  @override
+  void dispose() {
+    _ml.dispose();
+    super.dispose();
+  }
+
+  /// Loads the exported TF-IDF + Naive Bayes model, then classifies every item.
+  ///
+  /// Without the model we fall back to the built-in lexicon classifier so the
+  /// scan flow never dead-ends on a classification error.
+  Future<void> _loadAndClassify() async {
+    final bool ready = await _ml.loadModel();
+    if (!mounted) {
+      return;
+    }
+    final List<ItemPrediction> predictions = ready
+        ? _names.map<ItemPrediction>(_classifyOne).toList()
+        : _fallbackClassifier.classifyAll(_names);
+    setState(() {
+      _modelReady = ready;
+      _predictions = predictions;
+      _reviewCount =
+          predictions.where((ItemPrediction p) => p.needsReview).length;
+      _loading = false;
+    });
+  }
+
+  ItemPrediction _classifyOne(String name) {
+    final TfidfPrediction t = _ml.predictProcessed(name);
+    return ItemPrediction(
+      name: name,
+      category: _categoryNameForId(t.categoryId),
+      confidence: t.confidence,
+      needsReview: t.needsReview,
+    );
+  }
+
+  /// Category id → display name, using the single source of truth [kCategories].
+  static String _categoryNameForId(int id) {
+    final int index = id - 1;
+    if (index >= 0 && index < kCategories.length) {
+      return kCategories[index].name;
+    }
+    return kCategories.last.name;
   }
 
   @override
@@ -66,7 +124,14 @@ class _CategoryClassificationScreenState
                   children: <Widget>[
                     _StoreSummary(scan: widget.scan),
                     const SizedBox(height: 16),
-                    const _ModelCard(),
+                    _ModelCard(
+                      classCount: _modelReady ? _ml.classCount : 9,
+                      fromExportedModel: _modelReady,
+                    ),
+                    if (_reviewCount > 0) ...<Widget>[
+                      const SizedBox(height: 12),
+                      _ReviewNotice(count: _reviewCount),
+                    ],
                     const SizedBox(height: 18),
                     SectionHeader(
                       title: 'Hasil Klasifikasi',
@@ -80,7 +145,9 @@ class _CategoryClassificationScreenState
                       ),
                     ),
                     const SizedBox(height: 12),
-                    if (predictions.isEmpty)
+                    if (_loading)
+                      const _ClassifyingCard()
+                    else if (predictions.isEmpty)
                       const _NoItemsCard()
                     else
                       for (final ItemPrediction p in predictions)
@@ -94,19 +161,92 @@ class _CategoryClassificationScreenState
               child: PrimaryButton(
                 label: 'Lanjut ke Review',
                 icon: Icons.arrow_forward,
-                onPressed: () => Navigator.push(
-                  context,
-                  appRoute(
-                    ReviewTransactionScreen(
-                      scan: widget.scan,
-                      predictions: predictions,
-                    ),
-                  ),
-                ),
+                onPressed: _loading
+                    ? null
+                    : () => Navigator.push(
+                          context,
+                          appRoute(
+                            ReviewTransactionScreen(
+                              scan: widget.scan,
+                              predictions: predictions,
+                            ),
+                          ),
+                        ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Shown while the model loads and items are classified.
+class _ClassifyingCard extends StatelessWidget {
+  const _ClassifyingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: <Widget>[
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.2,
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.navy),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              'Menjalankan model TF-IDF + Naive Bayes…',
+              style: TextStyle(fontSize: 12.5, color: AppColors.textLabel),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Warns that some items scored below the model's review threshold.
+class _ReviewNotice extends StatelessWidget {
+  const _ReviewNotice({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.amber.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(Icons.rule_folder_outlined, size: 20, color: AppColors.amber),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              '$count item perlu dikonfirmasi karena confidence model di bawah '
+              'ambang batas. Perbaiki kategorinya di langkah review — koreksi '
+              'Anda ikut menyempurnakan model.',
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: AppColors.textLabel,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -197,14 +337,17 @@ class _NoItemsCard extends StatelessWidget {
 }
 
 class _ModelCard extends StatelessWidget {
-  const _ModelCard();
+  const _ModelCard({
+    required this.classCount,
+    required this.fromExportedModel,
+  });
 
-  static const List<List<String>> _metrics = <List<String>>[
-    <String>['Akurasi', '92.4%'],
-    <String>['Precision', '90.1%'],
-    <String>['Recall', '89.6%'],
-    <String>['F1-Score', '89.8%'],
-  ];
+  /// Number of classes the active model knows about.
+  final int classCount;
+
+  /// Whether the exported TF-IDF + Naive Bayes model is driving predictions or
+  /// the built-in lexicon fallback is in use.
+  final bool fromExportedModel;
 
   @override
   Widget build(BuildContext context) {
@@ -234,7 +377,9 @@ class _ModelCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Model Naive Bayes',
+                      fromExportedModel
+                          ? 'Model TF-IDF + Naive Bayes'
+                          : 'Klasifikasi Cadangan (Lexicon)',
                       style: TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w700,
@@ -243,8 +388,15 @@ class _ModelCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Ekstraksi fitur TF-IDF • 9 kategori',
-                      style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                      fromExportedModel
+                          ? 'Ekstraksi fitur TF-IDF • $classCount kelas • '
+                              'dataset dummy'
+                          : 'Model ML tidak dapat dimuat • memakai aturan '
+                              'kata kunci',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -252,44 +404,60 @@ class _ModelCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: <Widget>[
-              for (int i = 0; i < _metrics.length; i++) ...<Widget>[
-                if (i > 0) const SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.iconBox,
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: Column(
-                      children: <Widget>[
-                        Text(
-                          _metrics[i][1],
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          _metrics[i][0],
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
+          _ModelStatus(
+            fromExportedModel: fromExportedModel,
+            classCount: classCount,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Replaces the old hard-coded accuracy/precision/recall/F1 numbers.
+///
+/// Real evaluation metrics now come from
+/// `assets/eval_dataset_dummy.json` and are computed by
+/// `ModelEvaluator` — the metrics card on the Analysis screen reports them, so
+/// this card only states which model is active.
+class _ModelStatus extends StatelessWidget {
+  const _ModelStatus({
+    required this.fromExportedModel,
+    required this.classCount,
+  });
+
+  final bool fromExportedModel;
+  final int classCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color accent =
+        fromExportedModel ? AppColors.green : AppColors.amber;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.iconBox,
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(
+            fromExportedModel ? Icons.verified_outlined : Icons.info_outline,
+            size: 18,
+            color: accent,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              fromExportedModel
+                  ? 'Model aktif: $classCount kelas, dijalankan on-device.'
+                  : 'Model belum tersedia; hasil di bawah bersifat perkiraan.',
+              style: TextStyle(
+                fontSize: 11.5,
+                height: 1.35,
+                color: AppColors.textLabel,
+              ),
+            ),
           ),
         ],
       ),
@@ -338,8 +506,13 @@ class _PredictionCard extends StatelessWidget {
           Row(
             children: <Widget>[
               Text(
-                'Confidence',
-                style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                p.needsReview ? 'Confidence (perlu review)' : 'Confidence',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: p.needsReview ? AppColors.amber : AppColors.textMuted,
+                  fontWeight:
+                      p.needsReview ? FontWeight.w700 : FontWeight.w400,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(

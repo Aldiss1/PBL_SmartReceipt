@@ -25,10 +25,14 @@ class MLClassifierService {
 
   /// Loads the model exactly once. Subsequent calls resolve immediately.
   ///
+  /// Also loads the Indonesian preprocessing rule table so the full
+  /// clean → tokenize → normalize → classify pipeline is available afterwards.
+  ///
   /// Never throws: a load failure is logged, leaves [isReady] false, and lets
   /// the UI degrade gracefully instead of crashing mid-scan.
   Future<bool> loadModel() async {
     try {
+      await _preprocessing.loadFromAsset();
       await _engine.load();
       return true;
     } on TfidfModelException catch (e) {
@@ -44,6 +48,10 @@ class MLClassifierService {
   void attachPreprocessor(IndonesianTextPreprocessor preprocessor) {
     _preprocessing = preprocessor;
   }
+
+  /// Exposes the active preprocessor for callers that want the intermediate
+  /// stages (e.g. showing the tokenized form in a debug/analysis view).
+  IndonesianTextPreprocessor get preprocessor => _preprocessing;
 
   /// Full prediction for [rawText] (typically an OCR line or item name).
   TfidfPrediction predict(String rawText) {

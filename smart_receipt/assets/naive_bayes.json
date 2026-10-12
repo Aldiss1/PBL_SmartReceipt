@@ -1,0 +1,50 @@
+{
+  "categories": [
+    {"id": 1, "name": "Makanan & Minuman", "prior": 0.25},
+    {"id": 2, "name": "Transport", "prior": 0.15},
+    {"id": 3, "name": "Belanja Bulanan", "prior": 0.20},
+    {"id": 4, "name": "Utilitas", "prior": 0.10},
+    {"id": 5, "name": "Hiburan", "prior": 0.08},
+    {"id": 6, "name": "Kesehatan", "prior": 0.07},
+    {"id": 7, "name": "Pendidikan", "prior": 0.05},
+    {"id": 8, "name": "Lainnya", "prior": 0.10}
+  ],
+  "vocabulary_size": 80,
+  "likelihood": {
+    "1": {
+      "makan": 0.12, "nasi": 0.09, "ayam": 0.08, "mie": 0.07, "soto": 0.06,
+      "bakso": 0.06, "burger": 0.05, "pizza": 0.05, "sushi": 0.04, "resto": 0.05,
+      "warung": 0.05, "cafe": 0.04, "minum": 0.04, "teh": 0.03, "kopi": 0.03, "susu": 0.03
+    },
+    "2": {
+      "transport": 0.18, "gojek": 0.12, "grab": 0.12, "taxi": 0.10, "bensin": 0.15,
+      "pertamina": 0.13, "spbu": 0.08, "tol": 0.07, "parkir": 0.05
+    },
+    "3": {
+      "indomaret": 0.20, "alfamart": 0.18, "supermarket": 0.15, "hypermart": 0.12,
+      "carrefour": 0.10, "belanja": 0.13, "groceries": 0.12
+    },
+    "4": {
+      "listrik": 0.25, "pln": 0.20, "air": 0.15, "pdam": 0.10, "internet": 0.12,
+      "telkom": 0.08, "indihome": 0.05, "token": 0.10, "pulsa": 0.10
+    },
+    "5": {
+      "bioskop": 0.25, "cinema": 0.20, "game": 0.15, "netflix": 0.12, "spotify": 0.10,
+      "tiket": 0.08, "konser": 0.05, "hiburan": 0.05
+    },
+    "6": {
+      "apotek": 0.30, "kimia": 0.15, "farma": 0.15, "dokter": 0.12, "rumah": 0.08,
+      "sakit": 0.08, "klinik": 0.05, "obat": 0.10, "vitamin": 0.07
+    },
+    "7": {
+      "gramedia": 0.25, "buku": 0.20, "kursus": 0.15, "les": 0.12, "sekolah": 0.10,
+      "universitas": 0.08, "kampus": 0.08
+    },
+    "8": {
+      "bayar": 0.10, "total": 0.08, "jumlah": 0.07, "tunai": 0.06, "debit": 0.05,
+      "kredit": 0.05, "qris": 0.04, "gopay": 0.03, "ovo": 0.03, "dana": 0.03
+    }
+  },
+  "default_likelihood": 0.0001,
+  "smoothing_alpha": 0.1
+}

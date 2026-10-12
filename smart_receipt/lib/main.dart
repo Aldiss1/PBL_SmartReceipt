@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'app_colors.dart';
+import 'providers/receipt_provider.dart';
+import 'scan_receipt.dart';
 import 'splash_screen.dart';
 import 'theme_controller.dart';
 
@@ -57,6 +60,10 @@ class _SmartReceiptAppState extends State<SmartReceiptApp>
       useMaterial3: true,
       brightness: brightness,
       scaffoldBackgroundColor: palette.bg,
+      appBarTheme: const AppBarTheme(
+        centerTitle: true,
+        elevation: 0,
+      ),
       colorScheme: ColorScheme.fromSeed(
         seedColor: palette.navy,
         brightness: brightness,
@@ -69,15 +76,23 @@ class _SmartReceiptAppState extends State<SmartReceiptApp>
   @override
   Widget build(BuildContext context) {
     final bool dark = themeController.isDark;
-    return ThemeScope(
-      controller: themeController,
-      child: MaterialApp(
-        title: 'Smart Receipt',
-        debugShowCheckedModeBanner: false,
-        theme: _theme(AppPalette.light, Brightness.light),
-        darkTheme: _theme(AppPalette.dark, Brightness.dark),
-        themeMode: dark ? ThemeMode.dark : ThemeMode.light,
-        home: const SplashScreen(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ReceiptProvider()..loadData()),
+      ],
+      child: ThemeScope(
+        controller: themeController,
+        child: MaterialApp(
+          title: 'Smart Receipt',
+          debugShowCheckedModeBanner: false,
+          theme: _theme(AppPalette.light, Brightness.light),
+          darkTheme: _theme(AppPalette.dark, Brightness.dark),
+          themeMode: dark ? ThemeMode.dark : ThemeMode.light,
+          home: const SplashScreen(),
+          routes: {
+            '/scan': (_) => const ScanReceiptScreen(),
+          },
+        ),
       ),
     );
   }

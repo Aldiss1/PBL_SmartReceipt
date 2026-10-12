@@ -28,5 +28,9 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Perlu akses galeri untuk memilih foto struk belanja.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Perlu akses kamera untuk foto struk belanja.</string>
 </dict>
 </plist>

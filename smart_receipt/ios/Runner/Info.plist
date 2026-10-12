@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Perlu akses kamera untuk foto struk belanja.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Perlu akses galeri untuk pilih foto struk.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Perlu akses simpan foto struk.</string>
 </dict>
 </plist>

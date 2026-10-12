@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-
-import 'app_colors.dart';
-import 'splash_screen.dart';
+import 'package:provider/provider.dart';
+import 'providers/receipt_provider.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/scan_receipt_screen.dart';
 
 void main() {
   runApp(const SmartReceiptApp());
@@ -12,19 +13,28 @@ class SmartReceiptApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Smart Receipt',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: AppColors.bg,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.navy,
-          primary: AppColors.navy,
-          surface: AppColors.bg,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ReceiptProvider()..loadData()),
+      ],
+      child: MaterialApp(
+        title: 'SmartReceipt',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.blue,
+            brightness: Brightness.light,
+          ),
+          useMaterial3: true,
+          appBarTheme: const AppBarTheme(
+            centerTitle: true,
+            elevation: 0,
+          ),
         ),
+        home: const DashboardScreen(),
+        routes: {
+          '/scan': (_) => const ScanReceiptScreen(),
+        },
       ),
-      home: const SplashScreen(),
     );
   }
 }

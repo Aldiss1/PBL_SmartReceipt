@@ -5,32 +5,14 @@ import 'models.dart';
 
 /// iOS-style status bar used across every screen for visual consistency.
 class AppStatusBar extends StatelessWidget {
-  const AppStatusBar({super.key, this.time = '09:41'});
+  const AppStatusBar({super.key, this.time = ''});
 
   final String time;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 8, 22, 6),
-      child: Row(
-        children: <Widget>[
-          Text(
-            time,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textDark,
-            ),
-          ),
-          const Spacer(),
-          const Icon(Icons.signal_cellular_alt, size: 17, color: AppColors.textDark),
-          const SizedBox(width: 6),
-          const Icon(Icons.wifi, size: 17, color: AppColors.textDark),
-          const SizedBox(width: 6),
-          const Icon(Icons.battery_full, size: 19, color: AppColors.textDark),
-        ],
-      ),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
     );
   }
 }

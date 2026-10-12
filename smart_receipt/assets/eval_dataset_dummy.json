@@ -1,0 +1,90 @@
+{
+  "_comment": "Dataset evaluasi dummy untuk model TF-IDF + Naive Bayes. Label adalah kelas asli model (15 kelas). Ganti dengan data struk nyata ketika tersedia.",
+  "samples": [
+    {"text": "INDOMIE GORENG SPECIAL", "label": "Makanan"},
+    {"text": "MIE INSTAN KUAH AYAM", "label": "Makanan"},
+    {"text": "NASI GORENG SPESIAL", "label": "Makanan"},
+    {"text": "AYAM GEPREK SAOS", "label": "Makanan"},
+    {"text": "TELUR AYAM 1 KG", "label": "Makanan"},
+    {"text": "ROTI TAWAR GANDUM", "label": "Makanan"},
+    {"text": "BISKUIT OREO 133GR", "label": "Makanan"},
+    {"text": "KERUPUK UDANG", "label": "Makanan"},
+    {"text": "SARDEN ABC TOMAT", "label": "Makanan"},
+    {"text": "TEMPE MENDOAN", "label": "Makanan"},
+
+    {"text": "AQUA 600ML", "label": "Minuman"},
+    {"text": "TEH BOTOL SOSRO", "label": "Minuman"},
+    {"text": "KOPI KAPAL API SACHET", "label": "Minuman"},
+    {"text": "SUSU ULTRA MILK 250ML", "label": "Minuman"},
+    {"text": "MINUMAN ISOTONIK MIZONE", "label": "Minuman"},
+    {"text": "POCARI SWEAT 500ML", "label": "Minuman"},
+    {"text": "SPRITE 390ML", "label": "Minuman"},
+    {"text": "YAKULT 5 PCS", "label": "Minuman"},
+
+    {"text": "PERTALITE 5 LITER", "label": "Transportasi"},
+    {"text": "PERTAMAX TURBO", "label": "Transportasi"},
+    {"text": "BENSIN PERTAMINA", "label": "Transportasi"},
+    {"text": "TIKET BUS ANTARKOTA", "label": "Transportasi"},
+    {"text": "PARKIR MAL", "label": "Transportasi"},
+    {"text": "GOJEK RIDE", "label": "Transportasi"},
+    {"text": "TARIF TOL JAGORAWI", "label": "Transportasi"},
+
+    {"text": "TOKEN LISTRIK PLN 100RB", "label": "Tagihan & Utilitas"},
+    {"text": "PDAM AIR BULAN SEPTEMBER", "label": "Tagihan & Utilitas"},
+    {"text": "INTERNET INDIHOME", "label": "Tagihan & Utilitas"},
+    {"text": "PULSA TELKOMSEL 50000", "label": "Tagihan & Utilitas"},
+
+    {"text": "TISU PASEO 250S", "label": "Rumah Tangga"},
+    {"text": "DETERJEN RINSO 800GR", "label": "Rumah Tangga"},
+    {"text": "SABUN CUCI SUNLIGHT", "label": "Rumah Tangga"},
+    {"text": "PEWANGI MOLTO 1L", "label": "Rumah Tangga"},
+    {"text": "SAPU IJUK", "label": "Rumah Tangga"},
+    {"text": "EMBER PLASTIK 20L", "label": "Rumah Tangga"},
+    {"text": "KARBOL WIPOL 800ML", "label": "Rumah Tangga"},
+
+    {"text": "SABUN LIFEBUOY BATANG", "label": "Perawatan Diri"},
+    {"text": "SHAMPOO PANTENE 170ML", "label": "Perawatan Diri"},
+    {"text": "PASTA GIGI PEPSODENT", "label": "Perawatan Diri"},
+    {"text": "DEODORAN NIVEA ROLL ON", "label": "Perawatan Diri"},
+    {"text": "LOTION GARNIER 100ML", "label": "Perawatan Diri"},
+    {"text": "PARFUM WARDAH", "label": "Perawatan Diri"},
+
+    {"text": "OBAT PARACETAMOL 500MG", "label": "Kesehatan"},
+    {"text": "VITAMIN C IPI", "label": "Kesehatan"},
+    {"text": "BODREX MIGRA", "label": "Kesehatan"},
+    {"text": "PLESTER HANSAPLAST", "label": "Kesehatan"},
+    {"text": "BETADINE SOLUTION", "label": "Kesehatan"},
+
+    {"text": "CHARGER HP 20W", "label": "Elektronik"},
+    {"text": "POWER BANK 10000MAH", "label": "Elektronik"},
+    {"text": "KABEL USB TYPE C", "label": "Elektronik"},
+    {"text": "EARPHONE BLUETOOTH", "label": "Elektronik"},
+    {"text": "FLASH DISK 32GB", "label": "Elektronik"},
+    {"text": "LAMPU LED 12W", "label": "Elektronik"},
+
+    {"text": "KAOS POLOS COTTON", "label": "Pakaian & Fashion"},
+    {"text": "KEMEJA BATIK LENGAN PANJANG", "label": "Pakaian & Fashion"},
+    {"text": "CELANA JEANS LEVIS", "label": "Pakaian & Fashion"},
+    {"text": "JAKET BOMBER", "label": "Pakaian & Fashion"},
+    {"text": "SEPATU SNEAKERS", "label": "Pakaian & Fashion"},
+    {"text": "SANDAL JEPIT SWALLOW", "label": "Pakaian & Fashion"},
+
+    {"text": "BUKU TULIS SIDU 38 LEMBAR", "label": "Pendidikan & ATK"},
+    {"text": "PULPEN STANDARD AE7", "label": "Pendidikan & ATK"},
+    {"text": "BUKU KURSUS BAHASA INGGRIS", "label": "Pendidikan & ATK"},
+
+    {"text": "POPOK BAYI PAMPERS M", "label": "Bayi & Anak"},
+    {"text": "SUSU FORMULA BAYI 400GR", "label": "Bayi & Anak"},
+    {"text": "MAINAN EDUKASI ANAK", "label": "Bayi & Anak"},
+
+    {"text": "MAKANAN KUCING WHISKAS", "label": "Hewan Peliharaan"},
+    {"text": "PASIR KUCING 5KG", "label": "Hewan Peliharaan"},
+
+    {"text": "TIKET BIOSKOP XXI", "label": "Hiburan & Hobi"},
+    {"text": "VOUCHER GAME ONLINE", "label": "Hiburan & Hobi"},
+    {"text": "LANGGANAN NETFLIX", "label": "Hiburan & Hobi"},
+
+    {"text": "ROKOK GUDANG GARAM 12", "label": "Rokok & Tembakau"},
+    {"text": "ROKOK SAMPOERNA MILD", "label": "Rokok & Tembakau"}
+  ]
+}

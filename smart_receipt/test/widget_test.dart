@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:smart_receipt/screens/analysis.dart';
-import 'package:smart_receipt/screens/category_classification.dart';
-import 'package:smart_receipt/screens/empty_state.dart';
+import 'package:smart_receipt/analysis.dart';
+import 'package:smart_receipt/category_classification.dart';
+import 'package:smart_receipt/empty_state.dart';
 import 'package:smart_receipt/main.dart';
-import 'package:smart_receipt/data/sample_data.dart';
-import 'package:smart_receipt/models/models.dart';
+import 'package:smart_receipt/models.dart';
 import 'package:smart_receipt/ocr/image_quality.dart';
 import 'package:smart_receipt/ocr/ocr_raw_text.dart';
 import 'package:smart_receipt/ocr/ocr_service.dart';
 import 'package:smart_receipt/ocr/receipt_classifier.dart';
 import 'package:smart_receipt/ocr/receipt_parser.dart';
-import 'package:smart_receipt/screens/review_transaction.dart';
-import 'package:smart_receipt/screens/scan_receipt.dart';
-import 'package:smart_receipt/screens/settings.dart';
-import 'package:smart_receipt/screens/spending_prediction.dart';
-import 'package:smart_receipt/screens/transaction_detail.dart';
-import 'package:smart_receipt/screens/transaction_history.dart';
-import 'package:smart_receipt/screens/transaction_saved.dart';
+import 'package:smart_receipt/review_transaction.dart';
+import 'package:smart_receipt/sample_data.dart';
+import 'package:smart_receipt/scan_receipt.dart';
+import 'package:smart_receipt/settings.dart';
+import 'package:smart_receipt/spending_prediction.dart';
+import 'package:smart_receipt/transaction_detail.dart';
+import 'package:smart_receipt/transaction_history.dart';
+import 'package:smart_receipt/transaction_saved.dart';
 
 /// Builds a deterministic OCR result so downstream screens can render without a
 /// camera or the native OCR engine.

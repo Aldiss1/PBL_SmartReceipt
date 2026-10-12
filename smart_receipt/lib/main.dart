@@ -78,7 +78,10 @@ class _SmartReceiptAppState extends State<SmartReceiptApp>
     final bool dark = themeController.isDark;
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ReceiptProvider()..loadData()),
+        // Local SQLite storage for saved receipts.
+        ChangeNotifierProvider<ReceiptProvider>(
+          create: (_) => ReceiptProvider()..loadData(),
+        ),
       ],
       child: ThemeScope(
         controller: themeController,

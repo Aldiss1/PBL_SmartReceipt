@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Camera capture for scanning the receipt. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Gallery read on Android 13+. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <!-- Legacy gallery read on Android 12 and below. -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
+
     <application
         android:label="smart_receipt"
         android:name="${applicationName}"

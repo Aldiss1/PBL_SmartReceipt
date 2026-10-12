@@ -1,62 +1,138 @@
-import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
-import 'app_route.dart';
 import 'app_widgets.dart';
 import 'category_classification.dart';
+import 'ocr/image_quality.dart';
+import 'ocr/ocr_raw_text.dart';
+import 'ocr/ocr_service.dart';
 import 'receipt_mock.dart';
 import 'theme_controller.dart';
 
 /// Screen 3 - OCR Processing.
+///
+/// Runs the real OCR pipeline on the captured image:
+/// preprocess (rotation / blur / low-light) → ML Kit text recognition →
+/// structured transaction parsing. Shows live progress and handles failures
+/// (blurred, dark, or unreadable receipts).
 class OcrProcessingScreen extends StatefulWidget {
-  const OcrProcessingScreen({super.key});
+  const OcrProcessingScreen({super.key, required this.imagePath});
+
+  final String imagePath;
 
   @override
   State<OcrProcessingScreen> createState() => _OcrProcessingScreenState();
 }
 
 class _OcrProcessingScreenState extends State<OcrProcessingScreen> {
-  static const List<_OcrStep> _steps = <_OcrStep>[
-    _OcrStep(label: 'Mendeteksi tepi struk', icon: Icons.crop_free),
-    _OcrStep(label: 'Meningkatkan kualitas gambar', icon: Icons.auto_fix_high),
-    _OcrStep(label: 'Membaca teks (OCR)', icon: Icons.text_fields),
-    _OcrStep(label: 'Menstrukturkan data transaksi', icon: Icons.table_rows_outlined),
-  ];
+  final OcrService _service = OcrService();
 
-  Timer? _timer;
-  int _current = 0;
+  OcrStage _stage = OcrStage.preprocessing;
+  OcrFailure? _failure;
+  OcrScanResult? _result;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(milliseconds: 900), (Timer t) {
-      if (!mounted) {
-        return;
-      }
-      if (_current >= _steps.length - 1) {
-        t.cancel();
-        Navigator.pushReplacement(
-          context,
-          appRoute(const CategoryClassificationScreen()),
-        );
-        return;
-      }
-      setState(() => _current++);
-    });
+    _run();
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _service.dispose();
     super.dispose();
+  }
+
+  Future<void> _run() async {
+    setState(() {
+      _failure = null;
+      _result = null;
+      _stage = OcrStage.preprocessing;
+    });
+    try {
+      final OcrScanResult result = await _service.process(
+        widget.imagePath,
+        onStage: (OcrStage stage) {
+          if (mounted) {
+            setState(() => _stage = stage);
+          }
+        },
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _result = result);
+      // Brief pause so the completed checklist is visible before moving on.
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      if (!mounted) {
+        return;
+      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute<void>(
+          builder: (BuildContext context) =>
+              CategoryClassificationScreen(scan: result),
+        ),
+      );
+    } on OcrFailure catch (e) {
+      if (mounted) {
+        setState(() => _failure = e);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(
+          () => _failure = OcrFailure('Terjadi kesalahan tak terduga.', hint: '$e'),
+        );
+      }
+    }
+  }
+
+  int get _activeIndex {
+    switch (_stage) {
+      case OcrStage.preprocessing:
+        return 0;
+      case OcrStage.recognizing:
+        return 1;
+      case OcrStage.parsing:
+      case OcrStage.done:
+        return 2;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final double progress = (_current + 1) / _steps.length;
     ThemeScope.watch(context);
+
+    if (_failure != null) {
+      return _FailureView(
+        failure: _failure!,
+        onRetry: _run,
+        onBack: () => Navigator.maybePop(context),
+      );
+    }
+
+    final List<_OcrStep> steps = <_OcrStep>[
+      const _OcrStep(
+        label: 'Menyeimbangkan & memutar gambar',
+        icon: Icons.auto_fix_high,
+      ),
+      _OcrStep(
+        label: _result != null && _result!.hasRecognizedText
+            ? 'Membaca teks (OCR) — ${_result!.raw.lineCount} baris'
+            : 'Membaca teks (OCR)',
+        icon: Icons.text_fields,
+      ),
+      const _OcrStep(
+        label: 'Menstrukturkan data transaksi',
+        icon: Icons.table_rows_outlined,
+      ),
+    ];
+
+    final double progress = _result != null
+        ? 1.0
+        : (_stage.index + 0.5).clamp(0.15, 0.95).toDouble();
 
     return Scaffold(
       key: ValueKey<AppPalette>(AppColors.palette),
@@ -68,8 +144,8 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen> {
             const AppStatusBar(),
             AppTopBar(
               title: 'Memproses OCR',
-              subtitle: 'Mohon tunggu sebentar',
-              onBack: () => Navigator.pop(context),
+              subtitle: _result != null ? 'Selesai' : 'Mohon tunggu sebentar',
+              onBack: () => Navigator.maybePop(context),
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -77,7 +153,11 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    const _Preview(),
+                    _Preview(imagePath: widget.imagePath),
+                    if (_result != null && _result!.quality.hasIssue) ...<Widget>[
+                      const SizedBox(height: 16),
+                      _QualityNotice(report: _result!.quality),
+                    ],
                     const SizedBox(height: 22),
                     Row(
                       children: <Widget>[
@@ -105,7 +185,7 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen> {
                       borderRadius: BorderRadius.circular(6),
                       child: TweenAnimationBuilder<double>(
                         tween: Tween<double>(begin: 0, end: progress),
-                        duration: const Duration(milliseconds: 500),
+                        duration: const Duration(milliseconds: 400),
                         curve: Curves.easeOut,
                         builder: (BuildContext context, double value, Widget? child) {
                           return LinearProgressIndicator(
@@ -126,16 +206,20 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen> {
                       ),
                       child: Column(
                         children: <Widget>[
-                          for (int i = 0; i < _steps.length; i++)
+                          for (int i = 0; i < steps.length; i++)
                             _StepRow(
-                              step: _steps[i],
-                              done: i < _current,
-                              active: i == _current,
-                              last: i == _steps.length - 1,
+                              step: steps[i],
+                              done: i < _activeIndex || _result != null,
+                              active: i == _activeIndex && _result == null,
+                              last: i == steps.length - 1,
                             ),
                         ],
                       ),
                     ),
+                    if (_result != null && _result!.hasRecognizedText) ...<Widget>[
+                      const SizedBox(height: 18),
+                      _RawTextCard(lines: _result!.raw.lines),
+                    ],
                   ],
                 ),
               ),
@@ -155,14 +239,17 @@ class _OcrStep {
 }
 
 class _Preview extends StatelessWidget {
-  const _Preview();
+  const _Preview({required this.imagePath});
+
+  final String imagePath;
 
   @override
   Widget build(BuildContext context) {
+    final File file = File(imagePath);
     return ClipRRect(
       borderRadius: BorderRadius.circular(22),
       child: Container(
-        height: 190,
+        height: 220,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -171,46 +258,34 @@ class _Preview extends StatelessWidget {
           ),
         ),
         child: Stack(
+          fit: StackFit.expand,
           children: <Widget>[
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Opacity(
-                  opacity: 0.55,
-                  child: Transform.rotate(
-                    angle: -0.02,
-                    child: const SizedBox(
-                      width: 112,
-                      height: 148,
-                      child: FittedBox(
-                        fit: BoxFit.contain,
-                        child: ReceiptMock(width: 132),
+            // Show the actual captured receipt, falling back to a mock when the
+            // file is unavailable.
+            if (file.existsSync())
+              Image.file(file, fit: BoxFit.cover)
+            else
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Opacity(
+                    opacity: 0.55,
+                    child: Transform.rotate(
+                      angle: -0.02,
+                      child: const SizedBox(
+                        width: 112,
+                        height: 148,
+                        child: FittedBox(
+                          fit: BoxFit.contain,
+                          child: ReceiptMock(width: 132),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 104,
-              child: Container(
-                height: 3,
-                margin: const EdgeInsets.symmetric(horizontal: 26),
-                decoration: BoxDecoration(
-                  color: AppColors.orange,
-                  borderRadius: BorderRadius.circular(3),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: AppColors.orange.withValues(alpha: 0.7),
-                      blurRadius: 16,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            const Positioned(left: 0, right: 0, top: 104, child: _ScanLine()),
             const Positioned(
               top: 14,
               left: 14,
@@ -218,6 +293,25 @@ class _Preview extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ScanLine extends StatelessWidget {
+  const _ScanLine();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 3,
+      margin: const EdgeInsets.symmetric(horizontal: 26),
+      decoration: BoxDecoration(
+        color: AppColors.orange,
+        borderRadius: BorderRadius.circular(3),
+        boxShadow: <BoxShadow>[
+          BoxShadow(color: AppColors.orange.withValues(alpha: 0.7), blurRadius: 16),
+        ],
       ),
     );
   }
@@ -234,7 +328,7 @@ class _Tag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: Colors.black.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -251,6 +345,201 @@ class _Tag extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Warns the user about image problems detected by preprocessing.
+class _QualityNotice extends StatelessWidget {
+  const _QualityNotice({required this.report});
+
+  final ImageQualityReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.amberSoft,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+           Icon(Icons.warning_amber_rounded, color: AppColors.amber, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                 Text(
+                  'Kualitas gambar perlu diperhatikan',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                for (final String issue in report.issues)
+                  Text(
+                    '• $issue',
+                    style:  TextStyle(
+                      fontSize: 12,
+                      height: 1.4,
+                      color: AppColors.textLabel,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shows the raw recognised text so the user can see what OCR captured.
+class _RawTextCard extends StatelessWidget {
+  const _RawTextCard({required this.lines});
+
+  final List<OcrLine> lines;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+           Text(
+            'Teks Terdeteksi',
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textDark,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 180),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  for (final OcrLine line in lines.take(40))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: Text(
+                        line.text,
+                        style:  TextStyle(
+                          fontSize: 12,
+                          height: 1.35,
+                          color: AppColors.textLabel,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Failure state with a helpful hint and retry.
+class _FailureView extends StatelessWidget {
+  const _FailureView({
+    required this.failure,
+    required this.onRetry,
+    required this.onBack,
+  });
+
+  final OcrFailure failure;
+  final VoidCallback onRetry;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Column(
+          children: <Widget>[
+            const AppStatusBar(),
+            AppTopBar(title: 'OCR Gagal', onBack: onBack),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(22, 12, 22, 22),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Container(
+                      width: 96,
+                      height: 96,
+                      decoration:  BoxDecoration(
+                        color: AppColors.redSoft,
+                        shape: BoxShape.circle,
+                      ),
+                      child:  Icon(
+                        Icons.error_outline,
+                        size: 52,
+                        color: AppColors.red,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    Text(
+                      failure.message,
+                      textAlign: TextAlign.center,
+                      style:  TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    if (failure.hint != null) ...<Widget>[
+                      const SizedBox(height: 10),
+                      Text(
+                        failure.hint!,
+                        textAlign: TextAlign.center,
+                        style:  TextStyle(
+                          fontSize: 13,
+                          height: 1.5,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
+              child: Column(
+                children: <Widget>[
+                  PrimaryButton(
+                    label: 'Coba Lagi',
+                    icon: Icons.refresh,
+                    onPressed: onRetry,
+                  ),
+                  const SizedBox(height: 12),
+                  SecondaryButton(
+                    label: 'Ambil Ulang Foto',
+                    icon: Icons.photo_camera_outlined,
+                    onPressed: onBack,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -313,14 +602,7 @@ class _StepRow extends StatelessWidget {
               ),
             )
           else if (done)
-            Text(
-              'Selesai',
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: AppColors.green,
-              ),
-            ),
+             Icon(Icons.check_circle, size: 18, color: AppColors.green),
         ],
       ),
     );

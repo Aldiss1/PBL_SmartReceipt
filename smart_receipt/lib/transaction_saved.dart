@@ -4,16 +4,30 @@ import 'app_colors.dart';
 import 'app_nav.dart';
 import 'app_widgets.dart';
 import 'models.dart';
-import 'sample_data.dart';
 import 'theme_controller.dart';
 
 /// Screen 6 - Transaction Saved.
+///
+/// Confirms the transaction that was just extracted by OCR and saved.
 class TransactionSavedScreen extends StatelessWidget {
-  const TransactionSavedScreen({super.key});
+  const TransactionSavedScreen({
+    super.key,
+    required this.store,
+    required this.date,
+    required this.items,
+    this.paymentMethod = 'Tunai',
+  });
+
+  final String store;
+  final DateTime date;
+  final List<TransactionItem> items;
+  final String paymentMethod;
+
+  int get _total =>
+      items.fold(0, (int sum, TransactionItem i) => sum + i.subtotal);
 
   @override
   Widget build(BuildContext context) {
-    final Transaction t = kSampleTransactions.first;
     ThemeScope.watch(context);
 
     return Scaffold(
@@ -71,15 +85,15 @@ class TransactionSavedScreen extends StatelessWidget {
                         ),
                         child: Column(
                           children: <Widget>[
-                            _row('Toko', t.store),
+                            _row('Toko', store),
                             const SizedBox(height: 12),
-                            _row('Tanggal', formatDate(t.date)),
+                            _row('Tanggal', formatDate(date)),
                             const SizedBox(height: 12),
-                            _row('Jumlah Item', '${t.itemCount} item'),
+                            _row('Jumlah Item', '${items.length} item'),
                             const SizedBox(height: 12),
-                            _row('Metode', t.paymentMethod),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            _row('Metode', paymentMethod),
+                             Padding(
+                              padding: EdgeInsets.symmetric(vertical: 14),
                               child: Divider(height: 1, color: AppColors.border),
                             ),
                             Row(
@@ -94,8 +108,8 @@ class TransactionSavedScreen extends StatelessWidget {
                                 ),
                                 const Spacer(),
                                 Text(
-                                  rupiah(t.total),
-                                  style: TextStyle(
+                                  rupiah(_total),
+                                  style:  TextStyle(
                                     fontSize: 19,
                                     fontWeight: FontWeight.w800,
                                     color: AppColors.textDark,

@@ -4,25 +4,47 @@ import 'app_colors.dart';
 import 'app_route.dart';
 import 'app_widgets.dart';
 import 'models.dart';
+import 'ocr/ocr_service.dart';
+import 'ocr/receipt_classifier.dart';
+import 'ocr/receipt_parser.dart';
 import 'review_transaction.dart';
 import 'theme_controller.dart';
 
-/// Screen 5 - Category Classification (TF-IDF + Naive Bayes results).
-class CategoryClassificationScreen extends StatelessWidget {
-  const CategoryClassificationScreen({super.key});
+/// Screen 5 - Category Classification.
+///
+/// Runs the on-device TF-IDF + Naive Bayes classifier over the item names that
+/// were extracted by OCR, then forwards the classified items to the review
+/// screen.
+class CategoryClassificationScreen extends StatefulWidget {
+  const CategoryClassificationScreen({super.key, required this.scan});
 
-  static const List<_Prediction> _predictions = <_Prediction>[
-    _Prediction(name: 'Indomie Goreng', category: 'Makanan', confidence: 0.97),
-    _Prediction(name: 'Aqua 600ml', category: 'Minuman', confidence: 0.95),
-    _Prediction(name: 'Sabun Lifebuoy', category: 'Perawatan Diri', confidence: 0.91),
-    _Prediction(name: 'Tissue Paseo', category: 'Rumah Tangga', confidence: 0.88),
-    _Prediction(name: 'Teh Botol Sosro', category: 'Minuman', confidence: 0.93),
-    _Prediction(name: 'Roti Tawar', category: 'Makanan', confidence: 0.9),
-  ];
+  final OcrScanResult scan;
+
+  @override
+  State<CategoryClassificationScreen> createState() =>
+      _CategoryClassificationScreenState();
+}
+
+class _CategoryClassificationScreenState
+    extends State<CategoryClassificationScreen> {
+  final ReceiptClassifier _classifier = ReceiptClassifier();
+
+  late final List<ItemPrediction> _predictions;
+
+  @override
+  void initState() {
+    super.initState();
+    final List<String> names = widget.scan.parsed.items
+        .map((ParsedItem i) => i.name)
+        .toList();
+    _predictions = _classifier.classifyAll(names);
+  }
 
   @override
   Widget build(BuildContext context) {
     ThemeScope.watch(context);
+    final List<ItemPrediction> predictions = _predictions;
+
     return Scaffold(
       key: ValueKey<AppPalette>(AppColors.palette),
       backgroundColor: AppColors.bg,
@@ -42,13 +64,15 @@ class CategoryClassificationScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
+                    _StoreSummary(scan: widget.scan),
+                    const SizedBox(height: 16),
                     const _ModelCard(),
                     const SizedBox(height: 18),
                     SectionHeader(
                       title: 'Hasil Klasifikasi',
                       trailing: Text(
-                        '6 item',
-                        style: TextStyle(
+                        '${predictions.length} item',
+                        style:  TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textMuted,
@@ -56,7 +80,11 @@ class CategoryClassificationScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    for (final _Prediction p in _predictions) _PredictionCard(p: p),
+                    if (predictions.isEmpty)
+                      const _NoItemsCard()
+                    else
+                      for (final ItemPrediction p in predictions)
+                        _PredictionCard(p: p),
                   ],
                 ),
               ),
@@ -68,7 +96,12 @@ class CategoryClassificationScreen extends StatelessWidget {
                 icon: Icons.arrow_forward,
                 onPressed: () => Navigator.push(
                   context,
-                  appRoute(const ReviewTransactionScreen()),
+                  appRoute(
+                    ReviewTransactionScreen(
+                      scan: widget.scan,
+                      predictions: predictions,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -79,16 +112,88 @@ class CategoryClassificationScreen extends StatelessWidget {
   }
 }
 
-class _Prediction {
-  const _Prediction({
-    required this.name,
-    required this.category,
-    required this.confidence,
-  });
+/// Shows store/date/total recovered by OCR above the classifier card.
+class _StoreSummary extends StatelessWidget {
+  const _StoreSummary({required this.scan});
 
-  final String name;
-  final String category;
-  final double confidence;
+  final OcrScanResult scan;
+
+  @override
+  Widget build(BuildContext context) {
+    final DateTime? date = scan.parsed.date;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: <Widget>[
+          const IconBox(icon: Icons.storefront_outlined),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  scan.parsed.store,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style:  TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  date != null
+                      ? '${formatDateTime(date)} • ${scan.parsed.paymentMethod}'
+                      : 'Hasil OCR • ${scan.parsed.paymentMethod}',
+                  style:  TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoItemsCard extends StatelessWidget {
+  const _NoItemsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child:  Row(
+        children: <Widget>[
+          Icon(Icons.info_outline, color: AppColors.amber),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'OCR tidak menemukan baris item yang bisa diklasifikasi. '
+              'Anda masih bisa menambah item secara manual di langkah review.',
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.4,
+                color: AppColors.textLabel,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ModelCard extends StatelessWidget {
@@ -195,7 +300,7 @@ class _ModelCard extends StatelessWidget {
 class _PredictionCard extends StatelessWidget {
   const _PredictionCard({required this.p});
 
-  final _Prediction p;
+  final ItemPrediction p;
 
   @override
   Widget build(BuildContext context) {

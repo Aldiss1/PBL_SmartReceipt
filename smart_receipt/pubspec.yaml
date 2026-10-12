@@ -42,8 +42,11 @@ dependencies:
   # Image Picker & Processing
   image_picker: ^1.0.4
 
-  # ML Classification (TFLite)
-  tflite_flutter: ^0.10.0
+  # OCR: Google ML Kit on-device text recognition (Indonesian / Latin script).
+  google_mlkit_text_recognition: ^0.14.0
+
+  # On-device image preprocessing: rotation, brightness, blur detection.
+  image: ^4.2.0
 
   # State Management
   provider: ^6.1.0

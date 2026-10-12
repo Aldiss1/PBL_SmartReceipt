@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'app_colors.dart';
 import 'app_route.dart';
@@ -8,14 +9,55 @@ import 'receipt_mock.dart';
 import 'theme_controller.dart';
 
 /// Screen 2 - Scan Receipt.
-class ScanReceiptScreen extends StatelessWidget {
+///
+/// Captures a real receipt image from the device camera or gallery, then hands
+/// the file path to the OCR pipeline.
+class ScanReceiptScreen extends StatefulWidget {
   const ScanReceiptScreen({super.key});
 
-  void _proceed(BuildContext context) {
-    Navigator.pushReplacement(
-      context,
-      appRoute(const OcrProcessingScreen()),
-    );
+  @override
+  State<ScanReceiptScreen> createState() => _ScanReceiptScreenState();
+}
+
+class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
+  final ImagePicker _picker = ImagePicker();
+  bool _busy = false;
+
+  Future<void> _capture(ImageSource source) async {
+    if (_busy) {
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: source,
+        // Keep resolution high enough for OCR but bounded for memory.
+        maxWidth: 2400,
+        maxHeight: 2400,
+        imageQuality: 92,
+      );
+      if (picked == null) {
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
+      Navigator.pushReplacement(
+        context,
+        appRoute(OcrProcessingScreen(imagePath: picked.path)),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mengambil gambar: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
   }
 
   @override
@@ -52,15 +94,16 @@ class ScanReceiptScreen extends StatelessWidget {
               child: Column(
                 children: <Widget>[
                   PrimaryButton(
-                    label: 'Ambil Foto',
+                    label: _busy ? 'Memproses…' : 'Ambil Foto',
                     icon: Icons.photo_camera_outlined,
-                    onPressed: () => _proceed(context),
+                    onPressed: _busy ? null : () => _capture(ImageSource.camera),
                   ),
                   const SizedBox(height: 12),
                   SecondaryButton(
                     label: 'Pilih dari Galeri',
                     icon: Icons.image_outlined,
-                    onPressed: () => _proceed(context),
+                    onPressed:
+                        _busy ? null : () => _capture(ImageSource.gallery),
                   ),
                 ],
               ),

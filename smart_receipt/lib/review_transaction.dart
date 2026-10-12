@@ -1,16 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'app_colors.dart';
 import 'app_route.dart';
 import 'app_widgets.dart';
 import 'models.dart';
-import 'sample_data.dart';
+import 'models/receipt_model.dart' as db;
+import 'ocr/ocr_service.dart';
+import 'ocr/receipt_classifier.dart';
+import 'ocr/receipt_parser.dart';
+import 'providers/receipt_provider.dart';
 import 'theme_controller.dart';
 import 'transaction_saved.dart';
 
 /// Screen 4 - Review Transaction.
+///
+/// Prefills the editable items with the names/prices/qty recovered by OCR and
+/// the categories predicted by the classifier.
 class ReviewTransactionScreen extends StatefulWidget {
-  const ReviewTransactionScreen({super.key});
+  const ReviewTransactionScreen({
+    super.key,
+    required this.scan,
+    required this.predictions,
+  });
+
+  final OcrScanResult scan;
+  final List<ItemPrediction> predictions;
 
   @override
   State<ReviewTransactionScreen> createState() => _ReviewTransactionScreenState();
@@ -24,10 +39,25 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
   @override
   void initState() {
     super.initState();
-    final Transaction t = kSampleTransactions.first;
-    _store = t.store;
-    _date = t.date;
-    _items = List<TransactionItem>.of(t.items);
+    _store = widget.scan.parsed.store;
+    _date = widget.scan.parsed.date ?? DateTime.now();
+
+    final List<ParsedItem> parsedItems = widget.scan.parsed.items;
+    _items = <TransactionItem>[];
+    for (int i = 0; i < parsedItems.length; i++) {
+      final ParsedItem p = parsedItems[i];
+      final String category = i < widget.predictions.length
+          ? widget.predictions[i].category
+          : 'Lainnya';
+      _items.add(
+        TransactionItem(
+          name: p.name,
+          qty: p.qty,
+          price: p.price,
+          category: category,
+        ),
+      );
+    }
   }
 
   int get _total =>
@@ -92,6 +122,7 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
                     const SizedBox(height: 12),
                     for (int i = 0; i < _items.length; i++)
                       _ItemCard(item: _items[i], onTap: () => _editCategory(i)),
+                    if (_items.isEmpty) const _EmptyItemsNotice(),
                     const SizedBox(height: 4),
                     SecondaryButton(
                       label: 'Tambah Item',
@@ -109,14 +140,118 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
               child: PrimaryButton(
                 label: 'Simpan Transaksi',
                 icon: Icons.check_circle_outline,
-                onPressed: () => Navigator.pushReplacement(
-                  context,
-                  appRoute(const TransactionSavedScreen()),
-                ),
+                onPressed: _save,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    final ReceiptProvider provider =
+        Provider.of<ReceiptProvider>(context, listen: false);
+    final db.Receipt receipt = db.Receipt(
+      storeName: _store,
+      transactionDate: _date,
+      totalAmount: _total.toDouble(),
+      taxAmount: 0,
+      subtotal: _total.toDouble(),
+      paymentMethod: widget.scan.parsed.paymentMethod,
+      imagePath: widget.scan.sourcePath,
+      ocrText: widget.scan.raw.fullText,
+      status: 'completed',
+      createdAt: DateTime.now(),
+      transactions: <db.Transaction>[
+        for (final TransactionItem i in _items)
+          db.Transaction(
+            receiptId: 0,
+            categoryId: _categoryIdFor(i.category),
+            itemName: i.name,
+            quantity: i.qty,
+            unitPrice: i.price.toDouble(),
+            totalPrice: i.subtotal.toDouble(),
+            discount: 0,
+            createdAt: DateTime.now(),
+          ),
+      ],
+    );
+
+    try {
+      await provider.addReceipt(receipt);
+    } catch (_) {
+      // Storage failure should not block the confirmation screen.
+    }
+
+    if (!mounted) {
+      return;
+    }
+    Navigator.pushReplacement(
+      context,
+      appRoute(
+        TransactionSavedScreen(
+          store: _store,
+          date: _date,
+          items: _items,
+          paymentMethod: widget.scan.parsed.paymentMethod,
+        ),
+      ),
+    );
+  }
+
+  /// Maps a UI category name to the SQLite seed category id used by the
+  /// pulled database layer.
+  int _categoryIdFor(String category) {
+    switch (category) {
+      case 'Makanan':
+      case 'Minuman':
+        return 1;
+      case 'Transportasi':
+        return 2;
+      case 'Rumah Tangga':
+      case 'Perawatan Diri':
+      case 'Pakaian':
+        return 3;
+      case 'Kesehatan':
+        return 6;
+      case 'Elektronik':
+        return 7;
+      default:
+        return 8;
+    }
+  }
+}
+
+/// Shown when OCR found no line items; the user can add them manually.
+class _EmptyItemsNotice extends StatelessWidget {
+  const _EmptyItemsNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child:  Row(
+        children: <Widget>[
+          Icon(Icons.edit_note_outlined, color: AppColors.amber),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Tidak ada item yang terbaca dari struk. '
+              'Tambahkan item secara manual dengan tombol di bawah.',
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.4,
+                color: AppColors.textLabel,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -159,3 +159,81 @@ class Receipt {
     );
   }
 }
+
+/// One user correction of a model prediction, stored as future training data.
+///
+/// Written when the user changes the predicted category on the review screen.
+/// [itemName] is the normalized text the classifier actually saw; [originalName]
+/// keeps the raw OCR text; [predictedLabel] is the model's raw class label and
+/// [predictedCategoryId] the app category it mapped to. The `...Corrected...`
+/// fields record the user's answer, i.e. the new ground truth.
+class CategoryCorrection {
+  final int? id;
+  final String itemName;
+  final String? originalName;
+  final String? predictedLabel;
+  final int? predictedCategoryId;
+  final int correctedCategoryId;
+  final String correctedCategoryName;
+  final double? confidence;
+
+  /// Where the correction came from, e.g. 'review' or 'detail'.
+  final String source;
+
+  /// Whether a training run has already consumed this row.
+  final bool usedInTraining;
+
+  final DateTime createdAt;
+
+  CategoryCorrection({
+    this.id,
+    required this.itemName,
+    this.originalName,
+    this.predictedLabel,
+    this.predictedCategoryId,
+    required this.correctedCategoryId,
+    required this.correctedCategoryName,
+    this.confidence,
+    this.source = 'review',
+    this.usedInTraining = false,
+    required this.createdAt,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'item_name': itemName,
+      'original_name': originalName,
+      'predicted_label': predictedLabel,
+      'predicted_category_id': predictedCategoryId,
+      'corrected_category_id': correctedCategoryId,
+      'corrected_category_name': correctedCategoryName,
+      'confidence': confidence,
+      'source': source,
+      'used_in_training': usedInTraining ? 1 : 0,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
+  factory CategoryCorrection.fromMap(Map<String, dynamic> map) {
+    return CategoryCorrection(
+      id: map['id'] as int?,
+      itemName: map['item_name'] as String,
+      originalName: map['original_name'] as String?,
+      predictedLabel: map['predicted_label'] as String?,
+      predictedCategoryId: (map['predicted_category_id'] as num?)?.toInt(),
+      correctedCategoryId: (map['corrected_category_id'] as num).toInt(),
+      correctedCategoryName: map['corrected_category_name'] as String,
+      confidence: (map['confidence'] as num?)?.toDouble(),
+      source: (map['source'] as String?) ?? 'review',
+      usedInTraining: ((map['used_in_training'] as num?)?.toInt() ?? 0) == 1,
+      createdAt: DateTime.parse(map['created_at'] as String),
+    );
+  }
+
+  /// A `LabeledSample`-ready pair for retraining / evaluation.
+  Map<String, String> toTrainingSample() => <String, String>{
+        'text': itemName,
+        'label': correctedCategoryName,
+      };
+}

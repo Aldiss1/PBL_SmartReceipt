@@ -10,6 +10,7 @@ import '../ocr/ocr_service.dart';
 import '../ocr/receipt_classifier.dart';
 import '../ocr/receipt_parser.dart';
 import '../providers/receipt_provider.dart';
+import '../services/correction_training_service.dart';
 import '../theme/theme_controller.dart';
 import 'transaction_saved.dart';
 
@@ -35,12 +36,17 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
   late final String _store;
   late final DateTime _date;
   late List<TransactionItem> _items;
+  late final List<ItemPrediction> _predictions;
+
+  /// Persists user category fixes so they can feed the next training run.
+  final CorrectionTrainingService _corrections = CorrectionTrainingService();
 
   @override
   void initState() {
     super.initState();
     _store = widget.scan.parsed.store;
     _date = widget.scan.parsed.date ?? DateTime.now();
+    _predictions = widget.predictions;
 
     final List<ParsedItem> parsedItems = widget.scan.parsed.items;
     _items = <TransactionItem>[];
@@ -81,6 +87,59 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
           category: selected,
         );
       });
+      // Record the correction as training data (best-effort, never blocks UI).
+      _recordCorrection(index, old, selected);
+    }
+  }
+
+  /// Stores (preprocessed item name -> user-corrected category) so the
+  /// classifier can learn from real user feedback.
+  Future<void> _recordCorrection(
+    int index,
+    TransactionItem old,
+    String selected,
+  ) async {
+    final ItemPrediction? prediction =
+        index < _predictions.length ? _predictions[index] : null;
+    final int saved = await _corrections.recordCorrection(
+      itemName: old.name,
+      correctedCategoryName: selected,
+      correctedCategoryId: _categoryIdFor(selected),
+      prediction: prediction,
+    );
+    if (!mounted || saved < 0) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Koreksi disimpan sebagai data training.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// Sweeps every item on save and persists corrections for those whose final
+  /// category differs from the model's prediction.
+  ///
+  /// The per-tap [_recordCorrection] already covers the common flow; this
+  /// catches edits made and then reverted, guaranteeing the training set only
+  /// holds genuine disagreements.
+  Future<void> _recordCategoryCorrections() async {
+    for (int i = 0; i < _items.length; i++) {
+      if (i >= _predictions.length) {
+        continue;
+      }
+      final ItemPrediction prediction = _predictions[i];
+      final TransactionItem item = _items[i];
+      if (item.category == prediction.category) {
+        continue;
+      }
+      await _corrections.recordCorrection(
+        itemName: item.name,
+        correctedCategoryName: item.category,
+        correctedCategoryId: _categoryIdFor(item.category),
+        prediction: prediction,
+      );
     }
   }
 
@@ -183,6 +242,9 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
     } catch (_) {
       // Storage failure should not block the confirmation screen.
     }
+
+    // Record any category the user changed away from the model's prediction.
+    await _recordCategoryCorrections();
 
     if (!mounted) {
       return;

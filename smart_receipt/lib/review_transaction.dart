@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_route.dart';
 import 'app_widgets.dart';
 import 'models.dart';
 import 'sample_data.dart';
+import 'theme_controller.dart';
 import 'transaction_saved.dart';
 
 /// Screen 4 - Review Transaction.
@@ -54,7 +56,9 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ThemeScope.watch(context);
     return Scaffold(
+      key: ValueKey<AppPalette>(AppColors.palette),
       backgroundColor: AppColors.bg,
       body: SafeArea(
         bottom: false,
@@ -78,7 +82,7 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
                       title: 'Daftar Item',
                       trailing: Text(
                         '${_items.length} item',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textMuted,
@@ -107,9 +111,7 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
                 icon: Icons.check_circle_outline,
                 onPressed: () => Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute<void>(
-                    builder: (BuildContext context) => const TransactionSavedScreen(),
-                  ),
+                  appRoute(const TransactionSavedScreen()),
                 ),
               ),
             ),
@@ -131,7 +133,7 @@ class _StoreCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -144,7 +146,7 @@ class _StoreCard extends StatelessWidget {
               children: <Widget>[
                 Text(
                   store,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textDark,
@@ -153,12 +155,12 @@ class _StoreCard extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   formatDateTime(date),
-                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.edit_outlined, size: 19, color: AppColors.amber),
+          Icon(Icons.edit_outlined, size: 19, color: AppColors.amber),
         ],
       ),
     );
@@ -178,7 +180,7 @@ class _ItemCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -200,7 +202,7 @@ class _ItemCard extends StatelessWidget {
                   item.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textDark,
@@ -209,7 +211,7 @@ class _ItemCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${item.qty} × ${rupiah(item.price)}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                 ),
                 const SizedBox(height: 8),
                 InkWell(
@@ -220,7 +222,7 @@ class _ItemCard extends StatelessWidget {
                     children: <Widget>[
                       CategoryChip(category: item.category, dense: true),
                       const SizedBox(width: 6),
-                      const Icon(Icons.edit, size: 13, color: AppColors.amber),
+                      Icon(Icons.edit, size: 13, color: AppColors.amber),
                     ],
                   ),
                 ),
@@ -230,7 +232,7 @@ class _ItemCard extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             rupiah(item.subtotal),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: AppColors.textDark,
@@ -253,7 +255,7 @@ class _TotalCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -263,13 +265,13 @@ class _TotalCard extends StatelessWidget {
           _row('Diskon', '-Rp0'),
           const SizedBox(height: 10),
           _row('Pajak & biaya', 'Rp0'),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 14),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
             child: Divider(height: 1, color: AppColors.border),
           ),
           Row(
             children: <Widget>[
-              const Text(
+              Text(
                 'Total',
                 style: TextStyle(
                   fontSize: 15,
@@ -280,7 +282,7 @@ class _TotalCard extends StatelessWidget {
               const Spacer(),
               Text(
                 rupiah(total),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textDark,
@@ -298,12 +300,12 @@ class _TotalCard extends StatelessWidget {
       children: <Widget>[
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: AppColors.textLabel),
+          style: TextStyle(fontSize: 13, color: AppColors.textLabel),
         ),
         const Spacer(),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
             color: AppColors.textDark,
@@ -323,7 +325,7 @@ class _CategorySheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 26),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.bg,
         borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
@@ -339,7 +341,7 @@ class _CategorySheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
             child: Text(
               'Pilih Kategori',
@@ -367,14 +369,14 @@ class _CategorySheet extends StatelessWidget {
                     ),
                     title: Text(
                       c.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textDark,
                       ),
                     ),
                     trailing: c.name == current
-                        ? const Icon(Icons.check_circle, color: AppColors.green)
+                        ? Icon(Icons.check_circle, color: AppColors.green)
                         : null,
                     onTap: () => Navigator.pop(context, c.name),
                   ),

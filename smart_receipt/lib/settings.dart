@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_nav.dart';
 import 'app_widgets.dart';
+import 'theme_controller.dart';
 
 /// Screen 12 - Settings.
 class SettingsScreen extends StatefulWidget {
@@ -13,22 +14,51 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _darkMode = false;
   bool _notifications = true;
+
+  @override
+  void initState() {
+    super.initState();
+    themeController.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    themeController.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: ValueKey<AppPalette>(AppColors.palette),
       backgroundColor: AppColors.bg,
       body: SafeArea(
         bottom: false,
-        child: Column(
+        child: FloatingNavBody(
+          nav: AppBottomNav(
+            activeIndex: 4,
+            onSelect: (int i) => navigateTab(context, i),
+            onScan: () => openScan(context),
+          ),
+          child: Column(
           children: <Widget>[
             const AppStatusBar(),
             const AppTopBar(title: 'Pengaturan'),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(22, 6, 22, 24),
+                padding: EdgeInsets.fromLTRB(
+                  22,
+                  6,
+                  22,
+                  24 + AppBottomNav.clearance(context),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
@@ -40,8 +70,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _SwitchTile(
                           icon: Icons.dark_mode_outlined,
                           title: 'Mode Gelap',
-                          value: _darkMode,
-                          onChanged: (bool v) => setState(() => _darkMode = v),
+                          value: themeController.isDark,
+                          onChanged: themeController.setDark,
                         ),
                         const _Divider(),
                         _SwitchTile(
@@ -116,12 +146,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
-            AppBottomNav(
-              activeIndex: 4,
-              onSelect: (int i) => navigateTab(context, i),
-              onScan: () => openScan(context),
-            ),
           ],
+        ),
         ),
       ),
     );
@@ -136,7 +162,7 @@ class _ProfileCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -144,23 +170,23 @@ class _ProfileCard extends StatelessWidget {
           Container(
             width: 54,
             height: 54,
-            decoration: const BoxDecoration(
-              color: AppColors.navy,
+            decoration: BoxDecoration(
+              color: AppColors.avatarColor('Rian Pratama'),
               shape: BoxShape.circle,
             ),
-            child: const Center(
+            child: Center(
               child: Text(
                 'R',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.orange,
+                  color: Colors.white,
                 ),
               ),
             ),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
@@ -172,7 +198,7 @@ class _ProfileCard extends StatelessWidget {
                     color: AppColors.textDark,
                   ),
                 ),
-                SizedBox(height: 3),
+                const SizedBox(height: 3),
                 Text(
                   'rian@student.polinema.ac.id',
                   style: TextStyle(fontSize: 12, color: AppColors.textMuted),
@@ -180,7 +206,7 @@ class _ProfileCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, size: 22, color: AppColors.textMuted),
+          Icon(Icons.chevron_right, size: 22, color: AppColors.textMuted),
         ],
       ),
     );
@@ -203,7 +229,7 @@ class _SettingsGroup extends StatelessWidget {
             padding: const EdgeInsets.only(left: 4, bottom: 10),
             child: Text(
               title!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
@@ -214,7 +240,7 @@ class _SettingsGroup extends StatelessWidget {
         ],
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.card,
             borderRadius: BorderRadius.circular(18),
           ),
           child: Column(children: children),
@@ -229,8 +255,8 @@ class _Divider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.only(left: 64),
+    return Padding(
+      padding: const EdgeInsets.only(left: 64),
       child: Divider(height: 1, color: AppColors.border),
     );
   }
@@ -253,7 +279,7 @@ class _LinkTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color tint = danger ? AppColors.red : const Color(0xFF3A4152);
+    final Color tint = danger ? AppColors.red : AppColors.iconMuted;
     return InkWell(
       onTap: onTap ?? () {},
       child: Padding(
@@ -281,7 +307,7 @@ class _LinkTile extends StatelessWidget {
             if (trailingText != null)
               Text(
                 trailingText!,
-                style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted),
+                style: TextStyle(fontSize: 12.5, color: AppColors.textMuted),
               ),
             const SizedBox(width: 6),
             Icon(
@@ -320,7 +346,7 @@ class _SwitchTile extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textDark,
@@ -330,7 +356,8 @@ class _SwitchTile extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeTrackColor: AppColors.orange,
+            activeThumbColor: Colors.white,
+            activeTrackColor: AppColors.switchActive,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],

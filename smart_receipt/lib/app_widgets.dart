@@ -50,7 +50,7 @@ class AppTopBar extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textDark,
@@ -62,7 +62,7 @@ class AppTopBar extends StatelessWidget {
                     subtitle!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textMuted,
                     ),
@@ -84,17 +84,17 @@ class CircleIconButton extends StatelessWidget {
     super.key,
     required this.icon,
     required this.onTap,
-    this.background = Colors.white,
+    this.background,
   });
 
   final IconData icon;
   final VoidCallback onTap;
-  final Color background;
+  final Color? background;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: background,
+      color: background ?? AppColors.card,
       shape: const CircleBorder(),
       child: InkWell(
         onTap: onTap,
@@ -142,7 +142,7 @@ class SectionHeader extends StatelessWidget {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
               color: AppColors.textDark,
@@ -163,19 +163,20 @@ class PrimaryButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.expanded = true,
-    this.color = AppColors.navy,
-    this.foreground = Colors.white,
+    this.color,
+    this.foreground,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
   final bool expanded;
-  final Color color;
-  final Color foreground;
+  final Color? color;
+  final Color? foreground;
 
   @override
   Widget build(BuildContext context) {
+    final Color fg = foreground ?? AppColors.onButton;
     final Widget content = Padding(
       padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 18),
       child: Row(
@@ -183,7 +184,7 @@ class PrimaryButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           if (icon != null) ...<Widget>[
-            Icon(icon, size: 19, color: foreground),
+            Icon(icon, size: 19, color: fg),
             const SizedBox(width: 9),
           ],
           Text(
@@ -191,7 +192,7 @@ class PrimaryButton extends StatelessWidget {
             style: TextStyle(
               fontSize: 14.5,
               fontWeight: FontWeight.w700,
-              color: foreground,
+              color: fg,
             ),
           ),
         ],
@@ -199,7 +200,9 @@ class PrimaryButton extends StatelessWidget {
     );
 
     return Material(
-      color: onPressed == null ? color.withValues(alpha: 0.4) : color,
+      color: onPressed == null
+          ? (color ?? AppColors.buttonBg).withValues(alpha: 0.4)
+          : (color ?? AppColors.buttonBg),
       borderRadius: BorderRadius.circular(15),
       child: InkWell(
         onTap: onPressed,
@@ -234,15 +237,15 @@ class SecondaryButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           if (icon != null) ...<Widget>[
-            Icon(icon, size: 18, color: AppColors.navy),
+            Icon(icon, size: 18, color: AppColors.buttonBg),
             const SizedBox(width: 8),
           ],
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14.5,
               fontWeight: FontWeight.w700,
-              color: AppColors.navy,
+              color: AppColors.buttonBg,
             ),
           ),
         ],
@@ -250,7 +253,7 @@ class SecondaryButton extends StatelessWidget {
     );
 
     return Material(
-      color: Colors.white,
+      color: AppColors.card,
       borderRadius: BorderRadius.circular(15),
       child: InkWell(
         onTap: onPressed,
@@ -312,15 +315,15 @@ class IconBox extends StatelessWidget {
     required this.icon,
     this.size = 44,
     this.iconSize = 22,
-    this.background = AppColors.iconBox,
-    this.color = const Color(0xFF3A4152),
+    this.background,
+    this.color,
   });
 
   final IconData icon;
   final double size;
   final double iconSize;
-  final Color background;
-  final Color color;
+  final Color? background;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -328,10 +331,10 @@ class IconBox extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: background,
+        color: background ?? AppColors.iconBox,
         borderRadius: BorderRadius.circular(size * 0.27),
       ),
-      child: Icon(icon, size: iconSize, color: color),
+      child: Icon(icon, size: iconSize, color: color ?? AppColors.iconMuted),
     );
   }
 }
@@ -352,75 +355,117 @@ class AppBottomNav extends StatelessWidget {
   final ValueChanged<int> onSelect;
   final VoidCallback onScan;
 
+  static const double _padTop = 10;
+  static const double _bodyHeight = 84;
+  static const double _padBottom = 14;
+
+  /// Total vertical space the nav occupies, excluding the device safe area.
+  static const double height = _padTop + _bodyHeight + _padBottom;
+
+  /// Bottom padding a scroll view needs so its content can pass behind the
+  /// floating nav without being cut off.
+  static double clearance(BuildContext context) =>
+      height + MediaQuery.of(context).padding.bottom;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 86,
-      color: AppColors.bg,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.bottomCenter,
-        children: <Widget>[
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 70,
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                boxShadow: <BoxShadow>[
-                  BoxShadow(
-                    color: Color(0x12000000),
-                    blurRadius: 18,
-                    offset: Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: <Widget>[
-                  Expanded(
-                    child: _NavItem(
-                      icon: Icons.home_outlined,
-                      label: 'Beranda',
-                      active: activeIndex == 0,
-                      onTap: () => onSelect(0),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        18,
+        _padTop,
+        18,
+        _padBottom + MediaQuery.of(context).padding.bottom,
+      ),
+      child: SizedBox(
+        height: _bodyHeight,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: <Widget>[
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 66,
+              child: Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(33),
+                  border: Border.all(color: AppColors.border, width: 1),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: Color(0x1F000000),
+                      blurRadius: 24,
+                      offset: Offset(0, 10),
                     ),
-                  ),
-                  Expanded(
-                    child: _NavItem(
-                      icon: Icons.receipt_long_outlined,
-                      label: 'Riwayat',
-                      active: activeIndex == 1,
-                      onTap: () => onSelect(1),
+                  ],
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: _NavItem(
+                        icon: Icons.home_outlined,
+                        label: 'Beranda',
+                        active: activeIndex == 0,
+                        onTap: () => onSelect(0),
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: _NavItem(label: 'Scan', onTap: onScan),
-                  ),
-                  Expanded(
-                    child: _NavItem(
-                      icon: Icons.bar_chart,
-                      label: 'Analisis',
-                      active: activeIndex == 3,
-                      onTap: () => onSelect(3),
+                    Expanded(
+                      child: _NavItem(
+                        icon: Icons.receipt_long_outlined,
+                        label: 'Riwayat',
+                        active: activeIndex == 1,
+                        onTap: () => onSelect(1),
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: _NavItem(
-                      icon: Icons.settings_outlined,
-                      label: 'Pengaturan',
-                      active: activeIndex == 4,
-                      onTap: () => onSelect(4),
+                    Expanded(
+                      child: _NavItem(label: 'Scan', onTap: onScan),
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: _NavItem(
+                        icon: Icons.bar_chart,
+                        label: 'Analisis',
+                        active: activeIndex == 3,
+                        onTap: () => onSelect(3),
+                      ),
+                    ),
+                    Expanded(
+                      child: _NavItem(
+                        icon: Icons.settings_outlined,
+                        label: 'Pengaturan',
+                        active: activeIndex == 4,
+                        onTap: () => onSelect(4),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          Positioned(top: 0, child: _ScanButton(onTap: onScan)),
-        ],
+            Positioned(top: 0, child: _ScanButton(onTap: onScan)),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+/// Lays [child] full-bleed with the floating [nav] overlaid at the bottom, so
+/// scrollable content can pass behind the nav instead of being clipped above
+/// it. Pair it with [AppBottomNav.clearance] as bottom padding.
+class FloatingNavBody extends StatelessWidget {
+  const FloatingNavBody({super.key, required this.nav, required this.child});
+
+  final Widget nav;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+        Positioned.fill(child: child),
+        Positioned(left: 0, right: 0, bottom: 0, child: nav),
+      ],
     );
   }
 }
@@ -453,7 +498,7 @@ class _NavItem extends StatelessWidget {
                 : Icon(
                     icon,
                     size: 22,
-                    color: active ? AppColors.textDark : const Color(0xFF3A3F4B),
+                    color: active ? AppColors.textDark : AppColors.iconMuted,
                   ),
           ),
           const SizedBox(height: 5),
@@ -484,11 +529,11 @@ class _ScanButton extends StatelessWidget {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.card,
           shape: BoxShape.circle,
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: AppColors.navy.withValues(alpha: 0.18),
+              color: AppColors.buttonBg.withValues(alpha: 0.18),
               blurRadius: 14,
               offset: const Offset(0, 6),
             ),
@@ -498,14 +543,14 @@ class _ScanButton extends StatelessWidget {
           child: Container(
             width: 46,
             height: 46,
-            decoration: const BoxDecoration(
-              color: AppColors.navy,
+            decoration: BoxDecoration(
+              color: AppColors.buttonBg,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.photo_camera_outlined,
               size: 24,
-              color: AppColors.orange,
+              color: AppColors.onButton,
             ),
           ),
         ),

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 import 'app_nav.dart';
+import 'app_route.dart';
 import 'app_widgets.dart';
 import 'empty_state.dart';
 import 'models.dart';
 import 'sample_data.dart';
+import 'theme_controller.dart';
 import 'transaction_detail.dart';
 
 /// Screen 7 - Transaction History.
@@ -50,12 +52,20 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final List<Transaction> results = _results;
+    ThemeScope.watch(context);
 
     return Scaffold(
+      key: ValueKey<AppPalette>(AppColors.palette),
       backgroundColor: AppColors.bg,
       body: SafeArea(
         bottom: false,
-        child: Column(
+        child: FloatingNavBody(
+          nav: AppBottomNav(
+            activeIndex: 1,
+            onSelect: (int i) => navigateTab(context, i),
+            onScan: () => openScan(context),
+          ),
+          child: Column(
           children: <Widget>[
             const AppStatusBar(),
             AppTopBar(
@@ -107,26 +117,26 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       }),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(22, 10, 22, 24),
+                      padding: EdgeInsets.fromLTRB(
+                        22,
+                        10,
+                        22,
+                        24 + AppBottomNav.clearance(context),
+                      ),
                       itemCount: results.length,
                       itemBuilder: (BuildContext context, int i) => _HistoryCard(
                         transaction: results[i],
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute<void>(
-                            builder: (BuildContext context) =>
-                                TransactionDetailScreen(transaction: results[i]),
+                          appRoute(
+                            TransactionDetailScreen(transaction: results[i]),
                           ),
                         ),
                       ),
                     ),
             ),
-            AppBottomNav(
-              activeIndex: 1,
-              onSelect: (int i) => navigateTab(context, i),
-              onScan: () => openScan(context),
-            ),
           ],
+        ),
         ),
       ),
     );
@@ -143,16 +153,16 @@ class _SearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(15),
       ),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        style: const TextStyle(fontSize: 13.5, color: AppColors.textDark),
-        decoration: const InputDecoration(
+        style: TextStyle(fontSize: 13.5, color: AppColors.textDark),
+        decoration: InputDecoration(
           isDense: true,
-          contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 14),
+          contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 14),
           hintText: 'Cari toko atau transaksi',
           hintStyle: TextStyle(fontSize: 13.5, color: AppColors.textMuted),
           prefixIcon: Icon(Icons.search, size: 20, color: AppColors.textMuted),
@@ -178,10 +188,10 @@ class _FilterChip extends StatelessWidget {
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 15),
         decoration: BoxDecoration(
-          color: active ? AppColors.navy : Colors.white,
+          color: active ? AppColors.buttonBg : AppColors.card,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: active ? AppColors.navy : AppColors.border,
+            color: active ? AppColors.buttonBg : AppColors.border,
           ),
         ),
         child: Text(
@@ -189,7 +199,7 @@ class _FilterChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w600,
-            color: active ? Colors.white : AppColors.textLabel,
+            color: active ? AppColors.onButton : AppColors.textLabel,
           ),
         ),
       ),
@@ -207,7 +217,7 @@ class _HistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final Category c = categoryByName(transaction.categories.first);
     return Material(
-      color: Colors.white,
+      color: AppColors.card,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -232,7 +242,7 @@ class _HistoryCard extends StatelessWidget {
                       transaction.store,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textDark,
@@ -241,7 +251,7 @@ class _HistoryCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       formatDateTime(transaction.date),
-                      style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                      style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
                     ),
                     const SizedBox(height: 7),
                     Row(
@@ -251,7 +261,7 @@ class _HistoryCard extends StatelessWidget {
                           const SizedBox(width: 6),
                           Text(
                             '+${transaction.categories.length - 1}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10.5,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textMuted,
@@ -269,7 +279,7 @@ class _HistoryCard extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     '-${rupiah(transaction.total)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textDark,
@@ -278,7 +288,7 @@ class _HistoryCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '${transaction.itemCount} item',
-                    style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                    style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
                   ),
                 ],
               ),

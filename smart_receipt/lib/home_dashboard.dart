@@ -3,22 +3,36 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_nav.dart';
 import 'app_widgets.dart';
+import 'theme_controller.dart';
 
 class HomeDashboard extends StatelessWidget {
   const HomeDashboard({super.key});
 
   @override
   Widget build(BuildContext context) {
+    ThemeScope.watch(context);
     return Scaffold(
+      key: ValueKey<AppPalette>(AppColors.palette),
       backgroundColor: AppColors.bg,
       body: SafeArea(
         bottom: false,
-        child: Column(
+        child: FloatingNavBody(
+          nav: AppBottomNav(
+            activeIndex: 0,
+            onSelect: (int i) => navigateTab(context, i),
+            onScan: () => openScan(context),
+          ),
+          child: Column(
           children: [
             const AppStatusBar(),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(22, 6, 22, 24),
+                padding: EdgeInsets.fromLTRB(
+                  22,
+                  6,
+                  22,
+                  24 + AppBottomNav.clearance(context),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -41,12 +55,8 @@ class HomeDashboard extends StatelessWidget {
                 ),
               ),
             ),
-            AppBottomNav(
-              activeIndex: 0,
-              onSelect: (int i) => navigateTab(context, i),
-              onScan: () => openScan(context),
-            ),
           ],
+        ),
         ),
       ),
     );
@@ -64,7 +74,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Text(
             'Beranda',
             style: TextStyle(
@@ -74,13 +84,13 @@ class _Header extends StatelessWidget {
             ),
           ),
         ),
-        const Icon(Icons.notifications_none, size: 26, color: AppColors.textDark),
+        Icon(Icons.notifications_none, size: 26, color: AppColors.textDark),
         const SizedBox(width: 14),
         Container(
           width: 40,
           height: 40,
-          decoration: const BoxDecoration(
-            color: AppColors.navy,
+          decoration: BoxDecoration(
+            color: AppColors.avatarColor('Rian Pratama'),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.person, size: 22, color: Colors.white),
@@ -102,7 +112,7 @@ class _GreetingSection extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -126,7 +136,7 @@ class _GreetingSection extends StatelessWidget {
                 ),
               ),
               Text(
-                '👋',
+                '',
                 style: TextStyle(fontSize: 20, height: 1.1),
               ),
             ],
@@ -150,7 +160,7 @@ class _DateChip extends StatelessWidget {
         color: AppColors.lavender,
         borderRadius: BorderRadius.circular(24),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.calendar_month, size: 18, color: AppColors.amber),
@@ -195,20 +205,20 @@ class _MonthlySpendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final List<Color>? bannerGradient = AppColors.spendBannerGradient;
     return Container(
       height: 158,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF141A34),
-            Color(0xFF1B2036),
-            Color(0xFF3B3730),
-          ],
-          stops: [0.0, 0.5, 1.0],
-        ),
+        color: AppColors.spendBanner,
+        gradient: bannerGradient == null
+            ? null
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: bannerGradient,
+                stops: const [0.0, 0.5, 1.0],
+              ),
       ),
       child: Stack(
         children: [
@@ -219,18 +229,18 @@ class _MonthlySpendCard extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: AppColors.spendBannerObjectBg,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.center_focus_strong,
                 size: 22,
-                color: AppColors.orange,
+                color: AppColors.spendBannerAccent,
               ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.all(20),
+          Padding(
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -239,20 +249,20 @@ class _MonthlySpendCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF9BA3B5),
+                    color: AppColors.onSpendBannerMuted,
                   ),
                 ),
-                Spacer(),
+                const Spacer(),
                 Text(
                   'Rp1.420.000',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.2,
-                    color: Colors.white,
+                    color: AppColors.onSpendBanner,
                   ),
                 ),
-                SizedBox(height: 14),
+                const SizedBox(height: 14),
                 _GrowthBadge(),
               ],
             ),
@@ -271,10 +281,10 @@ class _GrowthBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.10),
+        color: AppColors.spendBannerObjectBg,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
@@ -282,21 +292,25 @@ class _GrowthBadge extends StatelessWidget {
             height: 7,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: AppColors.orange,
+                color: AppColors.spendBannerAccent,
                 shape: BoxShape.circle,
               ),
             ),
           ),
-          SizedBox(width: 8),
-          Icon(Icons.trending_up, size: 15, color: AppColors.orange),
-          SizedBox(width: 6),
+          const SizedBox(width: 8),
+          Icon(
+            Icons.trending_up,
+            size: 15,
+            color: AppColors.spendBannerAccent,
+          ),
+          const SizedBox(width: 6),
           Flexible(
             child: Text(
               '12% lebih tinggi dari bulan lalu',
               style: TextStyle(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFFC7CBD6),
+                color: AppColors.onSpendBannerSubtle,
               ),
             ),
           ),
@@ -315,7 +329,7 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
         Expanded(
           child: _StatCard(
@@ -368,7 +382,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -383,7 +397,7 @@ class _StatCard extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textMuted,
@@ -398,7 +412,7 @@ class _StatCard extends StatelessWidget {
               children: [
                 TextSpan(
                   text: value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 19,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textDark,
@@ -407,7 +421,7 @@ class _StatCard extends StatelessWidget {
                 if (suffix != null)
                   TextSpan(
                     text: ' $suffix',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: AppColors.textMuted,
@@ -453,7 +467,7 @@ class _CategoryData {
   final Color color;
 }
 
-const List<_CategoryData> _categories = [
+List<_CategoryData> get _categories => <_CategoryData>[
   _CategoryData(
     name: 'Makanan',
     percent: 44,
@@ -464,19 +478,19 @@ const List<_CategoryData> _categories = [
     name: 'Kebutuhan Rumah Tangga',
     percent: 24,
     amount: 'Rp340.000',
-    color: Color(0xFF3D445C),
+    color: AppColors.mutedScale[0],
   ),
   _CategoryData(
     name: 'Minuman',
     percent: 20,
     amount: 'Rp280.000',
-    color: Color(0xFF686F84),
+    color: AppColors.mutedScale[1],
   ),
   _CategoryData(
     name: 'Transportasi',
     percent: 12,
     amount: 'Rp180.000',
-    color: Color(0xFF9299AD),
+    color: AppColors.mutedScale[2],
   ),
 ];
 
@@ -488,7 +502,7 @@ class _CategoryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -505,7 +519,7 @@ class _CategoryCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Pengeluaran per Kategori',
                   style: TextStyle(
@@ -515,7 +529,7 @@ class _CategoryCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const Text(
+              Text(
                 '4 Kategori',
                 style: TextStyle(
                   fontSize: 12.5,
@@ -555,7 +569,7 @@ class _CategoryRow extends StatelessWidget {
                 width: 9,
                 height: 9,
                 decoration: BoxDecoration(
-                  color: isFirst ? AppColors.orange : const Color(0xFFDCE2F3),
+                  color: isFirst ? AppColors.orange : AppColors.heroTrack,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -565,7 +579,7 @@ class _CategoryRow extends StatelessWidget {
                   data.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textDark,
@@ -574,7 +588,7 @@ class _CategoryRow extends StatelessWidget {
               ),
               Text(
                 '${data.percent}%',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w500,
                   color: AppColors.textMuted,
@@ -583,7 +597,7 @@ class _CategoryRow extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 data.amount,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textDark,
@@ -623,7 +637,7 @@ class _CategoryRow extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.orange,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(color: AppColors.card, width: 2),
                       ),
                     ),
                   ),
@@ -687,7 +701,7 @@ class _RecentTransactionsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Text(
             'Transaksi Terbaru',
             style: TextStyle(
@@ -701,7 +715,7 @@ class _RecentTransactionsHeader extends StatelessWidget {
           onTap: () => navigateTab(context, 1),
           behavior: HitTestBehavior.opaque,
           child: Row(
-            children: const [
+            children: <Widget>[
               Text(
                 'Lihat Semua',
                 style: TextStyle(
@@ -730,7 +744,7 @@ class _TransactionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -742,7 +756,7 @@ class _TransactionCard extends StatelessWidget {
               color: AppColors.iconBox,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(t.icon, size: 22, color: const Color(0xFF3A4152)),
+            child: Icon(t.icon, size: 22, color: AppColors.iconMuted),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -756,7 +770,7 @@ class _TransactionCard extends StatelessWidget {
                         t.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textDark,
@@ -775,7 +789,7 @@ class _TransactionCard extends StatelessWidget {
                       ),
                       child: Text(
                         t.category,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                           color: AppColors.chipText,
@@ -787,7 +801,7 @@ class _TransactionCard extends StatelessWidget {
                 const SizedBox(height: 5),
                 Text(
                   t.datetime,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textMuted,
                   ),
@@ -801,18 +815,18 @@ class _TransactionCard extends StatelessWidget {
             children: [
               Text(
                 t.amount,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14.5,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textDark,
                 ),
               ),
               const SizedBox(height: 3),
-              const Row(
+              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.check_circle, size: 13, color: AppColors.green),
-                  SizedBox(width: 3),
+                  const SizedBox(width: 3),
                   Text(
                     'Valid',
                     style: TextStyle(
@@ -862,7 +876,7 @@ class _ScanPromoCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -875,7 +889,7 @@ class _ScanPromoCard extends StatelessWidget {
                     color: AppColors.textDark,
                   ),
                 ),
-                SizedBox(height: 3),
+                const SizedBox(height: 3),
                 Text(
                   'Otomatis deteksi pos & total pengeluaran',
                   maxLines: 2,
@@ -890,24 +904,24 @@ class _ScanPromoCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.navy,
+                color: AppColors.buttonBg,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.center_focus_strong,
                     size: 17,
-                    color: AppColors.orange,
+                    color: AppColors.onButton,
                   ),
-                  SizedBox(width: 7),
+                  const SizedBox(width: 7),
                   Text(
                     'Scan',
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: AppColors.onButton,
                     ),
                   ),
                 ],

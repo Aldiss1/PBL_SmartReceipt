@@ -4,6 +4,7 @@ import 'app_colors.dart';
 import 'app_nav.dart';
 import 'app_widgets.dart';
 import 'models.dart';
+import 'theme_controller.dart';
 
 /// Screen 8 - Transaction Detail.
 class TransactionDetailScreen extends StatelessWidget {
@@ -13,7 +14,9 @@ class TransactionDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    ThemeScope.watch(context);
     return Scaffold(
+      key: ValueKey<AppPalette>(AppColors.palette),
       backgroundColor: AppColors.bg,
       body: SafeArea(
         bottom: false,
@@ -42,7 +45,7 @@ class TransactionDetailScreen extends StatelessWidget {
                       title: 'Rincian Item',
                       trailing: Text(
                         '${transaction.itemCount} item',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textMuted,
@@ -53,7 +56,7 @@ class TransactionDetailScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.card,
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Column(
@@ -98,11 +101,11 @@ class _ReceiptHeader extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[Color(0xFF141A34), Color(0xFF1B2036), Color(0xFF3B3730)],
-          stops: <double>[0, 0.5, 1],
+          colors: AppColors.heroGradient,
+          stops: const <double>[0, 0.5, 1],
         ),
       ),
       child: Column(
@@ -117,7 +120,7 @@ class _ReceiptHeader extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.storefront_outlined, size: 23, color: AppColors.orange),
+                child: Icon(Icons.storefront_outlined, size: 23, color: AppColors.orange),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -236,7 +239,7 @@ class _ItemRow extends StatelessWidget {
                       item.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textDark,
@@ -247,7 +250,7 @@ class _ItemRow extends StatelessWidget {
                       '${item.qty} × ${rupiah(item.price)} • ${item.category}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                      style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
                     ),
                   ],
                 ),
@@ -255,7 +258,7 @@ class _ItemRow extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 rupiah(item.subtotal),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textDark,
@@ -264,7 +267,7 @@ class _ItemRow extends StatelessWidget {
             ],
           ),
         ),
-        if (!last) const Divider(height: 1, color: AppColors.border),
+        if (!last) Divider(height: 1, color: AppColors.border),
       ],
     );
   }
@@ -280,7 +283,7 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -290,13 +293,13 @@ class _SummaryCard extends StatelessWidget {
           _row('Diskon', '-Rp0'),
           const SizedBox(height: 12),
           _row('Kategori', '${transaction.categories.length} kategori'),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 14),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
             child: Divider(height: 1, color: AppColors.border),
           ),
           Row(
             children: <Widget>[
-              const Text(
+              Text(
                 'Total',
                 style: TextStyle(
                   fontSize: 15,
@@ -307,7 +310,7 @@ class _SummaryCard extends StatelessWidget {
               const Spacer(),
               Text(
                 rupiah(transaction.total),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textDark,
@@ -325,12 +328,12 @@ class _SummaryCard extends StatelessWidget {
       children: <Widget>[
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: AppColors.textLabel),
+          style: TextStyle(fontSize: 13, color: AppColors.textLabel),
         ),
         const Spacer(),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
             color: AppColors.textDark,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_nav.dart';
 import 'app_widgets.dart';
+import 'theme_controller.dart';
 
 /// Screen 11 - Empty State (reusable view + full screen).
 class EmptyStateView extends StatelessWidget {
@@ -34,14 +35,14 @@ class EmptyStateView extends StatelessWidget {
                 Container(
                   width: 132,
                   height: 132,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.iconBox,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.receipt_long_outlined,
                     size: 58,
-                    color: Color(0xFF6B7691),
+                    color: AppColors.iconMuted,
                   ),
                 ),
                 Positioned(
@@ -50,7 +51,7 @@ class EmptyStateView extends StatelessWidget {
                   child: Container(
                     width: 44,
                     height: 44,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: AppColors.orange,
                       shape: BoxShape.circle,
                     ),
@@ -67,7 +68,7 @@ class EmptyStateView extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textDark,
@@ -77,7 +78,7 @@ class EmptyStateView extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 height: 1.55,
                 color: AppColors.textMuted,
@@ -102,24 +103,35 @@ class EmptyStateScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    ThemeScope.watch(context);
     return Scaffold(
+      key: ValueKey<AppPalette>(AppColors.palette),
       backgroundColor: AppColors.bg,
       body: SafeArea(
         bottom: false,
-        child: Column(
+        child: FloatingNavBody(
+          nav: AppBottomNav(
+            activeIndex: 1,
+            onSelect: (int i) => navigateTab(context, i),
+            onScan: () => openScan(context),
+          ),
+          child: Column(
           children: <Widget>[
             const AppStatusBar(),
             AppTopBar(
               title: 'Riwayat Transaksi',
               onBack: () => Navigator.maybePop(context),
             ),
-            const Expanded(child: EmptyStateView()),
-            AppBottomNav(
-              activeIndex: 1,
-              onSelect: (int i) => navigateTab(context, i),
-              onScan: () => openScan(context),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: AppBottomNav.clearance(context),
+                ),
+                child: const EmptyStateView(),
+              ),
             ),
           ],
+        ),
         ),
       ),
     );

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_route.dart';
 import 'app_widgets.dart';
 import 'ocr_processing.dart';
 import 'receipt_mock.dart';
+import 'theme_controller.dart';
 
 /// Screen 2 - Scan Receipt.
 class ScanReceiptScreen extends StatelessWidget {
@@ -12,15 +14,15 @@ class ScanReceiptScreen extends StatelessWidget {
   void _proceed(BuildContext context) {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute<void>(
-        builder: (BuildContext context) => const OcrProcessingScreen(),
-      ),
+      appRoute(const OcrProcessingScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    ThemeScope.watch(context);
     return Scaffold(
+      key: ValueKey<AppPalette>(AppColors.palette),
       backgroundColor: AppColors.bg,
       body: SafeArea(
         bottom: false,
@@ -80,10 +82,10 @@ class _Viewfinder extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: <Color>[Color(0xFF141A34), Color(0xFF1B2036), Color(0xFF2A2E3F)],
+            colors: AppColors.viewfinderGradient,
           ),
         ),
         child: Stack(
@@ -141,10 +143,10 @@ class _Viewfinder extends StatelessWidget {
       height: 34,
       decoration: BoxDecoration(
         border: Border(
-          top: top ? const BorderSide(color: AppColors.orange, width: 3) : BorderSide.none,
-          bottom: bottom ? const BorderSide(color: AppColors.orange, width: 3) : BorderSide.none,
-          left: left ? const BorderSide(color: AppColors.orange, width: 3) : BorderSide.none,
-          right: right ? const BorderSide(color: AppColors.orange, width: 3) : BorderSide.none,
+          top: top ? BorderSide(color: AppColors.orange, width: 3) : BorderSide.none,
+          bottom: bottom ? BorderSide(color: AppColors.orange, width: 3) : BorderSide.none,
+          left: left ? BorderSide(color: AppColors.orange, width: 3) : BorderSide.none,
+          right: right ? BorderSide(color: AppColors.orange, width: 3) : BorderSide.none,
         ),
         borderRadius: BorderRadius.only(
           topLeft: top && left ? const Radius.circular(10) : Radius.zero,
@@ -264,7 +266,7 @@ class _Tip extends StatelessWidget {
             margin: const EdgeInsets.only(top: 5),
             width: 6,
             height: 6,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.amber,
               shape: BoxShape.circle,
             ),
@@ -273,7 +275,7 @@ class _Tip extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
                 height: 1.35,
                 color: AppColors.textLabel,

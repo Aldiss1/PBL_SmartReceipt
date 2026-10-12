@@ -4,6 +4,7 @@ import 'app_colors.dart';
 import 'app_widgets.dart';
 import 'charts.dart';
 import 'models.dart';
+import 'theme_controller.dart';
 
 /// Screen 10 - Spending Prediction.
 class SpendingPredictionScreen extends StatelessWidget {
@@ -21,7 +22,9 @@ class SpendingPredictionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    ThemeScope.watch(context);
     return Scaffold(
+      key: ValueKey<AppPalette>(AppColors.palette),
       backgroundColor: AppColors.bg,
       body: SafeArea(
         bottom: false,
@@ -74,11 +77,11 @@ class _PredictionCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[Color(0xFF141A34), Color(0xFF1B2036), Color(0xFF3B3730)],
-          stops: <double>[0, 0.5, 1],
+          colors: AppColors.heroGradient,
+          stops: const <double>[0, 0.5, 1],
         ),
       ),
       child: Column(
@@ -128,9 +131,9 @@ class _PredictionCard extends StatelessWidget {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const <Widget>[
+                  children: <Widget>[
                     Icon(Icons.trending_up, size: 15, color: AppColors.orange),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
                       '+11.3% dari bulan ini',
                       style: TextStyle(
@@ -158,14 +161,14 @@ class _ChartCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
-            children: const <Widget>[
+            children: <Widget>[
               Expanded(
                 child: Text(
                   'Aktual vs Prediksi',
@@ -177,12 +180,12 @@ class _ChartCard extends StatelessWidget {
                 ),
               ),
               _LegendDot(color: AppColors.navy, label: 'Aktual'),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               _LegendDot(color: AppColors.orange, label: 'Prediksi'),
             ],
           ),
           const SizedBox(height: 18),
-          const TrendLineChart(
+          TrendLineChart(
             values: SpendingPredictionScreen._series,
             labels: SpendingPredictionScreen._labels,
             highlightLast: true,
@@ -212,7 +215,7 @@ class _LegendDot extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           label,
-          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+          style: TextStyle(fontSize: 11, color: AppColors.textMuted),
         ),
       ],
     );
@@ -227,13 +230,13 @@ class _MetricsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Text(
+          Text(
             'Metrik Evaluasi Model',
             style: TextStyle(
               fontSize: 14,
@@ -257,7 +260,7 @@ class _MetricsCard extends StatelessWidget {
                       children: <Widget>[
                         Text(
                           SpendingPredictionScreen._metrics[i][1],
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14.5,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textDark,
@@ -266,7 +269,7 @@ class _MetricsCard extends StatelessWidget {
                         const SizedBox(height: 3),
                         Text(
                           SpendingPredictionScreen._metrics[i][0],
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                             color: AppColors.textMuted,
@@ -299,9 +302,9 @@ class _InsightCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Icon(Icons.auto_awesome, size: 20, color: AppColors.amber),
+          Icon(Icons.auto_awesome, size: 20, color: AppColors.amber),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
               'Berdasarkan 6 bulan histori, pengeluaran cenderung meningkat sekitar 11% tiap bulan. Model cukup baik dalam menjelaskan variasi data (R² = 0.87).',
               style: TextStyle(

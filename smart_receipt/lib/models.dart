@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_colors.dart';
+
 /// Formats an integer amount as Indonesian Rupiah, e.g. 1420000 -> "Rp1.420.000".
 String rupiah(int value) {
   final String digits = value.abs().toString();
@@ -36,51 +38,54 @@ class Category {
   final Color color;
 }
 
-const List<Category> kCategories = [
+/// The product categories used by the classifier. Accent colours are pulled
+/// from the active palette so chips and icon tiles stay legible in both light
+/// and dark mode.
+List<Category> get kCategories => <Category>[
   Category(
     name: 'Makanan',
     icon: Icons.restaurant,
-    color: Color(0xFFFEA619),
+    color: AppColors.palette.categoryColors[0],
   ),
   Category(
     name: 'Minuman',
     icon: Icons.local_cafe_outlined,
-    color: Color(0xFF4C8DF6),
+    color: AppColors.palette.categoryColors[1],
   ),
   Category(
     name: 'Rumah Tangga',
     icon: Icons.home_outlined,
-    color: Color(0xFF8C5D10),
+    color: AppColors.palette.categoryColors[2],
   ),
   Category(
     name: 'Perawatan Diri',
     icon: Icons.spa_outlined,
-    color: Color(0xFFB45BCB),
+    color: AppColors.palette.categoryColors[3],
   ),
   Category(
     name: 'Kesehatan',
     icon: Icons.medical_services_outlined,
-    color: Color(0xFF009668),
+    color: AppColors.palette.categoryColors[4],
   ),
   Category(
     name: 'Transportasi',
     icon: Icons.directions_car_outlined,
-    color: Color(0xFF3D445C),
+    color: AppColors.palette.categoryColors[5],
   ),
   Category(
     name: 'Elektronik',
     icon: Icons.devices_other_outlined,
-    color: Color(0xFF5B6472),
+    color: AppColors.palette.categoryColors[6],
   ),
   Category(
     name: 'Pakaian',
     icon: Icons.checkroom_outlined,
-    color: Color(0xFFDB6B8C),
+    color: AppColors.palette.categoryColors[7],
   ),
   Category(
     name: 'Lainnya',
     icon: Icons.category_outlined,
-    color: Color(0xFF8A8D97),
+    color: AppColors.palette.categoryColors[8],
   ),
 ];
 

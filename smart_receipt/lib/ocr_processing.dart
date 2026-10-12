@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_route.dart';
 import 'app_widgets.dart';
 import 'category_classification.dart';
 import 'receipt_mock.dart';
+import 'theme_controller.dart';
 
 /// Screen 3 - OCR Processing.
 class OcrProcessingScreen extends StatefulWidget {
@@ -37,9 +39,7 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen> {
         t.cancel();
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute<void>(
-            builder: (BuildContext context) => const CategoryClassificationScreen(),
-          ),
+          appRoute(const CategoryClassificationScreen()),
         );
         return;
       }
@@ -56,8 +56,10 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen> {
   @override
   Widget build(BuildContext context) {
     final double progress = (_current + 1) / _steps.length;
+    ThemeScope.watch(context);
 
     return Scaffold(
+      key: ValueKey<AppPalette>(AppColors.palette),
       backgroundColor: AppColors.bg,
       body: SafeArea(
         bottom: false,
@@ -79,7 +81,7 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen> {
                     const SizedBox(height: 22),
                     Row(
                       children: <Widget>[
-                        const Text(
+                        Text(
                           'Progres',
                           style: TextStyle(
                             fontSize: 13,
@@ -90,7 +92,7 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen> {
                         const Spacer(),
                         Text(
                           '${(progress * 100).round()}%',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: AppColors.amber,
@@ -110,7 +112,7 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen> {
                             value: value,
                             minHeight: 9,
                             backgroundColor: AppColors.track,
-                            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.orange),
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.orange),
                           );
                         },
                       ),
@@ -119,7 +121,7 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.card,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Column(
@@ -161,11 +163,11 @@ class _Preview extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       child: Container(
         height: 190,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: <Color>[Color(0xFF141A34), Color(0xFF232A46)],
+            colors: AppColors.panelGradient,
           ),
         ),
         child: Stack(
@@ -282,7 +284,7 @@ class _StepRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(11),
             ),
             child: done
-                ? const Icon(Icons.check, size: 17, color: AppColors.orange)
+                ? Icon(Icons.check, size: 17, color: AppColors.onNavy)
                 : Icon(
                     step.icon,
                     size: 17,
@@ -301,7 +303,7 @@ class _StepRow extends StatelessWidget {
             ),
           ),
           if (active)
-            const SizedBox(
+            SizedBox(
               width: 16,
               height: 16,
               child: CircularProgressIndicator(
@@ -311,7 +313,7 @@ class _StepRow extends StatelessWidget {
               ),
             )
           else if (done)
-            const Text(
+            Text(
               'Selesai',
               style: TextStyle(
                 fontSize: 11.5,

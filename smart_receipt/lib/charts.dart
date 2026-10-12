@@ -8,14 +8,14 @@ class TrendLineChart extends StatelessWidget {
     super.key,
     required this.values,
     required this.labels,
-    this.color = AppColors.navy,
+    this.color,
     this.height = 150,
     this.highlightLast = false,
   });
 
   final List<double> values;
   final List<String> labels;
-  final Color color;
+  final Color? color;
   final double height;
   final bool highlightLast;
 
@@ -29,7 +29,7 @@ class TrendLineChart extends StatelessWidget {
           child: CustomPaint(
             painter: _LinePainter(
               values: values,
-              color: color,
+              color: color ?? AppColors.navy,
               highlightLast: highlightLast,
             ),
           ),
@@ -41,7 +41,7 @@ class TrendLineChart extends StatelessWidget {
             for (final String l in labels)
               Text(
                 l,
-                style: const TextStyle(fontSize: 10.5, color: AppColors.textMuted),
+                style: TextStyle(fontSize: 10.5, color: AppColors.textMuted),
               ),
           ],
         ),
@@ -115,7 +115,7 @@ class _LinePainter extends CustomPainter {
     for (int i = 0; i < points.length; i++) {
       final bool last = i == points.length - 1;
       final bool emphasize = highlightLast && last;
-      canvas.drawCircle(points[i], emphasize ? 5.5 : 3.6, Paint()..color = Colors.white);
+      canvas.drawCircle(points[i], emphasize ? 5.5 : 3.6, Paint()..color = AppColors.card);
       canvas.drawCircle(
         points[i],
         emphasize ? 5.5 : 3.6,

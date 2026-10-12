@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_route.dart';
 import 'app_widgets.dart';
 import 'models.dart';
 import 'review_transaction.dart';
+import 'theme_controller.dart';
 
 /// Screen 5 - Category Classification (TF-IDF + Naive Bayes results).
 class CategoryClassificationScreen extends StatelessWidget {
@@ -20,7 +22,9 @@ class CategoryClassificationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    ThemeScope.watch(context);
     return Scaffold(
+      key: ValueKey<AppPalette>(AppColors.palette),
       backgroundColor: AppColors.bg,
       body: SafeArea(
         bottom: false,
@@ -40,7 +44,7 @@ class CategoryClassificationScreen extends StatelessWidget {
                   children: <Widget>[
                     const _ModelCard(),
                     const SizedBox(height: 18),
-                    const SectionHeader(
+                    SectionHeader(
                       title: 'Hasil Klasifikasi',
                       trailing: Text(
                         '6 item',
@@ -64,9 +68,7 @@ class CategoryClassificationScreen extends StatelessWidget {
                 icon: Icons.arrow_forward,
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute<void>(
-                    builder: (BuildContext context) => const ReviewTransactionScreen(),
-                  ),
+                  appRoute(const ReviewTransactionScreen()),
                 ),
               ),
             ),
@@ -104,7 +106,7 @@ class _ModelCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -119,10 +121,10 @@ class _ModelCard extends StatelessWidget {
                   color: AppColors.navy,
                   borderRadius: BorderRadius.circular(13),
                 ),
-                child: const Icon(Icons.hub_outlined, size: 21, color: AppColors.orange),
+                child: Icon(Icons.hub_outlined, size: 21, color: AppColors.orange),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
@@ -134,7 +136,7 @@ class _ModelCard extends StatelessWidget {
                         color: AppColors.textDark,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       'Ekstraksi fitur TF-IDF • 9 kategori',
                       style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
@@ -160,7 +162,7 @@ class _ModelCard extends StatelessWidget {
                       children: <Widget>[
                         Text(
                           _metrics[i][1],
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textDark,
@@ -171,7 +173,7 @@ class _ModelCard extends StatelessWidget {
                           _metrics[i][0],
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 9.5,
                             fontWeight: FontWeight.w500,
                             color: AppColors.textMuted,
@@ -202,7 +204,7 @@ class _PredictionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -217,7 +219,7 @@ class _PredictionCard extends StatelessWidget {
                   p.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textDark,
@@ -230,7 +232,7 @@ class _PredictionCard extends StatelessWidget {
           const SizedBox(height: 13),
           Row(
             children: <Widget>[
-              const Text(
+              Text(
                 'Confidence',
                 style: TextStyle(fontSize: 11, color: AppColors.textMuted),
               ),
@@ -249,7 +251,7 @@ class _PredictionCard extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 '${(p.confidence * 100).round()}%',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textDark,

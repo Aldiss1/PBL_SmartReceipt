@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'analysis.dart';
+import 'app_route.dart';
 import 'home_dashboard.dart';
 import 'scan_receipt.dart';
 import 'settings.dart';
 import 'transaction_history.dart';
-
-Route<void> _route(Widget page) =>
-    MaterialPageRoute<void>(builder: (BuildContext context) => page);
 
 /// Switches between the main bottom-navigation tabs.
 ///
@@ -26,10 +24,10 @@ void navigateTab(BuildContext context, int index) {
     default:
       return;
   }
-  Navigator.pushReplacement(context, _route(page));
+  Navigator.pushReplacement(context, appRoute(page));
 }
 
 /// Opens the scan flow.
 void openScan(BuildContext context) {
-  Navigator.push(context, _route(const ScanReceiptScreen()));
+  Navigator.push(context, appRoute(const ScanReceiptScreen()));
 }

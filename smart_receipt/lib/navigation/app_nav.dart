@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import 'analysis.dart';
+import '../screens/analysis.dart';
 import 'app_route.dart';
-import 'home_dashboard.dart';
-import 'scan_receipt.dart';
-import 'settings.dart';
-import 'transaction_history.dart';
+import '../screens/home_dashboard.dart';
+import '../screens/scan_receipt.dart';
+import '../screens/settings.dart';
+import '../screens/transaction_history.dart';
 
 /// Switches between the main bottom-navigation tabs.
 ///

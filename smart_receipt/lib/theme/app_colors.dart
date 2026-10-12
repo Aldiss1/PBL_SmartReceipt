@@ -49,8 +49,6 @@ class AppPalette {
     required this.onSpendBannerSubtle,
     required this.spendBannerAccent,
     required this.spendBannerObjectBg,
-    required this.barAccent,
-    required this.barMarker,
   });
 
   final Color bg;
@@ -140,12 +138,6 @@ class AppPalette {
   /// Background of the badge and icon tile that sit on the spending banner.
   final Color spendBannerObjectBg;
 
-  /// Fill colour of the highlighted category bar on the analysis screen.
-  final Color barAccent;
-
-  /// Colour of the round marker at the end of the highlighted category bar.
-  final Color barMarker;
-
   /// Palette sampled from the original "01 - Home Dashboard" design.
   static const AppPalette light = AppPalette(
     bg: Color(0xFFF9F9FF),
@@ -221,8 +213,6 @@ class AppPalette {
     onSpendBannerSubtle: Color(0xFFC7CBD6),
     spendBannerAccent: Color(0xFFFEA619),
     spendBannerObjectBg: Color(0x1AFFFFFF),
-    barAccent: Color(0xFF131A33),
-    barMarker: Color(0xFFFEA619),
   );
   /// Dark palette modelled on Instagram's dark mode: pure-black canvas, near
   /// black surfaces, white text with grey secondaries, and the signature
@@ -300,8 +290,6 @@ class AppPalette {
     onSpendBannerSubtle: Color(0xFFFEA619),
     spendBannerAccent: Color(0xFFFEA619),
     spendBannerObjectBg: Color(0xFF2A1B00),
-    barAccent: Color(0xFFFEA619),
-    barMarker: Color(0xFF22C55E),
   );
 }
 
@@ -358,8 +346,6 @@ class AppColors {
   static Color get onSpendBannerSubtle => _palette.onSpendBannerSubtle;
   static Color get spendBannerAccent => _palette.spendBannerAccent;
   static Color get spendBannerObjectBg => _palette.spendBannerObjectBg;
-  static Color get barAccent => _palette.barAccent;
-  static Color get barMarker => _palette.barMarker;
 
   /// Fixed avatar colours (WhatsApp-style) that ignore the active theme.
   static const List<Color> avatarColors = <Color>[

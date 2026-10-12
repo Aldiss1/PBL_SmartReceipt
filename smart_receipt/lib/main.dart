@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'app_colors.dart';
+import 'theme/app_colors.dart';
 import 'providers/receipt_provider.dart';
-import 'scan_receipt.dart';
-import 'splash_screen.dart';
-import 'theme_controller.dart';
+import 'screens/scan_receipt.dart';
+import 'screens/splash_screen.dart';
+import 'theme/theme_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'app_colors.dart';
-import 'app_route.dart';
-import 'app_widgets.dart';
+import '../theme/app_colors.dart';
+import '../navigation/app_route.dart';
+import '../widgets/app_widgets.dart';
 import 'ocr_processing.dart';
-import 'receipt_mock.dart';
-import 'theme_controller.dart';
+import '../widgets/receipt_mock.dart';
+import '../theme/theme_controller.dart';
 
 /// Screen 2 - Scan Receipt.
 ///

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'app_colors.dart';
-import 'app_route.dart';
-import 'app_widgets.dart';
-import 'models.dart';
-import 'models/receipt_model.dart' as db;
-import 'ocr/ocr_service.dart';
-import 'ocr/receipt_classifier.dart';
-import 'ocr/receipt_parser.dart';
-import 'providers/receipt_provider.dart';
-import 'theme_controller.dart';
+import '../theme/app_colors.dart';
+import '../navigation/app_route.dart';
+import '../widgets/app_widgets.dart';
+import '../models/models.dart';
+import '../models/receipt_model.dart' as db;
+import '../ocr/ocr_service.dart';
+import '../ocr/receipt_classifier.dart';
+import '../ocr/receipt_parser.dart';
+import '../providers/receipt_provider.dart';
+import '../theme/theme_controller.dart';
 import 'transaction_saved.dart';
 
 /// Screen 4 - Review Transaction.
@@ -236,10 +236,10 @@ class _EmptyItemsNotice extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
-      child:  Row(
+      child: Row(
         children: <Widget>[
           Icon(Icons.edit_note_outlined, color: AppColors.amber),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               'Tidak ada item yang terbaca dari struk. '
@@ -462,7 +462,7 @@ class _CategorySheet extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 26),
       decoration: BoxDecoration(
         color: AppColors.bg,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

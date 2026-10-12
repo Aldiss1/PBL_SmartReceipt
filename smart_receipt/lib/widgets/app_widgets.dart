@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-import 'models.dart';
+import '../theme/app_colors.dart';
+import '../models/models.dart';
 
 /// iOS-style status bar used across every screen for visual consistency.
 class AppStatusBar extends StatelessWidget {

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-import 'app_nav.dart';
-import 'app_widgets.dart';
-import 'theme_controller.dart';
+import '../theme/app_colors.dart';
+import '../navigation/app_nav.dart';
+import '../widgets/app_widgets.dart';
+import '../theme/theme_controller.dart';
 
 class HomeDashboard extends StatelessWidget {
   const HomeDashboard({super.key});

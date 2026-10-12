@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import '../theme/app_colors.dart';
 
 /// Formats an integer amount as Indonesian Rupiah, e.g. 1420000 -> "Rp1.420.000".
 String rupiah(int value) {

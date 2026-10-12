@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import '../theme/app_colors.dart';
 
 /// Simple line chart drawn without third-party packages.
 class TrendLineChart extends StatelessWidget {

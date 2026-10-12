@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-import 'app_nav.dart';
-import 'app_route.dart';
-import 'app_widgets.dart';
-import 'charts.dart';
-import 'models.dart';
+import '../theme/app_colors.dart';
+import '../navigation/app_nav.dart';
+import '../navigation/app_route.dart';
+import '../widgets/app_widgets.dart';
+import '../widgets/charts.dart';
+import '../models/models.dart';
 import 'spending_prediction.dart';
-import 'theme_controller.dart';
+import '../theme/theme_controller.dart';
 
 /// Screen 9 - Analysis.
 class AnalysisScreen extends StatefulWidget {
@@ -30,7 +30,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   static const List<String> _trendLabels = <String>['Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep'];
 
   static List<_CategorySpend> get _categories => <_CategorySpend>[
-    _CategorySpend(name: 'Makanan', percent: 44, amount: 620000, color: AppColors.barAccent),
+    _CategorySpend(name: 'Makanan', percent: 44, amount: 620000, color: AppColors.navy),
     _CategorySpend(name: 'Rumah Tangga', percent: 24, amount: 340000, color: AppColors.mutedScale[0]),
     _CategorySpend(name: 'Minuman', percent: 20, amount: 280000, color: AppColors.mutedScale[1]),
     _CategorySpend(name: 'Transportasi', percent: 12, amount: 180000, color: AppColors.mutedScale[2]),
@@ -182,53 +182,78 @@ class _TotalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final List<Color>? bannerGradient = AppColors.spendBannerGradient;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: AppColors.heroGradient,
-          stops: const <double>[0, 0.5, 1],
-        ),
+        color: AppColors.spendBanner,
+        gradient: bannerGradient == null
+            ? null
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: bannerGradient,
+                stops: const <double>[0.0, 0.5, 1.0],
+              ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Text(
+          Text(
             'Total Pengeluaran',
-            style: TextStyle(fontSize: 12.5, color: Color(0xFF9BA3B5)),
+            style: TextStyle(fontSize: 12.5, color: AppColors.onSpendBannerMuted),
           ),
           const SizedBox(height: 8),
           Text(
             rupiah(period.total),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 30,
               fontWeight: FontWeight.w800,
-              color: Colors.white,
+              color: AppColors.onSpendBanner,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             period.range,
-            style: const TextStyle(fontSize: 11.5, color: Color(0xFF9BA3B5)),
+            style: TextStyle(fontSize: 11.5, color: AppColors.onSpendBannerMuted),
           ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: AppColors.spendBannerObjectBg,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Icon(Icons.trending_up, size: 15, color: AppColors.orange),
-                SizedBox(width: 7),
-                Text(
-                  '12% lebih tinggi dari periode sebelumnya',
-                  style: TextStyle(fontSize: 11, color: Color(0xFFC7CBD6)),
+                SizedBox(
+                  width: 7,
+                  height: 7,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.spendBannerAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.trending_up,
+                  size: 15,
+                  color: AppColors.spendBannerAccent,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    '12% lebih tinggi dari periode sebelumnya',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.onSpendBannerSubtle,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -457,7 +482,7 @@ class _CategoryBar extends StatelessWidget {
                       width: 11,
                       height: 11,
                       decoration: BoxDecoration(
-                        color: AppColors.barMarker,
+                        color: AppColors.orange,
                         shape: BoxShape.circle,
                         border: Border.all(color: AppColors.card, width: 2),
                       ),
@@ -527,10 +552,10 @@ class _PredictionCta extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.navy,
+                  color: AppColors.orange,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(Icons.insights, size: 24, color: AppColors.orange),
+                child: Icon(Icons.insights, size: 24, color: AppColors.bg),
               ),
               const SizedBox(width: 12),
               Expanded(

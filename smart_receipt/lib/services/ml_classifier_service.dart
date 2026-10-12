@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class MLClassifierService {
@@ -28,9 +29,9 @@ class MLClassifierService {
     try {
       final String response = await rootBundle.loadString('assets/model_kategori_produk.json');
       _tfidfModel = jsonDecode(response);
-      print('✅ TF-IDF Model loaded successfully');
+      debugPrint('✅ TF-IDF Model loaded successfully');
     } catch (e) {
-      print('❌ Error loading model: $e');
+      debugPrint('❌ Error loading model: $e');
     }
   }
 
@@ -105,7 +106,7 @@ class MLClassifierService {
 
   Future<int> predictCategory(String ocrText) async {
     if (_tfidfModel == null) {
-      print('⚠️ Model belum dimuat');
+      debugPrint('⚠️ Model belum dimuat');
       return 8;
     }
 
@@ -156,10 +157,10 @@ class MLClassifierService {
       // Map ke kategori app
       final appCategoryId = classToCategory[predictedClass] ?? 8;
       
-      print('🎯 TF-IDF Class: $predictedClass → App Category: $appCategoryId');
+      debugPrint('🎯 TF-IDF Class: $predictedClass → App Category: $appCategoryId');
       return appCategoryId;
     } catch (e) {
-      print('❌ Prediction error: $e');
+      debugPrint('❌ Prediction error: $e');
       return 8;
     }
   }

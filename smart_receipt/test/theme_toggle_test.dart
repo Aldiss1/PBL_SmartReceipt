@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:smart_receipt/app_colors.dart';
-import 'package:smart_receipt/app_nav.dart';
-import 'package:smart_receipt/home_dashboard.dart';
+import 'package:smart_receipt/theme/app_colors.dart';
+import 'package:smart_receipt/navigation/app_nav.dart';
+import 'package:smart_receipt/screens/home_dashboard.dart';
 import 'package:smart_receipt/main.dart';
-import 'package:smart_receipt/theme_controller.dart';
+import 'package:smart_receipt/theme/theme_controller.dart';
 
 void main() {
   testWidgets('toggling dark mode repaints an already-pushed screen', (

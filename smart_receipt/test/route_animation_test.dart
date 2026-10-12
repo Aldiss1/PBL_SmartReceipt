@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:smart_receipt/navigation/app_route.dart';
+import 'package:smart_receipt/app_route.dart';
 
 void main() {
   testWidgets('push is instant but pop keeps its animation', (

@@ -18,4 +18,12 @@ class AppColors {
   static const Color textMuted = Color(0xFF8A8D97);
   static const Color textLabel = Color(0xFF5B6472);
   static const Color textDark = Color(0xFF151C27);
+
+  static const Color card = Color(0xFFFFFFFF);
+  static const Color border = Color(0xFFEDEFF7);
+  static const Color red = Color(0xFFE5484D);
+  static const Color redSoft = Color(0xFFFCE9EA);
+  static const Color greenSoft = Color(0xFFE1F4EC);
+  static const Color amberSoft = Color(0xFFFCEFD8);
+  static const Color orangeSoft = Color(0xFFFDF0DC);
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_nav.dart';
+import 'app_widgets.dart';
 
 class HomeDashboard extends StatelessWidget {
   const HomeDashboard({super.key});
@@ -13,7 +15,7 @@ class HomeDashboard extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            const _StatusBar(),
+            const AppStatusBar(),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(22, 6, 22, 24),
@@ -39,42 +41,13 @@ class HomeDashboard extends StatelessWidget {
                 ),
               ),
             ),
-            const _BottomNavigation(),
+            AppBottomNav(
+              activeIndex: 0,
+              onSelect: (int i) => navigateTab(context, i),
+              onScan: () => openScan(context),
+            ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Status bar
-// ---------------------------------------------------------------------------
-
-class _StatusBar extends StatelessWidget {
-  const _StatusBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(22, 8, 22, 6),
-      child: Row(
-        children: [
-          Text(
-            '09:41',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textDark,
-            ),
-          ),
-          Spacer(),
-          Icon(Icons.signal_cellular_alt, size: 17, color: AppColors.textDark),
-          SizedBox(width: 6),
-          Icon(Icons.wifi, size: 17, color: AppColors.textDark),
-          SizedBox(width: 6),
-          Icon(Icons.battery_full, size: 19, color: AppColors.textDark),
-        ],
       ),
     );
   }
@@ -712,9 +685,9 @@ class _RecentTransactionsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
-        Expanded(
+        const Expanded(
           child: Text(
             'Transaksi Terbaru',
             style: TextStyle(
@@ -724,15 +697,23 @@ class _RecentTransactionsHeader extends StatelessWidget {
             ),
           ),
         ),
-        Text(
-          'Lihat Semua',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.amber,
+        GestureDetector(
+          onTap: () => navigateTab(context, 1),
+          behavior: HitTestBehavior.opaque,
+          child: Row(
+            children: const [
+              Text(
+                'Lihat Semua',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.amber,
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 18, color: AppColors.amber),
+            ],
           ),
         ),
-        Icon(Icons.chevron_right, size: 18, color: AppColors.amber),
       ],
     );
   }
@@ -904,177 +885,42 @@ class _ScanPromoCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.navy,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.center_focus_strong,
-                  size: 17,
-                  color: AppColors.orange,
-                ),
-                SizedBox(width: 7),
-                Text(
-                  'Scan',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Bottom navigation
-// ---------------------------------------------------------------------------
-
-class _BottomNavigation extends StatelessWidget {
-  const _BottomNavigation();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 86,
-      color: AppColors.bg,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.bottomCenter,
-        children: [
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 70,
+          GestureDetector(
+            onTap: () => openScan(context),
             child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x12000000),
-                    blurRadius: 18,
-                    offset: Offset(0, -4),
-                  ),
-                ],
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.navy,
+                borderRadius: BorderRadius.circular(12),
               ),
               child: const Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: _NavItem(
-                      icon: Icons.home_outlined,
-                      label: 'Beranda',
-                      active: true,
-                    ),
+                  Icon(
+                    Icons.center_focus_strong,
+                    size: 17,
+                    color: AppColors.orange,
                   ),
-                  Expanded(
-                    child: _NavItem(
-                      icon: Icons.receipt_long_outlined,
-                      label: 'Riwayat',
-                    ),
-                  ),
-                  Expanded(child: _NavItem(label: 'Scan')),
-                  Expanded(
-                    child: _NavItem(icon: Icons.bar_chart, label: 'Analisis'),
-                  ),
-                  Expanded(
-                    child: _NavItem(
-                      icon: Icons.receipt_long_outlined,
-                      label: 'Pengaturan',
+                  SizedBox(width: 7),
+                  Text(
+                    'Scan',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          const Positioned(top: 0, child: _ScanButton()),
         ],
       ),
     );
   }
 }
 
-class _NavItem extends StatelessWidget {
-  const _NavItem({required this.label, this.icon, this.active = false});
+// ---------------------------------------------------------------------------
+// Bottom navigation is provided by AppBottomNav (see app_widgets.dart).
+// ---------------------------------------------------------------------------
 
-  final String label;
-  final IconData? icon;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox(
-          height: 24,
-          width: 24,
-          child: icon == null
-              ? null
-              : Icon(
-                  icon,
-                  size: 22,
-                  color: active ? AppColors.textDark : const Color(0xFF3A3F4B),
-                ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-            color: active ? AppColors.textDark : AppColors.textMuted,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ScanButton extends StatelessWidget {
-  const _ScanButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.navy.withValues(alpha: 0.18),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Container(
-          width: 46,
-          height: 46,
-          decoration: const BoxDecoration(
-            color: AppColors.navy,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.photo_camera_outlined,
-            size: 24,
-            color: AppColors.orange,
-          ),
-        ),
-      ),
-    );
-  }
-}

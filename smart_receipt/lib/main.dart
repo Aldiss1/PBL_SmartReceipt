@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
-import 'home_dashboard.dart';
+import 'splash_screen.dart';
 
 void main() {
   runApp(const SmartReceiptApp());
@@ -24,7 +24,7 @@ class SmartReceiptApp extends StatelessWidget {
           surface: AppColors.bg,
         ),
       ),
-      home: const HomeDashboard(),
+      home: const SplashScreen(),
     );
   }
 }

@@ -193,23 +193,39 @@ class OcrService {
       }
     }
 
-    // 1. Crop to the region that actually contains text. This is what fixes a
-    //    gallery photo where the receipt occupies a corner of the frame.
-    final double? areaRatio = _textAreaRatio(raw, quality);
-    if (areaRatio != null && areaRatio < 0.55) {
-      try {
-        final String cropPath = '${dir.path}/ocr_crop_$stamp.jpg';
-        await _preprocessor.prepareCrop(
-          preparedPath: quality.preparedPath,
-          outputPath: cropPath,
-          left: _textBounds(raw).left,
-          top: _textBounds(raw).top,
-          right: _textBounds(raw).right,
-          bottom: _textBounds(raw).bottom,
-        );
-        await attempt(cropPath);
-      } catch (_) {
-        // Ignore and continue with the other strategies.
+    // 1. Crop to the region that actually contains content. This is what fixes
+    //    a gallery photo where the receipt occupies a corner of the frame: the
+    //    crop is scaled up, so the characters get more pixels than a re-read of
+    //    the full frame could ever give them.
+    //
+    //    Pixel-based ink bounds are preferred over the OCR text bounds because
+    //    the first pass is exactly what failed — its bounds would be wrong too.
+    ImageRegion? region;
+    try {
+      region = await _preprocessor.detectInkBounds(quality.preparedPath);
+    } catch (_) {
+      region = null;
+    }
+    region ??= _textBounds(raw);
+
+    if (region != null) {
+      final double imageArea = quality.width * quality.height.toDouble();
+      final double regionArea = region.width * region.height;
+      if (imageArea > 0 && regionArea / imageArea < 0.9) {
+        try {
+          final String cropPath = '${dir.path}/ocr_crop_$stamp.jpg';
+          await _preprocessor.prepareCrop(
+            preparedPath: quality.preparedPath,
+            outputPath: cropPath,
+            left: region.left,
+            top: region.top,
+            right: region.right,
+            bottom: region.bottom,
+          );
+          await attempt(cropPath);
+        } catch (_) {
+          // Ignore and continue with the other strategies.
+        }
       }
     }
 
@@ -231,21 +247,12 @@ class OcrService {
     return best;
   }
 
-  /// Fraction of the image area covered by the recognized text.
-  double? _textAreaRatio(OcrRawResult raw, ImageQualityReport quality) {
-    if (raw.lines.isEmpty || quality.width <= 0 || quality.height <= 0) {
+  /// Bounding box of the recognized text. Used only as a fallback when pixel
+  /// based ink detection cannot produce a region.
+  ImageRegion? _textBounds(OcrRawResult raw) {
+    if (raw.lines.isEmpty) {
       return null;
     }
-    final _Bounds b = _textBounds(raw);
-    final double area = (b.right - b.left) * (b.bottom - b.top);
-    final double imageArea = quality.width * quality.height.toDouble();
-    if (imageArea <= 0) {
-      return null;
-    }
-    return area / imageArea;
-  }
-
-  _Bounds _textBounds(OcrRawResult raw) {
     double left = double.infinity;
     double top = double.infinity;
     double right = 0;
@@ -256,15 +263,9 @@ class OcrService {
       right = math.max(right, line.right);
       bottom = math.max(bottom, line.bottom);
     }
-    return _Bounds(left, top, right, bottom);
+    if (right <= left || bottom <= top) {
+      return null;
+    }
+    return ImageRegion(left, top, right, bottom);
   }
-}
-
-class _Bounds {
-  const _Bounds(this.left, this.top, this.right, this.bottom);
-
-  final double left;
-  final double top;
-  final double right;
-  final double bottom;
 }

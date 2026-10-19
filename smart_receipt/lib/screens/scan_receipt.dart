@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../theme/app_colors.dart';
@@ -29,12 +30,17 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
     }
     setState(() => _busy = true);
     try {
+      final bool fromGallery = source == ImageSource.gallery;
       final XFile? picked = await _picker.pickImage(
         source: source,
-        // Keep resolution high enough for OCR but bounded for memory.
-        maxWidth: 2400,
-        maxHeight: 2400,
-        imageQuality: 92,
+        // The camera is framed tightly, so a 2400px cap keeps memory in check
+        // without hurting legibility. A gallery photo is full-resolution and the
+        // receipt may occupy only part of it: letting the picker downscale it
+        // would shrink the print twice (once here, once in preprocessing) and
+        // destroy the detail OCR needs. The preprocessor resizes it properly.
+        maxWidth: fromGallery ? null : 2400,
+        maxHeight: fromGallery ? null : 2400,
+        imageQuality: fromGallery ? 100 : 92,
       );
       if (picked == null) {
         return;
@@ -45,6 +51,23 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
       Navigator.pushReplacement(
         context,
         appRoute(OcrProcessingScreen(imagePath: picked.path)),
+      );
+    } on PlatformException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      final bool denied = e.code == 'photo_access_denied' ||
+          e.code == 'camera_access_denied' ||
+          (e.message ?? '').toLowerCase().contains('permission');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            denied
+                ? 'Akses galeri ditolak. Aktifkan di Pengaturan › Smart Receipt '
+                    '› Foto.'
+                : 'Gagal mengambil gambar: ${e.message ?? e.code}',
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) {

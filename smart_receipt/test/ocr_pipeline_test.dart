@@ -122,7 +122,7 @@ void main() {
         outputPath: '${tmp.path}/big_out.jpg',
       );
 
-      expect(r.width <= 2400 && r.height <= 2400, isTrue);
+      expect(r.width <= 3000 && r.height <= 3000, isTrue);
     });
 
     test('small gallery photo is upscaled for legibility', () async {
@@ -162,10 +162,64 @@ void main() {
       final img.Image? decoded =
           img.decodeImage(await File(cropPath).readAsBytes());
       expect(decoded, isNotNull);
-      // The crop must be smaller than the original but scaled up enough to keep
-      // text legible.
-      expect(decoded!.width < r.width, isTrue);
-      expect(math.min(decoded.width, decoded.height) >= 900, isTrue);
+      // The crop is upscaled so the characters get more pixels than they had in
+      // the full frame; that is the whole point of the second pass.
+      expect(math.min(decoded!.width, decoded.height) >= 1600, isTrue);
+      // It must still be a crop: the aspect ratio follows the requested region.
+      final double requested = (r.width * 0.6) / (r.height * 0.4);
+      final double actual = decoded.width / decoded.height;
+      expect((actual - requested).abs() < 0.05, isTrue);
+    });
+
+    test('detects the receipt region inside a larger photo', () async {
+      // A photo where the receipt is a small block of print surrounded by a
+      // plain background — the gallery case that used to OCR badly.
+      final img.Image photo = img.Image(width: 1200, height: 1600);
+      img.fill(photo, color: img.ColorRgb8(235, 235, 235));
+      // Filled print, like real receipt text rather than a hollow outline.
+      final img.Image receipt = img.Image(width: 700, height: 900);
+      img.fill(receipt, color: img.ColorRgb8(245, 245, 245));
+      for (int y = 60; y < 860; y += 30) {
+        img.fillRect(
+          receipt,
+          x1: 60,
+          y1: y,
+          x2: 60 + (560 - (y % 90)),
+          y2: y + 9,
+          color: img.ColorRgb8(25, 25, 25),
+        );
+      }
+      img.compositeImage(photo, receipt, dstX: 250, dstY: 350);
+
+      final String src = await write(photo, 'region.jpg');
+      final ImageQualityReport r = await ImagePreprocessor().prepare(
+        sourcePath: src,
+        outputPath: '${tmp.path}/region_out.jpg',
+      );
+
+      final ImageRegion? region =
+          await ImagePreprocessor().detectInkBounds(r.preparedPath);
+      expect(region, isNotNull);
+
+      // The detected box must sit inside the pasted receipt, not the whole frame.
+      final double w = region!.width / r.width;
+      final double h = region.height / r.height;
+      expect(w < 0.75, isTrue);
+      expect(h < 0.75, isTrue);
+      expect(region.left / r.width > 0.1, isTrue);
+      expect(region.top / r.height > 0.1, isTrue);
+    });
+
+    test('returns no region for a blank image', () async {
+      final img.Image blank = img.Image(width: 800, height: 800);
+      img.fill(blank, color: img.ColorRgb8(250, 250, 250));
+      final String src = await write(blank, 'blank.jpg');
+      final ImageQualityReport r = await ImagePreprocessor().prepare(
+        sourcePath: src,
+        outputPath: '${tmp.path}/blank_out.jpg',
+      );
+
+      expect(await ImagePreprocessor().detectInkBounds(r.preparedPath), isNull);
     });
 
     test('binarized copy is written as a readable image', () async {

@@ -67,12 +67,12 @@ const double kLowLightThreshold = 82;
 class ImagePreprocessor {
   /// Longest edge used for OCR.
   ///
-  /// A camera capture frames the receipt tightly, so 1600px is plenty. A
-  /// gallery photo is usually a full-resolution shot with the receipt occupying
-  /// part of the frame; downscaling that to 1600px shrinks the printed text
-  /// below what ML Kit can read reliably. 2400px keeps small thermal print
-  /// legible without exhausting memory.
-  static const int _maxDimension = 2400;
+  /// A camera capture frames the receipt tightly, so its text is already large
+  /// in the frame. A gallery photo is a full-resolution shot where the receipt
+  /// may occupy only part of the picture, so the same cap would shrink its text
+  /// below what ML Kit reads reliably. 3000px keeps both cases legible while
+  /// staying within a safe memory budget (~27 MB for the decoded bitmap).
+  static const int _maxDimension = 3000;
 
   /// If the image is smaller than this on its short edge it is upscaled, so
   /// text that came from a screenshot or a distant gallery shot still has
@@ -113,9 +113,12 @@ class ImagePreprocessor {
       height: y1 - y0,
     );
 
+    // The crop exists to give the recognizer more pixels per character, so it
+    // is scaled up to a comfortable size and never downscaled.
     final int shortEdge = math.min(cropped.width, cropped.height);
-    if (shortEdge > 0 && shortEdge < _minShortEdge) {
-      final double factor = _minShortEdge / shortEdge;
+    const int targetShortEdge = 1600;
+    if (shortEdge > 0 && shortEdge < targetShortEdge) {
+      final double factor = targetShortEdge / shortEdge;
       cropped = img.copyResize(
         cropped,
         width: (cropped.width * factor).round(),
@@ -145,12 +148,114 @@ class ImagePreprocessor {
     if (decoded == null) {
       return preparedPath;
     }
+    decoded.backgroundColor = img.ColorRgb8(255, 255, 255);
     final img.Image rotated =
         img.copyRotate(decoded, angle: degrees.toDouble());
     final File out = File(outputPath);
     out.parent.createSync(recursive: true);
     await out.writeAsBytes(img.encodeJpg(rotated, quality: 92));
     return outputPath;
+  }
+
+  /// Finds the bounding box of printed content ("ink") in an already-prepared
+  /// image.
+  ///
+  /// This does not depend on OCR at all: it thresholds luminance with Otsu's
+  /// method and takes the extent of the dark pixels. It is what lets the gallery
+  /// path crop to the receipt even when the first OCR pass read almost nothing,
+  /// which is exactly the case where text-based bounds are useless.
+  Future<ImageRegion?> detectInkBounds(String preparedPath) async {
+    final img.Image? decoded = await _decode(preparedPath);
+    if (decoded == null) {
+      return null;
+    }
+
+    // Work on a downscaled grayscale copy; only the proportions matter.
+    final img.Image gray = img.grayscale(
+      decoded.width > 400
+          ? img.copyResize(decoded, width: 400)
+          : decoded,
+    );
+    final int w = gray.width;
+    final int h = gray.height;
+    if (w < 8 || h < 8) {
+      return null;
+    }
+
+    // Otsu assumes two classes, but a real photo has three: dark print, white
+    // receipt paper, and a grey background/table. Otsu then splits paper from
+    // background and reports the *background* as "ink", which is useless.
+    //
+    // Print is always the darkest minority, so threshold halfway between a low
+    // percentile (the ink) and the median (paper or background).
+    final List<int> histogram = List<int>.filled(256, 0);
+    for (int y = 0; y < h; y++) {
+      for (int x = 0; x < w; x++) {
+        histogram[gray.getPixel(x, y).r.toInt().clamp(0, 255)]++;
+      }
+    }
+    final int total = w * h;
+
+    int percentile(double p) {
+      final int target = (total * p).round().clamp(1, total);
+      int seen = 0;
+      for (int i = 0; i < 256; i++) {
+        seen += histogram[i];
+        if (seen >= target) {
+          return i;
+        }
+      }
+      return 255;
+    }
+
+    final int inkLevel = percentile(0.02);
+    final int paperLevel = percentile(0.60);
+    final int threshold = ((inkLevel + paperLevel) / 2).round();
+
+    // A photo of a receipt is mostly bright paper with dark print. If the split
+    // lands very high there is no dark ink at all, so there is nothing to crop
+    // to.
+    if (threshold > 200 || paperLevel - inkLevel < 20) {
+      return null;
+    }
+
+    int minX = w;
+    int minY = h;
+    int maxX = -1;
+    int maxY = -1;
+    int darkCount = 0;
+    for (int y = 0; y < h; y++) {
+      for (int x = 0; x < w; x++) {
+        if (gray.getPixel(x, y).r <= threshold) {
+          darkCount++;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    // Too little ink means there is nothing to crop to.
+    if (darkCount < total * 0.002 || maxX < minX || maxY < minY) {
+      return null;
+    }
+
+    // Require the ink to be a meaningful part of the frame; a stray dark border
+    // would otherwise make the bounds cover the whole image.
+    final double coverage = ((maxX - minX + 1) * (maxY - minY + 1)) / total;
+    if (coverage > 0.98) {
+      return null;
+    }
+
+    final double scaleX = decoded.width / w;
+    final double scaleY = decoded.height / h;
+    return ImageRegion(
+      minX * scaleX,
+      minY * scaleY,
+      (maxX + 1) * scaleX,
+      (maxY + 1) * scaleY,
+    );
   }
 
   /// Produces a high-contrast, grayscale copy of an already-prepared image.
@@ -242,6 +347,28 @@ class ImagePreprocessor {
 
     img.Image working = img.bakeOrientation(decoded);
 
+    // Skew is estimated on a downscaled copy, so this stays cheap even for a
+    // full-resolution gallery photo.
+    final double brightness = _meanLuminance(working);
+    final double blurScore = _laplacianVariance(working);
+
+    final int angle = _estimateSkewDegrees(working);
+    final bool rotated = angle.abs() >= 1;
+    if (rotated) {
+      // `copyRotate` leaves the exposed corners unfilled, which on an image
+      // without an alpha channel means solid black. Those corners would later
+      // be mistaken for ink and also confuse the recognizer, so the fill colour
+      // is set explicitly.
+      working.backgroundColor = img.ColorRgb8(255, 255, 255);
+      working = img.copyRotate(
+        working,
+        angle: -angle.toDouble(),
+        interpolation: img.Interpolation.linear,
+      );
+    }
+
+    // Size limits are applied *after* rotation: rotating expands the bounding
+    // box, so resizing first would let the result exceed the cap again.
     if (math.max(working.width, working.height) > _maxDimension) {
       working = working.width >= working.height
           ? img.copyResize(working, width: _maxDimension)
@@ -260,15 +387,6 @@ class ImagePreprocessor {
         height: (working.height * factor).round(),
         interpolation: img.Interpolation.cubic,
       );
-    }
-
-    final double brightness = _meanLuminance(working);
-    final double blurScore = _laplacianVariance(working);
-
-    final int angle = _estimateSkewDegrees(working);
-    final bool rotated = angle.abs() >= 1;
-    if (rotated) {
-      working = img.copyRotate(working, angle: -angle.toDouble(), interpolation: img.Interpolation.linear);
     }
 
     final bool lowLight = brightness < kLowLightThreshold;
@@ -383,7 +501,19 @@ class ImagePreprocessor {
     }
     final double upright = _rowVariance(small);
     final double gain = (bestVariance - upright) / (upright.abs() + 1);
-    return gain > 0.12 ? bestAngle : 0;
+    // Only correct a skew that is clearly real. Rotating a straight receipt
+    // blurs the glyphs and measurably lowers recognition accuracy, so the bar
+    // is deliberately high.
+    //
+    // A peak on the search boundary means the estimator locked onto the
+    // rectangular edge of the receipt inside a larger photo (the common gallery
+    // case) rather than onto the text lines; rotating by that angle would ruin
+    // the image, so boundary hits are rejected.
+    final bool atBoundary = bestAngle.abs() >= 6;
+    if (atBoundary || gain <= 0.4 || bestAngle.abs() < 2) {
+      return 0;
+    }
+    return bestAngle;
   }
 
   double _rowVariance(img.Image gray) {
@@ -429,7 +559,16 @@ class ImagePreprocessor {
     const int tilesX = 8;
     const int tilesY = 8;
     const double targetStd = 52;
-    const double minStd = 8;
+
+    /// Tiles flatter than this hold no text — they are blank paper or a plain
+    /// background. Amplifying them would only raise sensor noise, so they are
+    /// left untouched.
+    const double flatStd = 12;
+
+    /// A tile with a little texture must never be stretched more than this.
+    /// Without the cap, a nearly blank tile (std ~13) would be multiplied by
+    /// 4x and the resulting noise destroys the recognizer's line detection.
+    const double maxGain = 2.2;
 
     final int w = image.width;
     final int h = image.height;
@@ -440,9 +579,9 @@ class ImagePreprocessor {
     final int tileW = (w / tilesX).ceil();
     final int tileH = (h / tilesY).ceil();
 
-    // Per-tile mean and standard deviation of luminance.
+    // Per-tile mean, standard deviation, and the gain derived from them.
     final List<double> means = List<double>.filled(tilesX * tilesY, 128);
-    final List<double> stds = List<double>.filled(tilesX * tilesY, minStd);
+    final List<double> gains = List<double>.filled(tilesX * tilesY, 1);
     for (int ty = 0; ty < tilesY; ty++) {
       for (int tx = 0; tx < tilesX; tx++) {
         final int x0 = tx * tileW;
@@ -471,8 +610,11 @@ class ImagePreprocessor {
         if (count > 0) {
           final double mean = sum / count;
           final double variance = math.max(sumSq / count - mean * mean, 0);
+          final double std = math.sqrt(variance);
           means[index] = mean;
-          stds[index] = math.max(math.sqrt(variance), minStd);
+          gains[index] = std < flatStd
+              ? 1.0
+              : (targetStd / std).clamp(1.0, maxGain).toDouble();
         }
       }
     }
@@ -493,14 +635,13 @@ class ImagePreprocessor {
         final double m10 = means[ty0 * tilesX + tx1];
         final double m01 = means[ty1 * tilesX + tx0];
         final double m11 = means[ty1 * tilesX + tx1];
-        final double s00 = stds[ty0 * tilesX + tx0];
-        final double s10 = stds[ty0 * tilesX + tx1];
-        final double s01 = stds[ty1 * tilesX + tx0];
-        final double s11 = stds[ty1 * tilesX + tx1];
+        final double g00 = gains[ty0 * tilesX + tx0];
+        final double g10 = gains[ty0 * tilesX + tx1];
+        final double g01 = gains[ty1 * tilesX + tx0];
+        final double g11 = gains[ty1 * tilesX + tx1];
 
         final double mean = _bilerp(m00, m10, m01, m11, fx, fy);
-        final double std = _bilerp(s00, s10, s01, s11, fx, fy);
-        final double gain = targetStd / std;
+        final double gain = _bilerp(g00, g10, g01, g11, fx, fy);
 
         final img.Pixel p = image.getPixel(x, y);
         p.r = _applyLocal(p.r.toDouble(), mean, gain);
@@ -528,6 +669,19 @@ class ImagePreprocessor {
     final double v = (channel - mean) * gain + mean;
     return v.clamp(0, 255).round();
   }
+}
+
+/// A rectangle in pixel coordinates.
+class ImageRegion {
+  const ImageRegion(this.left, this.top, this.right, this.bottom);
+
+  final double left;
+  final double top;
+  final double right;
+  final double bottom;
+
+  double get width => right - left;
+  double get height => bottom - top;
 }
 
 class ImageQualityException implements Exception {

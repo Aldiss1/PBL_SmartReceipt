@@ -106,7 +106,7 @@ void main() {
       }
     });
 
-    test('records a correction normalized to classifier input', () async {
+    test('records a correction using raw classifier input', () async {
       final int id = await service.recordCorrection(
         itemName: 'INDOMIE GORENG Rp 3.500',
         correctedCategoryName: 'Makanan',
@@ -120,8 +120,9 @@ void main() {
 
       expect(id, greaterThan(0));
       final CategoryCorrection saved = store.rows.single;
-      // Stored name is cleaned/normalized, not the raw OCR text.
-      expect(saved.itemName, 'mie instan goreng');
+      // Stored verbatim (whitespace collapsed) so the training corpus matches
+      // what the classifier actually vectorizes.
+      expect(saved.itemName, 'INDOMIE GORENG Rp 3.500');
       expect(saved.originalName, 'INDOMIE GORENG Rp 3.500');
       expect(saved.correctedCategoryName, 'Makanan');
       expect(saved.correctedCategoryId, 1);
@@ -130,7 +131,7 @@ void main() {
       expect(saved.confidence, closeTo(0.62, 1e-9));
     });
 
-    test('ignores input that normalizes to nothing', () async {
+    test('ignores blank input', () async {
       final int id = await service.recordCorrection(
         itemName: '   ',
         correctedCategoryName: 'Makanan',
@@ -154,7 +155,7 @@ void main() {
       await service.recordCorrection(
         itemName: 'AQUA',
         correctedCategoryName: 'Minuman',
-        correctedCategoryId: 1,
+        correctedCategoryId: 2,
       );
 
       expect(await service.correctionCount(), 3);
@@ -199,7 +200,7 @@ void main() {
       expect(json['source'], 'user_corrections');
       final List<dynamic> samples = json['samples'] as List<dynamic>;
       expect(samples.length, 1);
-      expect((samples.single as Map)['text'], 'bensin');
+      expect((samples.single as Map)['text'], 'PERTALITE');
       expect((samples.single as Map)['label'], 'Transportasi');
     });
 
@@ -207,7 +208,7 @@ void main() {
       await service.recordCorrection(
         itemName: 'AQUA',
         correctedCategoryName: 'Minuman',
-        correctedCategoryId: 1,
+        correctedCategoryId: 2,
       );
       expect(await service.correctionCount(onlyUnused: true), 1);
 

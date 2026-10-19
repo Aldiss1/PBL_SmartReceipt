@@ -3,28 +3,52 @@ import 'dart:math' as math;
 
 import 'package:flutter/services.dart' show rootBundle;
 
+import '../models/categories.dart';
+
 /// Result of classifying one item name with the TF-IDF + Naive Bayes model.
 class TfidfPrediction {
   const TfidfPrediction({
     required this.label,
     required this.categoryId,
     required this.confidence,
+    required this.posterior,
     required this.needsReview,
+    this.margin = 0,
     this.alternatives = const <String, double>{},
   });
 
   /// Raw model class label, e.g. "Makanan", "Tagihan & Utilitas".
   final String label;
 
-  /// Mapped app category id (1..8), aligned with `kCategories` /
+  /// Mapped app category id (1..9), aligned with `kAppCategories` /
   /// the `categories` table in SQLite.
   final int categoryId;
 
-  /// Posterior probability of [label] under the Naive Bayes model (0..1).
+  /// Conservative confidence in [label], in 0..1.
+  ///
+  /// Derived from [margin] as `1 / (1 + (K-1)·e^-margin)`, i.e. the probability
+  /// of the winner if every other class were as likely as the runner-up. This
+  /// is a *lower bound* on the model's true posterior and, unlike the raw
+  /// softmax posterior, it does not saturate at 1.000 — so the number shown in
+  /// the UI always agrees with [needsReview].
   final double confidence;
 
-  /// True when [confidence] is below the model's review threshold, meaning the
-  /// prediction should be surfaced to the user for confirmation.
+  /// Raw softmax posterior of [label]; kept for auditability.
+  ///
+  /// Saturates near 1.0 on this model (median 1.000), which is why it is not
+  /// used for the review decision.
+  final double posterior;
+
+  /// Gap between the top-1 and top-2 log-joint scores (`s1 - s2`)
+  ///
+  /// Because the TF-IDF vector is L2-normalized this gap is roughly scale-free
+  /// and comparable across item names. A small gap means the runner-up class is
+  /// nearly as plausible as the winner, which is the actual signal that the
+  /// prediction should be confirmed by the user.
+  final double margin;
+
+  /// True when [margin] is below the model's review margin, meaning the top two
+  /// classes are too close to trust without confirmation.
   final bool needsReview;
 
   /// Top alternative class labels with their posteriors, for transparency.
@@ -75,27 +99,46 @@ class TfidfNaiveBayesEngine {
 
   int _minN = 2;
   int _maxN = 4;
-  double _reviewThreshold = 0.9;
   String _fallbackLabel = 'Perlu Review';
 
-  /// Raw class label → app category id. Kept in sync with [kCategories]
-  /// (see `models.dart`) and the seeded `categories` table.
+  /// Default log-odds gap below which a prediction is surfaced for review.
+  ///
+  /// Tuned on the exported model: on the dummy eval set a margin of 4.0 flags
+  /// ~12% of items, and those items carry a ~22% error rate versus ~1.6% for
+  /// the ones left alone. The model's own posterior cannot be used for this
+  /// (it saturates at 1.0 — median 1.000), so the gap between the best and
+  /// second-best class is the decision signal.
+  static const double defaultReviewMargin = 4.0;
+
+  double _reviewMargin = defaultReviewMargin;
+
+  /// The active review margin; predictions with a smaller [TfidfPrediction.margin]
+  /// are flagged with [TfidfPrediction.needsReview].
+  double get reviewMargin => _reviewMargin;
+
+  /// Raw class label → canonical app category id ([kAppCategories]).
+  ///
+  /// The model knows 15 labels while the app has 9 categories, so several model
+  /// labels intentionally collapse onto one category. Keeping this table in one
+  /// place means the classifier output, the review screen and the database all
+  /// agree on what an id means.
   static const Map<String, int> classToCategoryId = <String, int>{
-    'Makanan': 1, // Makanan & Minuman
-    'Minuman': 1, // Makanan & Minuman
-    'Transportasi': 2, // Transport
-    'Bayi & Anak': 3, // Belanja Bulanan
-    'Elektronik': 3, // Belanja Bulanan
-    'Hewan Peliharaan': 3, // Belanja Bulanan
-    'Pakaian & Fashion': 3, // Belanja Bulanan
-    'Perawatan Diri': 3, // Belanja Bulanan
-    'Rumah Tangga': 3, // Belanja Bulanan
-    'Tagihan & Utilitas': 4, // Utilitas
-    'Hiburan & Hobi': 5, // Hiburan
-    'Kesehatan': 6, // Kesehatan
-    'Pendidikan & ATK': 7, // Pendidikan
-    'Rokok & Tembakau': 8, // Lainnya
-    'Lainnya': 8, // Lainnya
+    'Makanan': 1, // Makanan
+    'Minuman': 2, // Minuman
+    'Rumah Tangga': 3, // Rumah Tangga
+    'Perawatan Diri': 4, // Perawatan Diri
+    'Kesehatan': 5, // Kesehatan
+    'Transportasi': 6, // Transportasi
+    'Elektronik': 7, // Elektronik
+    'Pakaian & Fashion': 8, // Pakaian
+    'Lainnya': kFallbackCategoryId, // Lainnya
+    // Model classes with no dedicated app category.
+    'Bayi & Anak': kFallbackCategoryId,
+    'Hewan Peliharaan': kFallbackCategoryId,
+    'Hiburan & Hobi': kFallbackCategoryId,
+    'Pendidikan & ATK': kFallbackCategoryId,
+    'Rokok & Tembakau': kFallbackCategoryId,
+    'Tagihan & Utilitas': kFallbackCategoryId,
   };
 
   /// Loads and validates the exported model from `assets/`.
@@ -165,9 +208,11 @@ class TfidfNaiveBayesEngine {
           .toList();
     }
 
-    final Object? threshold = json['threshold'];
-    if (threshold is num) {
-      _reviewThreshold = threshold.toDouble();
+    // Review policy. `threshold` (a posterior cutoff) is ignored on purpose:
+    // this model's posteriors saturate, so the cutoff never fired.
+    final Object? reviewMargin = json['review_margin'];
+    if (reviewMargin is num && reviewMargin > 0) {
+      _reviewMargin = reviewMargin.toDouble();
     }
     final Object? fallback = json['fallback_label'];
     if (fallback is String && fallback.isNotEmpty) {
@@ -310,8 +355,8 @@ class TfidfNaiveBayesEngine {
   /// Classifies [text] into a model label plus mapped app category id.
   ///
   /// Returns the fallback label with [TfidfPrediction.needsReview] set when the
-  /// text has no in-vocabulary features or the posterior is below the model's
-  /// review threshold.
+  /// text has no in-vocabulary features or the gap between the best and
+  /// second-best class is below [reviewMargin].
   TfidfPrediction predict(String text) {
     if (!isLoaded) {
       throw TfidfModelException('Model belum dimuat.');
@@ -320,9 +365,11 @@ class TfidfNaiveBayesEngine {
     if (vector.isEmpty) {
       return TfidfPrediction(
         label: _fallbackLabel,
-        categoryId: classToCategoryId[_fallbackLabel] ?? 8,
+        categoryId: kFallbackCategoryId,
         confidence: 0.0,
+        posterior: 0.0,
         needsReview: true,
+        margin: 0,
       );
     }
 
@@ -340,31 +387,43 @@ class TfidfNaiveBayesEngine {
     final List<int> order = List<int>.generate(_classes.length, (int i) => i)
       ..sort((int a, int b) => posteriors[b].compareTo(posteriors[a]));
 
-    final double confidence = posteriors[bestIndex];
+    final double posterior = posteriors[bestIndex];
     final Map<String, double> alternatives = <String, double>{
       for (final int i in order.skip(1).take(2)) _classes[i]: posteriors[i],
     };
 
-    final bool needsReview = confidence < _reviewThreshold;
+    // Log-odds gap between the winner and the runner-up. Scale-free because the
+    // TF-IDF vector is L2-normalized, so it is comparable across item names.
+    final double margin = scores.length > 1
+        ? scores[order[0]] - scores[order[1]]
+        : double.infinity;
+
+    final bool needsReview = margin < _reviewMargin;
     return TfidfPrediction(
       label: needsReview ? _fallbackLabel : _classes[bestIndex],
-      categoryId: needsReview
-          ? _reviewCategoryId(alternatives)
-          : (classToCategoryId[_classes[bestIndex]] ?? 8),
-      confidence: confidence,
+      // Even when flagged for review, the category shown to the user must be
+      // the model's own top pick — not a runner-up alternative.
+      categoryId: classToCategoryId[_classes[bestIndex]] ?? kFallbackCategoryId,
+      confidence: _conservativeConfidence(margin),
+      posterior: posterior,
       needsReview: needsReview,
+      margin: margin,
       alternatives: alternatives,
     );
   }
 
-  /// When a prediction is uncertain we still need *some* category id for the
-  /// review screen, so we fall back to the best alternative's mapping.
-  int _reviewCategoryId(Map<String, double> alternatives) {
-    if (alternatives.isEmpty) {
-      return 8;
+  /// Lower-bound confidence implied by [margin], assuming every non-winning
+  /// class is at least as likely as the runner-up.
+  double _conservativeConfidence(double margin) {
+    if (!margin.isFinite) {
+      return 1.0;
     }
-    final String top = alternatives.keys.first;
-    return classToCategoryId[top] ?? 8;
+    final int others = _classes.length > 1 ? _classes.length - 1 : 1;
+    final double odds = others * math.exp(-margin);
+    if (!odds.isFinite) {
+      return 1.0;
+    }
+    return 1.0 / (1.0 + odds);
   }
 
   List<double> _softmax(List<double> scores) {

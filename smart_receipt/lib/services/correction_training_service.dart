@@ -6,7 +6,6 @@ import 'package:path_provider/path_provider.dart';
 import '../helpers/database_helper.dart';
 import '../models/receipt_model.dart';
 import '../ocr/receipt_classifier.dart';
-import 'text_normalizer.dart';
 
 /// Persistence surface the training service depends on.
 ///
@@ -24,17 +23,13 @@ abstract class CorrectionStore {
 ///
 /// This is the feedback loop that lets the classifier improve without shipping
 /// a new model: every time a user fixes a predicted category we store
-/// (normalized item name → corrected category) and can later export those rows
-/// as a labelled dataset for the next training run.
+/// (item name → corrected category) and can later export those rows as a
+/// labelled dataset for the next training run.
 class CorrectionTrainingService {
-  CorrectionTrainingService({
-    CorrectionStore? store,
-    IndonesianTextPreprocessor? preprocessor,
-  })  : _store = store ?? DatabaseHelper(),
-        _preprocessor = preprocessor ?? IndonesianTextPreprocessor();
+  CorrectionTrainingService({CorrectionStore? store})
+      : _store = store ?? DatabaseHelper();
 
   final CorrectionStore _store;
-  final IndonesianTextPreprocessor _preprocessor;
 
   /// Directory used by [exportTrainingDataset]; overridable for tests.
   Directory? _outputDirectory;
@@ -42,11 +37,12 @@ class CorrectionTrainingService {
 
   /// Records that the user changed an item's category.
   ///
-  /// [itemName] may be raw OCR text; it is normalized before storage so the
-  /// training corpus matches what the classifier vectorizes. [prediction] is
-  /// the model output that was overridden (nullable if the item was added
-  /// manually). Returns the row id, or -1 on failure — a logging problem must
-  /// never block saving the receipt.
+  /// [itemName] may be raw OCR text; only whitespace is collapsed. It is stored
+  /// as-is because the classifier vectorizes raw text — normalizing here would
+  /// make the exported training corpus disagree with inference input.
+  /// [prediction] is the model output that was overridden (nullable if the item
+  /// was added manually). Returns the row id, or -1 on failure — a logging
+  /// problem must never block saving the receipt.
   Future<int> recordCorrection({
     required String itemName,
     required String correctedCategoryName,
@@ -55,8 +51,8 @@ class CorrectionTrainingService {
     String? predictedLabel,
     String source = 'review',
   }) async {
-    final String normalized = _preprocessor.normalize(itemName);
-    final String trainingName = normalized.isEmpty ? itemName.trim() : normalized;
+    final String trainingName =
+        itemName.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (trainingName.isEmpty) {
       return -1;
     }

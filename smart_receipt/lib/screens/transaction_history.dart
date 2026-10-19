@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../theme/app_colors.dart';
 import '../navigation/app_nav.dart';
@@ -6,11 +7,16 @@ import '../navigation/app_route.dart';
 import '../widgets/app_widgets.dart';
 import 'empty_state.dart';
 import '../models/models.dart';
-import '../data/sample_data.dart';
+import '../models/receipt_model.dart' as db;
+import '../data/receipt_adapter.dart';
+import '../providers/receipt_provider.dart';
 import '../theme/theme_controller.dart';
 import 'transaction_detail.dart';
 
 /// Screen 7 - Transaction History.
+///
+/// Reads the receipts saved in SQLite through [ReceiptProvider], so a scan that
+/// was just saved appears here immediately.
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
 
@@ -19,15 +25,6 @@ class TransactionHistoryScreen extends StatefulWidget {
 }
 
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
-  static const List<String> _filters = <String>[
-    'Semua',
-    'Makanan',
-    'Minuman',
-    'Rumah Tangga',
-    'Perawatan Diri',
-    'Transportasi',
-  ];
-
   final TextEditingController _search = TextEditingController();
   String _query = '';
   String _filter = 'Semua';
@@ -38,20 +35,41 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     super.dispose();
   }
 
-  List<Transaction> get _results {
+  /// Filter chips: "Semua" plus every category that actually has a receipt.
+  List<String> _filtersFor(ReceiptProvider provider) {
+    final Set<String> names = <String>{};
+    for (final db.Receipt receipt in provider.receipts) {
+      for (final db.Transaction item in receipt.transactions) {
+        names.add(provider.categoryNameFor(item.categoryId));
+      }
+    }
+    final List<String> sorted = names.toList()..sort();
+    return <String>['Semua', ...sorted];
+  }
+
+  /// Receipts matching the current search text and category chip.
+  List<db.Receipt> _resultsFor(ReceiptProvider provider) {
     final String q = _query.trim().toLowerCase();
-    final List<Transaction> list = kSampleTransactions.where((Transaction t) {
-      final bool matchesQuery = q.isEmpty || t.store.toLowerCase().contains(q);
-      final bool matchesCategory = _filter == 'Semua' || t.categories.contains(_filter);
+    return provider.receipts.where((db.Receipt receipt) {
+      final bool matchesQuery = q.isEmpty ||
+          receipt.storeName.toLowerCase().contains(q) ||
+          receipt.transactions.any(
+            (db.Transaction item) => item.itemName.toLowerCase().contains(q),
+          );
+      final bool matchesCategory = _filter == 'Semua' ||
+          receipt.transactions.any(
+            (db.Transaction item) =>
+                provider.categoryNameFor(item.categoryId) == _filter,
+          );
       return matchesQuery && matchesCategory;
     }).toList();
-    list.sort((Transaction a, Transaction b) => b.date.compareTo(a.date));
-    return list;
   }
 
   @override
   Widget build(BuildContext context) {
-    final List<Transaction> results = _results;
+    final ReceiptProvider provider = context.watch<ReceiptProvider>();
+    final List<String> filters = _filtersFor(provider);
+    final List<db.Receipt> results = _resultsFor(provider);
     ThemeScope.watch(context);
 
     return Scaffold(
@@ -66,79 +84,107 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             onScan: () => openScan(context),
           ),
           child: Column(
-          children: <Widget>[
-            const AppStatusBar(),
-            AppTopBar(
-              title: 'Riwayat Transaksi',
-              subtitle: '${kSampleTransactions.length} transaksi tercatat',
-              actions: <Widget>[
-                CircleIconButton(icon: Icons.tune, onTap: () {}),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(22, 4, 22, 0),
-              child: _SearchField(
-                controller: _search,
-                onChanged: (String v) => setState(() => _query = v),
+            children: <Widget>[
+              const AppStatusBar(),
+              AppTopBar(
+                title: 'Riwayat Transaksi',
+                subtitle: '${provider.receipts.length} transaksi tercatat',
+                actions: <Widget>[
+                  CircleIconButton(
+                    icon: Icons.refresh,
+                    onTap: provider.loadData,
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              height: 36,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 22),
-                itemCount: _filters.length,
-                separatorBuilder: (BuildContext context, int index) =>
-                    const SizedBox(width: 9),
-                itemBuilder: (BuildContext context, int i) {
-                  final String f = _filters[i];
-                  final bool active = f == _filter;
-                  return _FilterChip(
-                    label: f,
-                    active: active,
-                    onTap: () => setState(() => _filter = f),
-                  );
-                },
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22, 4, 22, 0),
+                child: _SearchField(
+                  controller: _search,
+                  onChanged: (String v) => setState(() => _query = v),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: results.isEmpty
-                  ? EmptyStateView(
-                      title: 'Transaksi Tidak Ditemukan',
-                      message:
-                          'Coba ubah kata kunci pencarian atau pilih kategori lain.',
-                      actionLabel: 'Reset Filter',
-                      onAction: () => setState(() {
-                        _search.clear();
-                        _query = '';
-                        _filter = 'Semua';
-                      }),
-                    )
-                  : ListView.builder(
-                      padding: EdgeInsets.fromLTRB(
-                        22,
-                        10,
-                        22,
-                        24 + AppBottomNav.clearance(context),
-                      ),
-                      itemCount: results.length,
-                      itemBuilder: (BuildContext context, int i) => _HistoryCard(
-                        transaction: results[i],
-                        onTap: () => Navigator.push(
-                          context,
-                          appRoute(
-                            TransactionDetailScreen(transaction: results[i]),
-                          ),
-                        ),
-                      ),
-                    ),
-            ),
-          ],
-        ),
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 36,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  itemCount: filters.length,
+                  separatorBuilder: (BuildContext context, int index) =>
+                      const SizedBox(width: 9),
+                  itemBuilder: (BuildContext context, int i) {
+                    final String f = filters[i];
+                    final bool active = f == _filter;
+                    return _FilterChip(
+                      label: f,
+                      active: active,
+                      onTap: () => setState(() => _filter = f),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: _body(provider, results),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _body(ReceiptProvider provider, List<db.Receipt> results) {
+    if (provider.isLoading && provider.receipts.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (provider.receipts.isEmpty) {
+      return EmptyStateView(
+        title: 'Belum Ada Transaksi',
+        message: 'Mulai catat pengeluaran Anda dengan memindai struk pertama. '
+            'Hasilnya akan muncul di sini.',
+        actionLabel: 'Scan Struk Sekarang',
+        onAction: () => openScan(context),
+      );
+    }
+
+    if (results.isEmpty) {
+      return EmptyStateView(
+        title: 'Transaksi Tidak Ditemukan',
+        message: 'Coba ubah kata kunci pencarian atau pilih kategori lain.',
+        actionLabel: 'Reset Filter',
+        onAction: () => setState(() {
+          _search.clear();
+          _query = '';
+          _filter = 'Semua';
+        }),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.fromLTRB(
+        22,
+        10,
+        22,
+        24 + AppBottomNav.clearance(context),
+      ),
+      itemCount: results.length,
+      itemBuilder: (BuildContext context, int i) {
+        final db.Receipt receipt = results[i];
+        return _HistoryCard(
+          receipt: receipt,
+          categoryName: provider.categoryNameFor,
+          onTap: () => Navigator.push(
+            context,
+            appRoute(
+              TransactionDetailScreen(
+                transaction: toUiTransaction(receipt, provider.categoryNameFor),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -163,7 +209,7 @@ class _SearchField extends StatelessWidget {
         decoration: InputDecoration(
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 14),
-          hintText: 'Cari toko atau transaksi',
+          hintText: 'Cari toko atau item',
           hintStyle: TextStyle(fontSize: 13.5, color: AppColors.textMuted),
           prefixIcon: Icon(Icons.search, size: 20, color: AppColors.textMuted),
           border: InputBorder.none,
@@ -208,14 +254,26 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _HistoryCard extends StatelessWidget {
-  const _HistoryCard({required this.transaction, required this.onTap});
+  const _HistoryCard({
+    required this.receipt,
+    required this.categoryName,
+    required this.onTap,
+  });
 
-  final Transaction transaction;
+  final db.Receipt receipt;
+  final String Function(int categoryId) categoryName;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final Category c = categoryByName(transaction.categories.first);
+    final List<String> categories = <String>[
+      for (final db.Transaction item in receipt.transactions)
+        categoryName(item.categoryId),
+    ];
+    final String primary = categories.isEmpty ? 'Lainnya' : categories.first;
+    final int distinct = categories.toSet().length;
+    final Category category = categoryByName(primary);
+
     return Material(
       color: AppColors.card,
       borderRadius: BorderRadius.circular(16),
@@ -227,11 +285,11 @@ class _HistoryCard extends StatelessWidget {
           child: Row(
             children: <Widget>[
               IconBox(
-                icon: c.icon,
+                icon: category.icon,
                 size: 44,
                 iconSize: 22,
-                background: c.color.withValues(alpha: 0.14),
-                color: c.color,
+                background: category.color.withValues(alpha: 0.14),
+                color: category.color,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -239,7 +297,7 @@ class _HistoryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      transaction.store,
+                      receipt.storeName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -250,17 +308,17 @@ class _HistoryCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      formatDateTime(transaction.date),
+                      formatDateTime(receipt.transactionDate),
                       style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
                     ),
                     const SizedBox(height: 7),
                     Row(
                       children: <Widget>[
-                        CategoryChip(category: transaction.categories.first, dense: true),
-                        if (transaction.categories.length > 1) ...<Widget>[
+                        CategoryChip(category: primary, dense: true),
+                        if (distinct > 1) ...<Widget>[
                           const SizedBox(width: 6),
                           Text(
-                            '+${transaction.categories.length - 1}',
+                            '+${distinct - 1}',
                             style: TextStyle(
                               fontSize: 10.5,
                               fontWeight: FontWeight.w600,
@@ -278,7 +336,7 @@ class _HistoryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: <Widget>[
                   Text(
-                    '-${rupiah(transaction.total)}',
+                    '-${rupiah(receipt.totalAmount.round())}',
                     style: TextStyle(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w700,
@@ -287,7 +345,7 @@ class _HistoryCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${transaction.itemCount} item',
+                    '${receipt.transactions.length} item',
                     style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
                   ),
                 ],

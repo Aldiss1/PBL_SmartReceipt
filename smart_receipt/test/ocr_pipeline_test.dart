@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
@@ -121,7 +122,71 @@ void main() {
         outputPath: '${tmp.path}/big_out.jpg',
       );
 
-      expect(r.width <= 1600 && r.height <= 1600, isTrue);
+      expect(r.width <= 2400 && r.height <= 2400, isTrue);
+    });
+
+    test('small gallery photo is upscaled for legibility', () async {
+      final String src = await write(
+        _receiptImage(width: 600, height: 800),
+        'small.jpg',
+      );
+      final ImageQualityReport r = await ImagePreprocessor().prepare(
+        sourcePath: src,
+        outputPath: '${tmp.path}/small_out.jpg',
+      );
+
+      // The short edge must reach the minimum text-legibility size.
+      expect(math.min(r.width, r.height) >= 900, isTrue);
+    });
+
+    test('crops to the receipt region for a second OCR pass', () async {
+      final String src = await write(
+        _receiptImage(width: 1200, height: 1600),
+        'crop_src.jpg',
+      );
+      final ImageQualityReport r = await ImagePreprocessor().prepare(
+        sourcePath: src,
+        outputPath: '${tmp.path}/crop_prepared.jpg',
+      );
+
+      final String cropPath = '${tmp.path}/crop_out.jpg';
+      await ImagePreprocessor().prepareCrop(
+        preparedPath: r.preparedPath,
+        outputPath: cropPath,
+        left: r.width * 0.2,
+        top: r.height * 0.3,
+        right: r.width * 0.8,
+        bottom: r.height * 0.7,
+      );
+
+      final img.Image? decoded =
+          img.decodeImage(await File(cropPath).readAsBytes());
+      expect(decoded, isNotNull);
+      // The crop must be smaller than the original but scaled up enough to keep
+      // text legible.
+      expect(decoded!.width < r.width, isTrue);
+      expect(math.min(decoded.width, decoded.height) >= 900, isTrue);
+    });
+
+    test('binarized copy is written as a readable image', () async {
+      final String src = await write(
+        _receiptImage(width: 900, height: 1200),
+        'bin_src.jpg',
+      );
+      final ImageQualityReport r = await ImagePreprocessor().prepare(
+        sourcePath: src,
+        outputPath: '${tmp.path}/bin_prepared.jpg',
+      );
+      final String binaryPath = '${tmp.path}/bin_out.jpg';
+      await ImagePreprocessor().prepareBinarized(
+        preparedPath: r.preparedPath,
+        outputPath: binaryPath,
+      );
+
+      final img.Image? decoded =
+          img.decodeImage(await File(binaryPath).readAsBytes());
+      expect(decoded, isNotNull);
+      expect(decoded!.width, r.width);
     });
 
     test('missing file raises a readable error', () async {

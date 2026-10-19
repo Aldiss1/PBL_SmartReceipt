@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../theme/app_colors.dart';
 import '../navigation/app_nav.dart';
 import '../widgets/app_widgets.dart';
+import '../models/models.dart';
+import '../models/receipt_model.dart' as db;
+import '../providers/receipt_provider.dart';
 import '../theme/theme_controller.dart';
 
 class HomeDashboard extends StatelessWidget {
@@ -11,6 +15,24 @@ class HomeDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     ThemeScope.watch(context);
+    final ReceiptProvider provider = context.watch<ReceiptProvider>();
+    final List<_TransactionData> recent = <_TransactionData>[
+      for (final db.Receipt receipt in provider.recentReceipts(3))
+        _TransactionData(
+          icon: receipt.transactions.isEmpty
+              ? Icons.receipt_long_outlined
+              : categoryByName(
+                  provider.categoryNameFor(receipt.transactions.first.categoryId),
+                ).icon,
+          name: receipt.storeName,
+          category: receipt.transactions.isEmpty
+              ? 'Lainnya'
+              : provider.categoryNameFor(receipt.transactions.first.categoryId),
+          datetime: formatDateTime(receipt.transactionDate),
+          amount: '-${rupiah(receipt.totalAmount.round())}',
+        ),
+    ];
+
     return Scaffold(
       key: ValueKey<AppPalette>(AppColors.palette),
       backgroundColor: AppColors.bg,
@@ -40,15 +62,24 @@ class HomeDashboard extends StatelessWidget {
                     const SizedBox(height: 20),
                     const _GreetingSection(),
                     const SizedBox(height: 18),
-                    const _MonthlySpendCard(),
+                    _MonthlySpendCard(
+                      total: provider.totalThisMonth,
+                      change: provider.monthOverMonthChange,
+                    ),
                     const SizedBox(height: 14),
-                    const _StatsRow(),
+                    _StatsRow(
+                      receiptCount: provider.countThisMonth,
+                      averagePerDay: provider.averagePerDayThisMonth,
+                    ),
                     const SizedBox(height: 14),
-                    const _CategoryCard(),
+                    _CategoryCard(data: _categoryData(provider)),
                     const SizedBox(height: 18),
                     const _RecentTransactionsHeader(),
                     const SizedBox(height: 10),
-                    ..._recentTransactions.map(_TransactionCard.new),
+                    if (recent.isEmpty)
+                      const _NoTransactionsHint()
+                    else
+                      ...recent.map(_TransactionCard.new),
                     const SizedBox(height: 8),
                     const _ScanPromoCard(),
                   ],
@@ -61,6 +92,31 @@ class HomeDashboard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Turns the current month's category totals into rows for the breakdown card,
+/// largest first, keeping at most four.
+List<_CategoryData> _categoryData(ReceiptProvider provider) {
+  final List<MapEntry<String, double>> entries =
+      provider.spendingByCategory.entries.toList()
+        ..sort((MapEntry<String, double> a, MapEntry<String, double> b) =>
+            b.value.compareTo(a.value));
+
+  final double total = entries.fold<double>(
+    0,
+    (double sum, MapEntry<String, double> e) => sum + e.value,
+  );
+  final List<Color> colors = AppColors.palette.categoryColors;
+
+  return <_CategoryData>[
+    for (int i = 0; i < entries.length && i < 4; i++)
+      _CategoryData(
+        name: entries[i].key,
+        percent: total == 0 ? 0 : (entries[i].value / total * 100).round(),
+        amount: rupiah(entries[i].value.round()),
+        color: colors[i % colors.length],
+      ),
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -154,6 +210,11 @@ class _DateChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final DateTime now = DateTime.now();
+    const List<String> months = <String>[
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 6, 9, 6),
       decoration: BoxDecoration(
@@ -169,7 +230,7 @@ class _DateChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'September',
+                months[now.month - 1],
                 style: TextStyle(
                   fontSize: 11.5,
                   height: 1.15,
@@ -178,7 +239,7 @@ class _DateChip extends StatelessWidget {
                 ),
               ),
               Text(
-                '2026',
+                '${now.year}',
                 style: TextStyle(
                   fontSize: 11.5,
                   height: 1.15,
@@ -201,7 +262,12 @@ class _DateChip extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _MonthlySpendCard extends StatelessWidget {
-  const _MonthlySpendCard();
+  const _MonthlySpendCard({required this.total, required this.change});
+
+  final double total;
+
+  /// Fractional change versus last month; null when last month was empty.
+  final double? change;
 
   @override
   Widget build(BuildContext context) {
@@ -254,7 +320,7 @@ class _MonthlySpendCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  'Rp1.420.000',
+                  rupiah(total.round()),
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w800,
@@ -263,7 +329,7 @@ class _MonthlySpendCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                _GrowthBadge(),
+                _GrowthBadge(change: change),
               ],
             ),
           ),
@@ -274,10 +340,22 @@ class _MonthlySpendCard extends StatelessWidget {
 }
 
 class _GrowthBadge extends StatelessWidget {
-  const _GrowthBadge();
+  const _GrowthBadge({required this.change});
+
+  final double? change;
 
   @override
   Widget build(BuildContext context) {
+    final double? change = this.change;
+    final bool up = (change ?? 0) >= 0;
+    final String label;
+    if (change == null) {
+      label = 'Belum ada data bulan lalu';
+    } else {
+      label = '${(change.abs() * 100).toStringAsFixed(0)}% '
+          '${up ? 'lebih tinggi' : 'lebih rendah'} dari bulan lalu';
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
@@ -299,14 +377,16 @@ class _GrowthBadge extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Icon(
-            Icons.trending_up,
+            change == null
+                ? Icons.remove
+                : (up ? Icons.trending_up : Icons.trending_down),
             size: 15,
             color: AppColors.spendBannerAccent,
           ),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
-              '12% lebih tinggi dari bulan lalu',
+              label,
               style: TextStyle(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w500,
@@ -325,7 +405,10 @@ class _GrowthBadge extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _StatsRow extends StatelessWidget {
-  const _StatsRow();
+  const _StatsRow({required this.receiptCount, required this.averagePerDay});
+
+  final int receiptCount;
+  final double averagePerDay;
 
   @override
   Widget build(BuildContext context) {
@@ -334,21 +417,25 @@ class _StatsRow extends StatelessWidget {
         Expanded(
           child: _StatCard(
             icon: Icons.receipt_long,
-            label: 'Total Struk',
-            value: '18',
+            label: 'Struk Bulan Ini',
+            value: '$receiptCount',
             suffix: 'struk',
-            subtitle: '100% terverifikasi OCR',
-            subtitleColor: AppColors.green,
-            subtitleWeight: FontWeight.w600,
+            subtitle: receiptCount == 0
+                ? 'Belum ada struk bulan ini'
+                : 'Tersimpan di perangkat',
+            subtitleColor:
+                receiptCount == 0 ? AppColors.textMuted : AppColors.green,
+            subtitleWeight:
+                receiptCount == 0 ? FontWeight.w400 : FontWeight.w600,
           ),
         ),
-        SizedBox(width: 14),
+        const SizedBox(width: 14),
         Expanded(
           child: _StatCard(
             icon: Icons.show_chart,
             label: 'Rata-rata / Hari',
-            value: 'Rp47.333',
-            subtitle: 'Basis 30 hari kalender',
+            value: rupiah(averagePerDay.round()),
+            subtitle: 'Basis ${DateTime.now().day} hari berjalan',
             subtitleColor: AppColors.textMuted,
             subtitleWeight: FontWeight.w400,
           ),
@@ -467,35 +554,10 @@ class _CategoryData {
   final Color color;
 }
 
-List<_CategoryData> get _categories => <_CategoryData>[
-  _CategoryData(
-    name: 'Makanan',
-    percent: 44,
-    amount: 'Rp620.000',
-    color: AppColors.navy,
-  ),
-  _CategoryData(
-    name: 'Kebutuhan Rumah Tangga',
-    percent: 24,
-    amount: 'Rp340.000',
-    color: AppColors.mutedScale[0],
-  ),
-  _CategoryData(
-    name: 'Minuman',
-    percent: 20,
-    amount: 'Rp280.000',
-    color: AppColors.mutedScale[1],
-  ),
-  _CategoryData(
-    name: 'Transportasi',
-    percent: 12,
-    amount: 'Rp180.000',
-    color: AppColors.mutedScale[2],
-  ),
-];
-
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard();
+  const _CategoryCard({required this.data});
+
+  final List<_CategoryData> data;
 
   @override
   Widget build(BuildContext context) {
@@ -530,7 +592,7 @@ class _CategoryCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '4 Kategori',
+                '${data.length} Kategori',
                 style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w500,
@@ -540,8 +602,17 @@ class _CategoryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          for (var i = 0; i < _categories.length; i++)
-            _CategoryRow(data: _categories[i], isFirst: i == 0),
+          if (data.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 18),
+              child: Text(
+                'Belum ada pengeluaran bulan ini.',
+                style: TextStyle(fontSize: 12.5, color: AppColors.textMuted),
+              ),
+            )
+          else
+            for (var i = 0; i < data.length; i++)
+              _CategoryRow(data: data[i], isFirst: i == 0),
         ],
       ),
     );
@@ -670,29 +741,37 @@ class _TransactionData {
   final String amount;
 }
 
-const List<_TransactionData> _recentTransactions = [
-  _TransactionData(
-    icon: Icons.shopping_cart_outlined,
-    name: 'Indomaret',
-    category: 'Kebutuhan',
-    datetime: '13 Sep 2026 • 19:14',
-    amount: '-Rp45.500',
-  ),
-  _TransactionData(
-    icon: Icons.local_cafe_outlined,
-    name: 'Kopi Kenangan',
-    category: 'Minuman',
-    datetime: '12 Sep 2026 • 14:02',
-    amount: '-Rp28.000',
-  ),
-  _TransactionData(
-    icon: Icons.restaurant,
-    name: 'Warung Bu Kris',
-    category: 'Makanan',
-    datetime: '12 Sep 2026 • 12:45',
-    amount: '-Rp35.000',
-  ),
-];
+class _NoTransactionsHint extends StatelessWidget {
+  const _NoTransactionsHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(Icons.receipt_long_outlined, size: 22, color: AppColors.iconMuted),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Belum ada transaksi tersimpan. Pindai struk pertama Anda untuk '
+              'melihat ringkasan di sini.',
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.4,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _RecentTransactionsHeader extends StatelessWidget {
   const _RecentTransactionsHeader();

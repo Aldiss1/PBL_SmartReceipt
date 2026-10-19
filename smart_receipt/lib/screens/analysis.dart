@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../theme/app_colors.dart';
 import '../navigation/app_nav.dart';
@@ -6,9 +7,11 @@ import '../navigation/app_route.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/charts.dart';
 import '../models/models.dart';
+import '../models/receipt_model.dart' as db;
 import '../ocr/tfidf_classifier.dart';
+import '../providers/receipt_provider.dart';
 import '../services/model_evaluator.dart';
-import '../services/text_normalizer.dart';
+import '../services/spending_analytics.dart';
 import 'spending_prediction.dart';
 import '../theme/theme_controller.dart';
 
@@ -35,18 +38,17 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
   /// Scores the exported model over the dummy eval dataset and reports the
   /// real accuracy / precision / recall / F1 / confusion matrix.
+  ///
+  /// Evaluated on raw item text — the same contract the classifier uses at
+  /// inference time. Preprocessing here would report a score the app can never
+  /// reproduce.
   Future<void> _runEvaluation() async {
     final TfidfNaiveBayesEngine engine = TfidfNaiveBayesEngine();
-    final IndonesianTextPreprocessor preprocessor = IndonesianTextPreprocessor();
     EvaluationReport? report;
     try {
       await engine.load();
-      await preprocessor.loadFromAsset();
       final List<LabeledSample> samples = await ModelEvaluator.loadDataset();
-      report = ModelEvaluator(
-        engine: engine,
-        preprocess: preprocessor.normalize,
-      ).evaluate(samples);
+      report = ModelEvaluator(engine: engine).evaluate(samples);
     } catch (_) {
       report = null;
     }
@@ -59,25 +61,12 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     });
   }
 
-  static const List<_Period> _periods = <_Period>[
-    _Period(label: 'Bulan Ini', total: 1420000, range: '1 - 30 Sep 2026'),
-    _Period(label: '3 Bulan', total: 3960000, range: 'Jul - Sep 2026'),
-    _Period(label: 'Tahun Ini', total: 15420000, range: 'Jan - Sep 2026'),
-  ];
-
-  static const List<double> _trend = <double>[0.98, 1.12, 1.06, 1.24, 1.27, 1.42];
-  static const List<String> _trendLabels = <String>['Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep'];
-
-  static List<_CategorySpend> get _categories => <_CategorySpend>[
-    _CategorySpend(name: 'Makanan', percent: 44, amount: 620000, color: AppColors.navy),
-    _CategorySpend(name: 'Rumah Tangga', percent: 24, amount: 340000, color: AppColors.mutedScale[0]),
-    _CategorySpend(name: 'Minuman', percent: 20, amount: 280000, color: AppColors.mutedScale[1]),
-    _CategorySpend(name: 'Transportasi', percent: 12, amount: 180000, color: AppColors.mutedScale[2]),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final _Period p = _periods[_period];
+    final ReceiptProvider provider = context.watch<ReceiptProvider>();
+    final List<_Period> periods = _buildPeriods(provider);
+    final _Period p = periods[_period];
+    final List<_CategorySpend> categories = _buildCategories(provider, p);
     ThemeScope.watch(context);
 
     return Scaffold(
@@ -97,7 +86,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             AppTopBar(
               title: 'Analisis Pengeluaran',
               subtitle: 'Ringkasan & distribusi',
-              actions: <Widget>[CircleIconButton(icon: Icons.tune, onTap: () {})],
+              actions: <Widget>[CircleIconButton(icon: Icons.refresh, onTap: provider.loadData)],
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -111,23 +100,23 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     _PeriodSelector(
-                      periods: _periods,
+                      periods: periods,
                       selected: _period,
                       onSelect: (int i) => setState(() => _period = i),
                     ),
                     const SizedBox(height: 16),
                     _TotalCard(period: p),
                     const SizedBox(height: 14),
-                    const _StatsRow(),
+                    _StatsRow(period: p),
                     const SizedBox(height: 16),
-                    _CategoryCard(categories: _categories),
+                    _CategoryCard(categories: categories),
                     const SizedBox(height: 16),
                     _ModelEvaluationCard(
                       report: _evaluation,
                       loading: _evaluating,
                     ),
                     const SizedBox(height: 16),
-                    const _TrendCard(),
+                    _TrendCard(series: provider.monthlyTotals),
                     const SizedBox(height: 16),
                     _PredictionCta(
                       onTap: () => Navigator.push(
@@ -145,14 +134,140 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       ),
     );
   }
+
+  /// Builds the three period tabs from the saved receipts.
+  List<_Period> _buildPeriods(ReceiptProvider provider) {
+    final DateTime now = DateTime.now();
+    final DateTime thisMonth = DateTime(now.year, now.month);
+    final DateTime nextMonth = DateTime(now.year, now.month + 1);
+
+    _Period make({
+      required String label,
+      required DateTime from,
+      required DateTime toExclusive,
+      required int months,
+    }) {
+      final double total = SpendingAnalytics.totalBetween(
+        provider.receipts,
+        from: from,
+        toExclusive: toExclusive,
+      );
+      final double previous = SpendingAnalytics.totalBetween(
+        provider.receipts,
+        from: SpendingAnalytics.addMonths(from, -months),
+        toExclusive: from,
+      );
+      final int days = now.isAfter(from)
+          ? now.difference(from).inDays + 1
+          : 1;
+      return _Period(
+        label: label,
+        total: total,
+        range: _rangeLabel(from, toExclusive),
+        from: from,
+        toExclusive: toExclusive,
+        months: months,
+        count: SpendingAnalytics.countBetween(
+          provider.receipts,
+          from: from,
+          toExclusive: toExclusive,
+        ),
+        days: days,
+        growth: previous == 0 ? null : (total - previous) / previous,
+      );
+    }
+
+    return <_Period>[
+      make(
+        label: 'Bulan Ini',
+        from: thisMonth,
+        toExclusive: nextMonth,
+        months: 1,
+      ),
+      make(
+        label: '3 Bulan',
+        from: SpendingAnalytics.addMonths(thisMonth, -2),
+        toExclusive: nextMonth,
+        months: 3,
+      ),
+      make(
+        label: 'Tahun Ini',
+        from: DateTime(now.year, 1),
+        toExclusive: nextMonth,
+        months: now.month,
+      ),
+    ];
+  }
+
+  List<_CategorySpend> _buildCategories(ReceiptProvider provider, _Period p) {
+    final Map<String, double> spending = SpendingAnalytics.byCategory(
+      provider.receipts,
+      <int, String>{
+        for (final db.Category c in provider.categories) c.id: c.name,
+      },
+      from: p.from,
+      toExclusive: p.toExclusive,
+    );
+    final List<MapEntry<String, double>> entries = spending.entries.toList()
+      ..sort((MapEntry<String, double> a, MapEntry<String, double> b) =>
+          b.value.compareTo(a.value));
+    final List<Color> colors = AppColors.palette.categoryColors;
+
+    return <_CategorySpend>[
+      for (int i = 0; i < entries.length; i++)
+        _CategorySpend(
+          name: entries[i].key,
+          percent: p.total == 0 ? 0 : (entries[i].value / p.total * 100).round(),
+          amount: entries[i].value.round(),
+          color: colors[i % colors.length],
+        ),
+    ];
+  }
+
+  static const List<String> _months = <String>[
+    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+  ];
+
+  static String _rangeLabel(DateTime from, DateTime toExclusive) {
+    final DateTime lastDay = toExclusive.subtract(const Duration(days: 1));
+    final String start = '${from.day} ${_months[from.month - 1]}';
+    final String end = '${lastDay.day} ${_months[lastDay.month - 1]} '
+        '${lastDay.year}';
+    if (from.year == lastDay.year && from.month == lastDay.month) {
+      return '$start - $end';
+    }
+    return '${from.day == 1 ? _months[from.month - 1] : start} - $end';
+  }
 }
 
 class _Period {
-  const _Period({required this.label, required this.total, required this.range});
+  const _Period({
+    required this.label,
+    required this.total,
+    required this.range,
+    required this.from,
+    required this.toExclusive,
+    required this.months,
+    required this.count,
+    required this.days,
+    required this.growth,
+  });
 
   final String label;
-  final int total;
+  final double total;
   final String range;
+  final DateTime from;
+  final DateTime toExclusive;
+  final int months;
+  final int count;
+  final int days;
+
+  /// Fractional change versus the previous period of the same length, or null
+  /// when that period had no spending.
+  final double? growth;
+
+  double get averagePerDay => days == 0 ? 0 : total / days;
 }
 
 class _CategorySpend {
@@ -250,7 +365,7 @@ class _TotalCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            rupiah(period.total),
+            rupiah(period.total.round()),
             style: TextStyle(
               fontSize: 30,
               fontWeight: FontWeight.w800,
@@ -284,14 +399,22 @@ class _TotalCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Icon(
-                  Icons.trending_up,
+                  period.growth == null
+                      ? Icons.remove
+                      : (period.growth! >= 0
+                          ? Icons.trending_up
+                          : Icons.trending_down),
                   size: 15,
                   color: AppColors.spendBannerAccent,
                 ),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
-                    '12% lebih tinggi dari periode sebelumnya',
+                    period.growth == null
+                        ? 'Belum ada data periode sebelumnya'
+                        : '${(period.growth!.abs() * 100).toStringAsFixed(0)}% '
+                            '${period.growth! >= 0 ? 'lebih tinggi' : 'lebih rendah'} '
+                            'dari periode sebelumnya',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
@@ -309,26 +432,28 @@ class _TotalCard extends StatelessWidget {
 }
 
 class _StatsRow extends StatelessWidget {
-  const _StatsRow();
+  const _StatsRow({required this.period});
+
+  final _Period period;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const <Widget>[
+      children: <Widget>[
         Expanded(
           child: _MiniStat(
             icon: Icons.receipt_long,
             label: 'Total Struk',
-            value: '18',
+            value: '${period.count}',
             suffix: 'struk',
           ),
         ),
-        SizedBox(width: 14),
+        const SizedBox(width: 14),
         Expanded(
           child: _MiniStat(
             icon: Icons.show_chart,
             label: 'Rata-rata / Hari',
-            value: 'Rp47.333',
+            value: rupiah(period.averagePerDay.round()),
           ),
         ),
       ],
@@ -436,8 +561,17 @@ class _CategoryCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          for (int i = 0; i < categories.length; i++)
-            _CategoryBar(data: categories[i], isFirst: i == 0),
+          if (categories.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 18),
+              child: Text(
+                'Belum ada item tersimpan pada periode ini.',
+                style: TextStyle(fontSize: 12.5, color: AppColors.textMuted),
+              ),
+            )
+          else
+            for (int i = 0; i < categories.length; i++)
+              _CategoryBar(data: categories[i], isFirst: i == 0),
         ],
       ),
     );
@@ -542,10 +676,18 @@ class _CategoryBar extends StatelessWidget {
 }
 
 class _TrendCard extends StatelessWidget {
-  const _TrendCard();
+  const _TrendCard({required this.series});
+
+  final List<db.MonthlyTotal> series;
 
   @override
   Widget build(BuildContext context) {
+    final List<double> values =
+        series.map((db.MonthlyTotal m) => m.total).toList();
+    final List<String> labels =
+        series.map((db.MonthlyTotal m) => _AnalysisScreenState._months[m.month.month - 1]).toList();
+    final bool hasData = values.any((double v) => v > 0);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       decoration: BoxDecoration(
@@ -558,17 +700,28 @@ class _TrendCard extends StatelessWidget {
           SectionHeader(
             title: 'Tren 6 Bulan',
             trailing: Text(
-              'dalam juta Rp',
+              'dalam Rp',
               style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
             ),
           ),
           const SizedBox(height: 18),
-          TrendLineChart(
-            values: _AnalysisScreenState._trend,
-            labels: _AnalysisScreenState._trendLabels,
-            highlightLast: true,
-            color: AppColors.navy,
-          ),
+          if (!hasData)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text(
+                  'Belum ada data pengeluaran untuk digambarkan.',
+                  style: TextStyle(fontSize: 12.5, color: AppColors.textMuted),
+                ),
+              ),
+            )
+          else
+            TrendLineChart(
+              values: values,
+              labels: labels,
+              highlightLast: true,
+              color: AppColors.navy,
+            ),
         ],
       ),
     );

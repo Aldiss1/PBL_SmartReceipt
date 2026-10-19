@@ -70,6 +70,18 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   sqflite_common_ffi: ^2.4.3
 
+# `package:sqlite3` (pulled in by sqflite_common_ffi for tests) downloads a
+# prebuilt SQLite binary from GitHub during its build hook. That hook also runs
+# inside the Xcode build for iOS, where the download fails without network
+# access, so on iOS we use the SQLite shipped with the OS instead. Tests run on
+# macOS and keep using the bundled binary.
+hooks:
+  user_defines:
+    sqlite3:
+      source:
+        ios: system
+        default: sqlite3
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

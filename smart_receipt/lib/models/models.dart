@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'categories.dart';
+
+export 'categories.dart'
+    show
+        AppCategory,
+        kAppCategories,
+        kFallbackCategoryId,
+        kCategoryIdForName,
+        kCategoryNameForId;
 
 /// Formats an integer amount as Indonesian Rupiah, e.g. 1420000 -> "Rp1.420.000".
 String rupiah(int value) {
@@ -38,56 +47,44 @@ class Category {
   final Color color;
 }
 
-/// The product categories used by the classifier. Accent colours are pulled
-/// from the active palette so chips and icon tiles stay legible in both light
-/// and dark mode.
+/// The product categories used by the classifier.
+///
+/// Built from [kAppCategories] so names and ids always match the SQLite seed
+/// table. Accent colours are pulled from the active palette so chips and icon
+/// tiles stay legible in both light and dark mode.
 List<Category> get kCategories => <Category>[
-  Category(
-    name: 'Makanan',
-    icon: Icons.restaurant,
-    color: AppColors.palette.categoryColors[0],
-  ),
-  Category(
-    name: 'Minuman',
-    icon: Icons.local_cafe_outlined,
-    color: AppColors.palette.categoryColors[1],
-  ),
-  Category(
-    name: 'Rumah Tangga',
-    icon: Icons.home_outlined,
-    color: AppColors.palette.categoryColors[2],
-  ),
-  Category(
-    name: 'Perawatan Diri',
-    icon: Icons.spa_outlined,
-    color: AppColors.palette.categoryColors[3],
-  ),
-  Category(
-    name: 'Kesehatan',
-    icon: Icons.medical_services_outlined,
-    color: AppColors.palette.categoryColors[4],
-  ),
-  Category(
-    name: 'Transportasi',
-    icon: Icons.directions_car_outlined,
-    color: AppColors.palette.categoryColors[5],
-  ),
-  Category(
-    name: 'Elektronik',
-    icon: Icons.devices_other_outlined,
-    color: AppColors.palette.categoryColors[6],
-  ),
-  Category(
-    name: 'Pakaian',
-    icon: Icons.checkroom_outlined,
-    color: AppColors.palette.categoryColors[7],
-  ),
-  Category(
-    name: 'Lainnya',
-    icon: Icons.category_outlined,
-    color: AppColors.palette.categoryColors[8],
-  ),
+  for (int i = 0; i < kAppCategories.length; i++)
+    Category(
+      name: kAppCategories[i].name,
+      icon: _categoryIcon(kAppCategories[i].id),
+      color: AppColors.palette.categoryColors[
+          i % AppColors.palette.categoryColors.length],
+    ),
 ];
+
+/// Material icon for a canonical category id.
+IconData _categoryIcon(int id) {
+  switch (id) {
+    case 1:
+      return Icons.restaurant;
+    case 2:
+      return Icons.local_cafe_outlined;
+    case 3:
+      return Icons.home_outlined;
+    case 4:
+      return Icons.spa_outlined;
+    case 5:
+      return Icons.medical_services_outlined;
+    case 6:
+      return Icons.directions_car_outlined;
+    case 7:
+      return Icons.devices_other_outlined;
+    case 8:
+      return Icons.checkroom_outlined;
+    default:
+      return Icons.category_outlined;
+  }
+}
 
 Category categoryByName(String name) {
   return kCategories.firstWhere(

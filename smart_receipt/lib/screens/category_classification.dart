@@ -4,6 +4,7 @@ import '../theme/app_colors.dart';
 import '../navigation/app_route.dart';
 import '../widgets/app_widgets.dart';
 import '../models/models.dart';
+import '../ocr/ocr_abbreviations.dart';
 import '../ocr/ocr_service.dart';
 import '../ocr/receipt_classifier.dart';
 import '../ocr/receipt_parser.dart';
@@ -11,6 +12,7 @@ import '../ocr/tfidf_classifier.dart';
 import '../services/ml_classifier_service.dart';
 import 'review_transaction.dart';
 import '../theme/theme_controller.dart';
+
 
 /// Screen 5 - Category Classification.
 ///
@@ -79,24 +81,38 @@ class _CategoryClassificationScreenState
     });
   }
 
+  /// Expands minimarket abbreviations before classification.
+  final OcrAbbreviationExpander _expander = OcrAbbreviationExpander();
+
   ItemPrediction _classifyOne(String name) {
-    final TfidfPrediction t = _ml.predictProcessed(name);
+    // Classify the raw OCR text first: the exported model was trained on raw
+    // item names with a char n-gram analyzer, so brand tokens like "lifebuoy"
+    // that survived OCR intact should not be rewritten.
+    final TfidfPrediction rawPrediction = _ml.predict(name);
+
+    // Also classify the abbreviation-expanded text. Minimarket receipts
+    // truncate aggressively ("GRG" = goreng, "BTL" = botol, "RDSO" = rinso),
+    // and the model has never seen these abbreviations. Expanding first gives
+    // the char n-grams something to match against.
+    final String expanded = _expander.expand(name);
+    final TfidfPrediction expandedPrediction =
+        expanded != name ? _ml.predict(expanded) : rawPrediction;
+
+    // Pick whichever prediction the model is more confident about (higher
+    // margin = more separation between the top two classes).
+    final TfidfPrediction best =
+        expandedPrediction.margin > rawPrediction.margin
+            ? expandedPrediction
+            : rawPrediction;
+
     return ItemPrediction(
       name: name,
-      category: _categoryNameForId(t.categoryId),
-      confidence: t.confidence,
-      needsReview: t.needsReview,
+      category: kCategoryNameForId(best.categoryId),
+      confidence: best.confidence,
+      needsReview: best.needsReview,
     );
   }
 
-  /// Category id → display name, using the single source of truth [kCategories].
-  static String _categoryNameForId(int id) {
-    final int index = id - 1;
-    if (index >= 0 && index < kCategories.length) {
-      return kCategories[index].name;
-    }
-    return kCategories.last.name;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -216,7 +232,7 @@ class _ClassifyingCard extends StatelessWidget {
   }
 }
 
-/// Warns that some items scored below the model's review threshold.
+/// Warns that some items were flagged for manual confirmation.
 class _ReviewNotice extends StatelessWidget {
   const _ReviewNotice({required this.count});
 
@@ -236,9 +252,9 @@ class _ReviewNotice extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              '$count item perlu dikonfirmasi karena confidence model di bawah '
-              'ambang batas. Perbaiki kategorinya di langkah review — koreksi '
-              'Anda ikut menyempurnakan model.',
+              '$count item perlu dikonfirmasi karena dua kategori teratas '
+              'terlalu berdekatan. Perbaiki kategorinya di langkah review — '
+              'koreksi Anda ikut menyempurnakan model.',
               style: TextStyle(
                 fontSize: 12,
                 height: 1.4,

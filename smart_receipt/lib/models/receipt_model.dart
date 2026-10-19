@@ -158,6 +158,39 @@ class Receipt {
       createdAt: DateTime.parse(map['created_at'] as String),
     );
   }
+
+  /// Returns a copy with the given fields replaced, e.g. to attach the
+  /// transaction rows loaded separately from the database.
+  Receipt copyWith({List<Transaction>? transactions}) {
+    return Receipt(
+      id: id,
+      storeName: storeName,
+      storeAddress: storeAddress,
+      transactionDate: transactionDate,
+      totalAmount: totalAmount,
+      taxAmount: taxAmount,
+      subtotal: subtotal,
+      paymentMethod: paymentMethod,
+      receiptNumber: receiptNumber,
+      imagePath: imagePath,
+      ocrText: ocrText,
+      status: status,
+      notes: notes,
+      createdAt: createdAt,
+      transactions: transactions ?? this.transactions,
+    );
+  }
+}
+
+/// Total spending for one calendar month, used by the trend chart and the
+/// Linear Regression forecast.
+class MonthlyTotal {
+  const MonthlyTotal({required this.month, required this.total});
+
+  /// First day of the month, at midnight.
+  final DateTime month;
+
+  final double total;
 }
 
 /// One user correction of a model prediction, stored as future training data.

@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart' hide Transaction;
 
 import 'package:smart_receipt/screens/analysis.dart';
 import 'package:smart_receipt/screens/category_classification.dart';
 import 'package:smart_receipt/screens/empty_state.dart';
 import 'package:smart_receipt/main.dart';
-import 'package:smart_receipt/data/sample_data.dart';
 import 'package:smart_receipt/models/models.dart';
 import 'package:smart_receipt/ocr/image_quality.dart';
 import 'package:smart_receipt/ocr/ocr_raw_text.dart';
 import 'package:smart_receipt/ocr/ocr_service.dart';
 import 'package:smart_receipt/ocr/receipt_classifier.dart';
 import 'package:smart_receipt/ocr/receipt_parser.dart';
+import 'package:smart_receipt/providers/receipt_provider.dart';
 import 'package:smart_receipt/screens/review_transaction.dart';
 import 'package:smart_receipt/screens/scan_receipt.dart';
 import 'package:smart_receipt/screens/settings.dart';
@@ -59,6 +61,13 @@ OcrScanResult _fakeScan() {
 }
 
 void main() {
+  setUpAll(() {
+    // The app opens SQLite on start; point sqflite at the FFI factory so the
+    // widget test can run on a desktop host.
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  });
+
   testWidgets('Splash appears then navigates to the home dashboard', (
     WidgetTester tester,
   ) async {
@@ -97,7 +106,21 @@ void main() {
         ],
       ),
       const TransactionHistoryScreen(),
-      TransactionDetailScreen(transaction: kSampleTransactions.first),
+      TransactionDetailScreen(
+        transaction: Transaction(
+          id: 'TRX001',
+          store: 'Indomaret',
+          date: DateTime(2026, 9, 13, 19, 14),
+          items: const <TransactionItem>[
+            TransactionItem(
+              name: 'Indomie Goreng',
+              qty: 2,
+              price: 3500,
+              category: 'Makanan',
+            ),
+          ],
+        ),
+      ),
       const AnalysisScreen(),
       const SpendingPredictionScreen(),
       const EmptyStateScreen(),
@@ -105,7 +128,12 @@ void main() {
     ];
 
     for (final Widget screen in screens) {
-      await tester.pumpWidget(MaterialApp(home: screen));
+      await tester.pumpWidget(
+        ChangeNotifierProvider<ReceiptProvider>(
+          create: (_) => ReceiptProvider(),
+          child: MaterialApp(home: screen),
+        ),
+      );
       await tester.pump();
       expect(
         tester.takeException(),

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:smart_receipt/ocr/tfidf_classifier.dart';
 import 'package:smart_receipt/services/model_evaluator.dart';
+import 'package:smart_receipt/services/text_normalizer.dart';
 
 /// Perfectly separable toy model: feature at index 0 => class "A",
 /// feature at index 1 => class "B". Lets every metric be hand-computed.
@@ -197,6 +198,44 @@ void main() {
         'macroF1=${report.macroF1.toStringAsFixed(3)} '
         'weightedF1=${report.weightedF1.toStringAsFixed(3)}',
       );
+    });
+
+    test('raw text beats preprocessing on the shipped model', () {
+      // The model was trained on raw item names with a char n-gram analyzer, so
+      // running the Indonesian normalizer first rewrites brand tokens and costs
+      // accuracy. This test locks the runtime contract: classify raw text.
+      final TfidfNaiveBayesEngine engine = TfidfNaiveBayesEngine();
+      engine.loadFromJsonString(_modelFixtureJson());
+      final List<LabeledSample> samples = ModelEvaluator.parseDataset(
+        _datasetFixtureJson(),
+      );
+
+      final IndonesianTextPreprocessor preprocessor = IndonesianTextPreprocessor();
+      preprocessor.loadFromMap(
+        jsonDecode(
+          File('assets/text_normalization_id.json').readAsStringSync(),
+        ) as Map<String, dynamic>,
+      );
+
+      final EvaluationReport raw =
+          ModelEvaluator(engine: engine).evaluate(samples);
+      final EvaluationReport processed = ModelEvaluator(
+        engine: engine,
+        preprocess: preprocessor.normalize,
+      ).evaluate(samples);
+
+      // ignore: avoid_print
+      print(
+        '[contract] raw=${raw.accuracy.toStringAsFixed(3)} '
+        'normalized=${processed.accuracy.toStringAsFixed(3)}',
+      );
+
+      expect(
+        raw.accuracy,
+        greaterThan(processed.accuracy),
+        reason: 'Preprocessing must not be applied before inference',
+      );
+      expect(raw.accuracy, greaterThan(0.85));
     });
   });
 }

@@ -1,28 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../theme/app_colors.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/charts.dart';
 import '../models/models.dart';
+import '../models/receipt_model.dart' as db;
+import '../providers/receipt_provider.dart';
+import '../services/spending_analytics.dart';
+import '../services/spending_forecaster.dart';
 import '../theme/theme_controller.dart';
 
 /// Screen 10 - Spending Prediction.
+///
+/// Fits a Linear Regression over the last months of saved spending and shows
+/// the estimate together with its MAE / RMSE / R². When there is not enough
+/// history it says so instead of showing made-up numbers.
 class SpendingPredictionScreen extends StatelessWidget {
   const SpendingPredictionScreen({super.key});
-
-  static const int _predicted = 1580000;
-  static const List<double> _series = <double>[0.98, 1.12, 1.06, 1.24, 1.27, 1.42, 1.58];
-  static const List<String> _labels = <String>['Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'];
-
-  static const List<List<String>> _metrics = <List<String>>[
-    <String>['MAE', 'Rp42.000'],
-    <String>['RMSE', 'Rp58.000'],
-    <String>['R²', '0.87'],
-  ];
 
   @override
   Widget build(BuildContext context) {
     ThemeScope.watch(context);
+    final ReceiptProvider provider = context.watch<ReceiptProvider>();
+
+    // Months before the first receipt are dropped so they do not act as zero
+    // data points in the regression.
+    final List<db.MonthlyTotal> series =
+        SpendingAnalytics.trimLeadingEmpty(provider.monthlyTotals);
+    final ForecastResult forecast = SpendingForecaster.forecast(series);
+
     return Scaffold(
       key: ValueKey<AppPalette>(AppColors.palette),
       backgroundColor: AppColors.bg,
@@ -41,15 +48,19 @@ class SpendingPredictionScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(22, 6, 22, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    const _PredictionCard(),
-                    const SizedBox(height: 16),
-                    const _ChartCard(),
-                    const SizedBox(height: 16),
-                    const _MetricsCard(),
-                    const SizedBox(height: 16),
-                    const _InsightCard(),
-                  ],
+                  children: forecast.hasEnoughData
+                      ? <Widget>[
+                          _PredictionCard(forecast: forecast, series: series),
+                          const SizedBox(height: 16),
+                          _ChartCard(forecast: forecast, series: series),
+                          const SizedBox(height: 16),
+                          _MetricsCard(forecast: forecast),
+                          const SizedBox(height: 16),
+                          _InsightCard(forecast: forecast),
+                        ]
+                      : <Widget>[
+                          _InsufficientDataCard(forecast: forecast),
+                        ],
                 ),
               ),
             ),
@@ -68,12 +79,81 @@ class SpendingPredictionScreen extends StatelessWidget {
   }
 }
 
+/// Shown when fewer than [SpendingForecaster.minMonths] months have spending.
+class _InsufficientDataCard extends StatelessWidget {
+  const _InsufficientDataCard({required this.forecast});
+
+  final ForecastResult forecast;
+
+  @override
+  Widget build(BuildContext context) {
+    final int missing = SpendingForecaster.minMonths - forecast.sampleCount;
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(Icons.hourglass_empty, size: 22, color: AppColors.amber),
+              const SizedBox(width: 10),
+              Text(
+                'Data Belum Cukup',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Prediksi membutuhkan minimal ${SpendingForecaster.minMonths} bulan '
+            'riwayat pengeluaran. Saat ini tersedia ${forecast.sampleCount} bulan '
+            'dengan data.',
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.5,
+              color: AppColors.textLabel,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Pindai struk setidaknya di ${missing > 0 ? missing : 1} bulan lain '
+            'agar model dapat menghitung tren tanpa mengarang angka.',
+            style: TextStyle(
+              fontSize: 12.5,
+              height: 1.5,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PredictionCard extends StatelessWidget {
-  const _PredictionCard();
+  const _PredictionCard({required this.forecast, required this.series});
+
+  final ForecastResult forecast;
+  final List<db.MonthlyTotal> series;
 
   @override
   Widget build(BuildContext context) {
     final List<Color>? bannerGradient = AppColors.spendBannerGradient;
+    final DateTime nextMonth = SpendingAnalytics.addMonths(
+      series.last.month,
+      1,
+    );
+    final double? change = forecast.changeFromLastMonth;
+    final bool up = (change ?? 0) >= 0;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -108,7 +188,7 @@ class _PredictionCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'Okt 2026',
+                  '${SpendingForecaster.nextLabel(series.last.month)} ${nextMonth.year}',
                   style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
@@ -120,7 +200,7 @@ class _PredictionCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            rupiah(SpendingPredictionScreen._predicted),
+            rupiah(forecast.predicted.round()),
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w800,
@@ -128,35 +208,37 @@ class _PredictionCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          Row(
-            children: <Widget>[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-                decoration: BoxDecoration(
-                  color: AppColors.spendBannerObjectBg,
-                  borderRadius: BorderRadius.circular(20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+            decoration: BoxDecoration(
+              color: AppColors.spendBannerObjectBg,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  change == null
+                      ? Icons.remove
+                      : (up ? Icons.trending_up : Icons.trending_down),
+                  size: 15,
+                  color: AppColors.spendBannerAccent,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Icon(
-                      Icons.trending_up,
-                      size: 15,
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    change == null
+                        ? 'Perbandingan tidak tersedia'
+                        : '${up ? '+' : '-'}${(change.abs() * 100).toStringAsFixed(1)}% dari bulan ini',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.spendBannerAccent,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '+11.3% dari bulan ini',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.spendBannerAccent,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -165,10 +247,22 @@ class _PredictionCard extends StatelessWidget {
 }
 
 class _ChartCard extends StatelessWidget {
-  const _ChartCard();
+  const _ChartCard({required this.forecast, required this.series});
+
+  final ForecastResult forecast;
+  final List<db.MonthlyTotal> series;
 
   @override
   Widget build(BuildContext context) {
+    final List<double> values = <double>[
+      ...forecast.actual,
+      forecast.predicted,
+    ];
+    final List<String> labels = <String>[
+      ...forecast.labels,
+      SpendingForecaster.nextLabel(series.last.month),
+    ];
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       decoration: BoxDecoration(
@@ -182,7 +276,7 @@ class _ChartCard extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: Text(
-                  'Aktual vs Prediksi',
+                  'Aktual & Prediksi',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -197,8 +291,8 @@ class _ChartCard extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           TrendLineChart(
-            values: SpendingPredictionScreen._series,
-            labels: SpendingPredictionScreen._labels,
+            values: values,
+            labels: labels,
             highlightLast: true,
             color: AppColors.navy,
           ),
@@ -234,10 +328,18 @@ class _LegendDot extends StatelessWidget {
 }
 
 class _MetricsCard extends StatelessWidget {
-  const _MetricsCard();
+  const _MetricsCard({required this.forecast});
+
+  final ForecastResult forecast;
 
   @override
   Widget build(BuildContext context) {
+    final List<List<String>> metrics = <List<String>>[
+      <String>['MAE', rupiah(forecast.mae.round())],
+      <String>['RMSE', rupiah(forecast.rmse.round())],
+      <String>['R²', forecast.rSquared.toStringAsFixed(2)],
+    ];
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -255,10 +357,15 @@ class _MetricsCard extends StatelessWidget {
               color: AppColors.textDark,
             ),
           ),
+          const SizedBox(height: 6),
+          Text(
+            'Dihitung dari ${forecast.sampleCount} bulan data tersimpan.',
+            style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+          ),
           const SizedBox(height: 14),
           Row(
             children: <Widget>[
-              for (int i = 0; i < SpendingPredictionScreen._metrics.length; i++) ...<Widget>[
+              for (int i = 0; i < metrics.length; i++) ...<Widget>[
                 if (i > 0) const SizedBox(width: 10),
                 Expanded(
                   child: Container(
@@ -269,17 +376,20 @@ class _MetricsCard extends StatelessWidget {
                     ),
                     child: Column(
                       children: <Widget>[
-                        Text(
-                          SpendingPredictionScreen._metrics[i][1],
-                          style: TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textDark,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            metrics[i][1],
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textDark,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          SpendingPredictionScreen._metrics[i][0],
+                          metrics[i][0],
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
@@ -300,10 +410,31 @@ class _MetricsCard extends StatelessWidget {
 }
 
 class _InsightCard extends StatelessWidget {
-  const _InsightCard();
+  const _InsightCard({required this.forecast});
+
+  final ForecastResult forecast;
+
+  String get _fitNote {
+    if (forecast.rSquared >= 0.7) {
+      return 'Model menjelaskan variasi data dengan baik (R² = '
+          '${forecast.rSquared.toStringAsFixed(2)}).';
+    }
+    if (forecast.rSquared >= 0.4) {
+      return 'Model cukup menjelaskan variasi data (R² = '
+          '${forecast.rSquared.toStringAsFixed(2)}), tetapi tetap perkiraan.';
+    }
+    return 'Model masih lemah dalam menjelaskan variasi data (R² = '
+        '${forecast.rSquared.toStringAsFixed(2)}); anggap angka ini estimasi kasar.';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final bool up = forecast.slope >= 0;
+    final String direction = up ? 'naik' : 'turun';
+    final String text = 'Berdasarkan ${forecast.sampleCount} bulan histori, '
+        'pengeluaran cenderung $direction sekitar '
+        '${rupiah(forecast.slope.abs().round())} per bulan. $_fitNote';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -317,7 +448,7 @@ class _InsightCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Berdasarkan 6 bulan histori, pengeluaran cenderung meningkat sekitar 11% tiap bulan. Model cukup baik dalam menjelaskan variasi data (R² = 0.87).',
+              text,
               style: TextStyle(
                 fontSize: 12.5,
                 height: 1.5,

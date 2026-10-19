@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import '../helpers/database_helper.dart';
 import '../models/receipt_model.dart';
 import '../ocr/receipt_classifier.dart';
+import '../ocr/tfidf_classifier.dart';
 
 /// Persistence surface the training service depends on.
 ///
@@ -57,12 +58,16 @@ class CorrectionTrainingService {
       return -1;
     }
     try {
+      final String? predictedLabelResolved =
+          predictedLabel ?? prediction?.category;
       return await _store.insertCategoryCorrection(
         CategoryCorrection(
           itemName: trainingName,
           originalName: itemName,
-          predictedLabel: predictedLabel ?? prediction?.category,
-          predictedCategoryId: null,
+          predictedLabel: predictedLabelResolved,
+          predictedCategoryId: predictedLabelResolved == null
+              ? null
+              : TfidfNaiveBayesEngine.classToCategoryId[predictedLabelResolved],
           correctedCategoryId: correctedCategoryId,
           correctedCategoryName: correctedCategoryName,
           confidence: prediction?.confidence,

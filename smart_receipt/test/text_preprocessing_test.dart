@@ -56,15 +56,23 @@ void main() {
     final IndonesianTextPreprocessor p = IndonesianTextPreprocessor();
 
     test('expands Indonesian brand/abbreviation slangs', () {
-      expect(p.normalizeTokens(<String>['indomie', 'goreng']),
-          <String>['mie', 'instan', 'goreng']);
+      expect(p.normalizeTokens(<String>['indomie', 'goreng']), <String>[
+        'mie',
+        'instan',
+        'goreng',
+      ]);
       expect(p.normalizeTokens(<String>['aqua']), <String>['air', 'mineral']);
       expect(p.normalizeTokens(<String>['pertalite']), <String>['bensin']);
     });
 
     test('removes Indonesian stopwords', () {
-      final List<String> out =
-          p.normalizeTokens(<String>['susu', 'untuk', 'anak', 'yang', 'baik']);
+      final List<String> out = p.normalizeTokens(<String>[
+        'susu',
+        'untuk',
+        'anak',
+        'yang',
+        'baik',
+      ]);
       expect(out, isNot(contains('untuk')));
       expect(out, isNot(contains('yang')));
       expect(out, contains('susu'));
@@ -75,8 +83,7 @@ void main() {
     });
 
     test('full pipeline produces a normalized, joined string', () {
-      final ProcessedText processed =
-          p.process('INDOMIE GORENG Rp 3.500 2 X');
+      final ProcessedText processed = p.process('INDOMIE GORENG Rp 3.500 2 X');
       expect(processed.normalized, 'mie instan goreng');
       expect(processed.tokens, contains('indomie'));
       expect(processed.isEmpty, isFalse);
@@ -105,6 +112,26 @@ void main() {
   });
 
   group('Preprocessing feeds the classifier', () {
+    test('model exposes whether it requires application preprocessing', () {
+      final TfidfNaiveBayesEngine legacy = TfidfNaiveBayesEngine();
+      legacy.loadFromJsonString(_modelFixtureJson());
+      expect(legacy.usesApplicationPreprocessing, isFalse);
+
+      final TfidfNaiveBayesEngine aligned = TfidfNaiveBayesEngine();
+      aligned.loadFromMap(<String, dynamic>{
+        'classes': <String>['Makanan'],
+        'ngram_range': <int>[2, 2],
+        'class_log_prior': <double>[0],
+        'vocabulary': <String, int>{'aa': 0},
+        'idf': <double>[1],
+        'feature_log_prob': <List<double>>[
+          <double>[0],
+        ],
+        'preprocessing': 'flutter_id_v1',
+      });
+      expect(aligned.usesApplicationPreprocessing, isTrue);
+    });
+
     test('normalized tokens produce a usable TF-IDF vector', () {
       final TfidfNaiveBayesEngine engine = TfidfNaiveBayesEngine();
       engine.loadFromJsonString(_modelFixtureJson());

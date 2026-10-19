@@ -15,7 +15,7 @@ import 'text_normalizer.dart';
 /// while a real receipt dataset is not yet available.
 class MLClassifierService {
   MLClassifierService({TfidfNaiveBayesEngine? engine})
-      : _engine = engine ?? TfidfNaiveBayesEngine();
+    : _engine = engine ?? TfidfNaiveBayesEngine();
 
   final TfidfNaiveBayesEngine _engine;
 

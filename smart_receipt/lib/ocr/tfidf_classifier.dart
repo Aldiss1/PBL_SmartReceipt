@@ -100,6 +100,15 @@ class TfidfNaiveBayesEngine {
   int _minN = 2;
   int _maxN = 4;
   String _fallbackLabel = 'Perlu Review';
+  bool _usesApplicationPreprocessing = false;
+
+  /// True only for models trained with [IndonesianTextPreprocessor]-compatible
+  /// rules. Older exports have no marker and must receive raw OCR text.
+  bool get usesApplicationPreprocessing => _usesApplicationPreprocessing;
+
+  /// Fallback app category id ("Lainnya"), aligned with the last entry of
+  /// `kCategories`.
+  static const int otherCategoryId = 9;
 
   /// Default log-odds gap below which a prediction is surfaced for review.
   ///
@@ -131,6 +140,7 @@ class TfidfNaiveBayesEngine {
     'Transportasi': 6, // Transportasi
     'Elektronik': 7, // Elektronik
     'Pakaian & Fashion': 8, // Pakaian
+    'Pakaian': 8,
     'Lainnya': kFallbackCategoryId, // Lainnya
     // Model classes with no dedicated app category.
     'Bayi & Anak': kFallbackCategoryId,
@@ -144,7 +154,9 @@ class TfidfNaiveBayesEngine {
   /// Loads and validates the exported model from `assets/`.
   ///
   /// Safe to call more than once; subsequent calls are no-ops.
-  Future<void> load({String assetPath = 'assets/model_kategori_produk.json'}) async {
+  Future<void> load({
+    String assetPath = 'assets/model_kategori_produk.json',
+  }) async {
     if (isLoaded) {
       return;
     }
@@ -218,6 +230,7 @@ class TfidfNaiveBayesEngine {
     if (fallback is String && fallback.isNotEmpty) {
       _fallbackLabel = fallback;
     }
+    _usesApplicationPreprocessing = json['preprocessing'] == 'flutter_id_v1';
 
     _validate();
   }
@@ -430,8 +443,9 @@ class TfidfNaiveBayesEngine {
     if (scores.isEmpty) {
       return const <double>[];
     }
-    final double maxScore =
-        scores.reduce((double a, double b) => a > b ? a : b);
+    final double maxScore = scores.reduce(
+      (double a, double b) => a > b ? a : b,
+    );
     double denom = 0;
     final List<double> exps = <double>[];
     for (final double s in scores) {

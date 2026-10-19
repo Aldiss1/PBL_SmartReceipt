@@ -68,44 +68,11 @@ class MLClassifierService {
     return _engine.predict(rawText);
   }
 
-  /// Runs the Indonesian NLP preprocessing pipeline first, then classifies.
-  ///
-  /// **Do not use this for inference with the shipped model.** The exported
-  /// `model_kategori_produk.json` was trained on *raw* item names with a
-  /// `char_wb` n-gram analyzer, so normalizing first rewrites exactly the
-  /// brand tokens the model relies on (`LIFEBUOY` → `sabun`, `PERTAMAX` →
-  /// `bensin`) and drops digits/units. Measured on the eval dataset that costs
-  /// ~14 points of accuracy (93.1% → 79.2%). Use [predict] instead.
-  ///
-  /// Kept only so a future model trained on normalized text can opt back in.
-  @Deprecated('Model dilatih pada teks mentah; gunakan predict() sebagai gantinya.')
-  TfidfPrediction predictProcessed(String rawText) {
-    if (!isReady) {
-      return predict(rawText);
-    }
-    final ProcessedText processed = _preprocessing.process(rawText);
-    if (processed.isEmpty) {
-      return const TfidfPrediction(
-        label: 'Perlu Review',
-        categoryId: kFallbackCategoryId,
-        confidence: 0,
-        posterior: 0,
-        needsReview: true,
-      );
-    }
-    return _engine.predict(processed.normalized);
-  }
-
   /// Convenience API returning just the app category id (1..9).
   ///
   /// Prefer [predict] when the confidence or label is needed, e.g. to show the
   /// user why an item was categorised a certain way.
   int predictCategoryId(String rawText) => predict(rawText).categoryId;
-
-  /// Kept for backwards compatibility with the earlier async call site.
-  @Deprecated('Use predictCategoryId() instead')
-  Future<int> predictCategory(String ocrText) async =>
-      predictCategoryId(ocrText);
 
   void dispose() {}
 }

@@ -3,4 +3,8 @@
 **/build/
 ios/build/
 smart_receipt/ios/build/
-ML/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+ML/OCR Struk Belanja.v2i.coco/
+ML/OCR Struk Belanja.v2i.coco.zip

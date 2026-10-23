@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'image_quality.dart';
 import 'ocr_engine.dart';
 import 'ocr_raw_text.dart';
+import 'ocr_text_corrector.dart';
 import 'receipt_parser.dart';
 
 /// Everything produced by scanning one receipt.
@@ -81,7 +82,8 @@ class OcrService {
     OcrRawResult raw;
     ParsedReceipt parsed;
     try {
-      raw = await _engine.recognize(quality.preparedPath);
+      final OcrRawResult rawFromEngine = await _engine.recognize(quality.preparedPath);
+      raw = correctOcrText(rawFromEngine);
       parsed = _parser.parse(raw);
     } on OcrEngineException catch (e) {
       throw OcrFailure('OCR gagal dijalankan.', hint: e.message);
@@ -102,6 +104,19 @@ class OcrService {
     }
 
     if (raw.isEmpty) {
+      bool paperFound = true;
+      try {
+        paperFound = await _preprocessor.containsReceiptPaper(quality.preparedPath);
+      } catch (_) {
+        paperFound = true;
+      }
+      if (!paperFound) {
+        throw OcrFailure(
+          'Struk tidak terdeteksi pada foto.',
+          hint: 'Pastikan struk terlihat utuh dan mengisi sebagian besar '
+              'bingkai, lalu hindari latar gelap seperti keyboard.',
+        );
+      }
       throw OcrFailure(
         'Tidak ada teks yang terbaca pada struk.',
         hint: 'Coba foto ulang dengan pencahayaan lebih terang dan '
@@ -121,7 +136,8 @@ class OcrService {
           outputPath: rotatedPath,
           degrees: 90,
         );
-        final OcrRawResult rotatedRaw = await _engine.recognize(rotatedPath);
+        final OcrRawResult rotatedRaw =
+            correctOcrText(await _engine.recognize(rotatedPath));
         final ParsedReceipt rotatedParsed = _parser.parse(rotatedRaw);
         if (ReceiptParser.scoreOf(rotatedParsed) >
             ReceiptParser.scoreOf(parsed)) {
@@ -185,7 +201,8 @@ class OcrService {
     OcrRawResult bestRaw = raw;
 
     Future<void> attempt(String path) async {
-      final OcrRawResult retryRaw = await _engine.recognize(path);
+      final OcrRawResult retryRaw =
+          correctOcrText(await _engine.recognize(path));
       final ParsedReceipt retryParsed = _parser.parse(retryRaw);
       if (ReceiptParser.scoreOf(retryParsed) > ReceiptParser.scoreOf(best)) {
         best = retryParsed;
@@ -193,18 +210,44 @@ class OcrService {
       }
     }
 
-    // 1. Crop to the region that actually contains content. This is what fixes
+    // 1. Perspective correction — crop the receipt out of the surrounding frame
+    //    and correct any projective distortion. This runs first so subsequent
+    //    strategies operate on the tightest possible content region.
+    try {
+      final String perspPath = '${dir.path}/ocr_persp_$stamp.jpg';
+      final String result = await _preprocessor.preparePerspectiveCorrected(
+        preparedPath: quality.preparedPath,
+        outputPath: perspPath,
+      );
+      if (result == perspPath) {
+        await attempt(perspPath);
+      }
+    } catch (_) {
+      // Ignore and continue.
+    }
+
+    // 2. Crop to the region that actually contains content. This is what fixes
     //    a gallery photo where the receipt occupies a corner of the frame: the
     //    crop is scaled up, so the characters get more pixels than a re-read of
     //    the full frame could ever give them.
     //
-    //    Pixel-based ink bounds are preferred over the OCR text bounds because
-    //    the first pass is exactly what failed — its bounds would be wrong too.
+    //    Paper bounds are preferred over ink bounds: on a photo taken on a desk
+    //    the keyboard is darker and larger than the print, so an ink-based box
+    //    swallows it. Ink bounds remain the fallback for tightly framed shots
+    //    where the paper fills the frame. OCR text bounds are the last resort,
+    //    since the first pass is exactly what failed.
     ImageRegion? region;
     try {
-      region = await _preprocessor.detectInkBounds(quality.preparedPath);
+      region = await _preprocessor.detectPaperBounds(quality.preparedPath);
     } catch (_) {
       region = null;
+    }
+    if (region == null) {
+      try {
+        region = await _preprocessor.detectInkBounds(quality.preparedPath);
+      } catch (_) {
+        region = null;
+      }
     }
     region ??= _textBounds(raw);
 
@@ -229,7 +272,7 @@ class OcrService {
       }
     }
 
-    // 2. Local binarisation, for faded thermal print and uneven lighting.
+    // 3. Local binarisation, for faded thermal print and uneven lighting.
     if (_isWeak(best)) {
       try {
         final String binaryPath = '${dir.path}/ocr_binary_$stamp.jpg';

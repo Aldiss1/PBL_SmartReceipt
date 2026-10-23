@@ -89,6 +89,35 @@ Model dievaluasi pada 790 sampel data uji held-out (*unseen products*):
 | **Teks dengan Simulasi Noise OCR (Model v2)** | **68,2%** | **0,646** |
 | Produk Dikenal dengan Noise OCR Baru | **96,0%** | **0,958** |
 
+### 5.1 Model Mana yang Benar-benar Dikirim ke Aplikasi
+
+Tiga file model JSON di folder ini **tidak setara**, dan memilih yang salah akan
+menurunkan akurasi secara drastis. Hasil pengukuran ulang pada 790 baris
+`split == test` dari `Dataset_SmartReceipt_Sintetis.csv`, dijalankan dengan
+mesin inferensi Dart yang sesungguhnya (`tfidf_classifier.dart`):
+
+| File model | `preprocessing` | Akurasi teks mentah | Akurasi + preprocessor Dart |
+|---|---|---:|---:|
+| `model_kategori_produk.json` | — (tidak ada) | **93,4%** | 93,4% |
+| `model_kategori_produk_aligned.json` | `flutter_id_v1` | 91,6% | **93,0%** |
+| `model_kategori_produk_v2.json` | `flutter_id_v1` | 54,4% | 56,1% |
+
+**Yang dipakai aplikasi: `model_kategori_produk.json`** (disalin ke
+`smart_receipt/assets/`). Ini model dengan akurasi tertinggi pada data uji.
+
+> ⚠️ **Jangan menyalin `model_kategori_produk_v2.json` ke `assets/`.** Model v2
+> dilatih memakai pipeline preprocessing Python, bukan `IndonesianTextPreprocessor`
+> milik Flutter. Saat dijalankan di Dart hasilnya jatuh ke ~56%. File
+> `model_kategori_produk_aligned.json` adalah ekspor ulang yang sudah diselaraskan
+> dengan preprocessing Dart; akurasinya setara dengan model yang dipakai sekarang.
+
+Kontrak ini dijaga oleh `smart_receipt/test/shipped_model_test.dart`, yang
+menolak model dengan akurasi di bawah ambang pada dataset evaluasi bawaan.
+
+Catatan: angka pada tabel 5 di atas berasal dari protokol evaluasi yang berbeda
+(termasuk augmentasi noise), sehingga tidak dapat dibandingkan langsung dengan
+angka pada tabel 5.1. Gunakan tabel 5.1 sebagai acuan pemilihan model.
+
 ---
 
 ## 6. Integrasi ke Aplikasi Mobile (On-Device Inference)

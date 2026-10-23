@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../navigation/app_route.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/receipt_photo_preview.dart';
 import '../models/models.dart';
 import '../ocr/ocr_abbreviations.dart';
 import '../ocr/ocr_service.dart';
@@ -10,6 +11,7 @@ import '../ocr/receipt_classifier.dart';
 import '../ocr/receipt_parser.dart';
 import '../ocr/tfidf_classifier.dart';
 import '../services/ml_classifier_service.dart';
+import '../services/receipt_image_store.dart';
 import 'review_transaction.dart';
 import '../theme/theme_controller.dart';
 
@@ -21,9 +23,9 @@ import '../theme/theme_controller.dart';
 /// screen.
 ///
 /// Classification is performed by the exported model
-/// (`assets/model_kategori_produk.json`, the dummy dataset model) executed by
-/// [TfidfNaiveBayesEngine] through [MLClassifierService]. Items the model is
-/// unsure about are flagged for manual confirmation instead of guessing.
+/// (`assets/model_kategori_produk.json`) executed by [TfidfNaiveBayesEngine]
+/// through [MLClassifierService]. Items the model is unsure about are flagged
+/// for manual confirmation instead of guessing.
 class CategoryClassificationScreen extends StatefulWidget {
   const CategoryClassificationScreen({super.key, required this.scan});
 
@@ -140,6 +142,7 @@ class _CategoryClassificationScreenState
                   children: <Widget>[
                     _StoreSummary(scan: widget.scan),
                     const SizedBox(height: 16),
+                    _ReceiptPhotoSection(scan: widget.scan),
                     _ModelCard(
                       classCount: _modelReady ? _ml.classCount : 9,
                       fromExportedModel: _modelReady,
@@ -320,6 +323,53 @@ class _StoreSummary extends StatelessWidget {
   }
 }
 
+/// Receipt photo, so the user can sanity-check the categories against the
+/// actual print without leaving the screen.
+///
+/// Compact by default (this screen is about the classification result, not about
+/// reading the receipt) but tappable to open the full-screen zoomable viewer.
+/// Renders nothing at all when the capture is unavailable, so the layout does
+/// not gain a gap for scans that have no image.
+class _ReceiptPhotoSection extends StatelessWidget {
+  const _ReceiptPhotoSection({required this.scan});
+
+  final OcrScanResult scan;
+
+  @override
+  Widget build(BuildContext context) {
+    final String path = scan.sourcePath;
+    if (path.isEmpty || !ReceiptImageStore.exists(path)) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          SectionHeader(
+            title: 'Foto Struk',
+            trailing: Text(
+              'Ketuk untuk memperbesar',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ReceiptPhotoPreview(
+            imagePath: path,
+            heroTag: 'classification-receipt-photo',
+            height: 180,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _NoItemsCard extends StatelessWidget {
   const _NoItemsCard();
 
@@ -406,7 +456,7 @@ class _ModelCard extends StatelessWidget {
                     Text(
                       fromExportedModel
                           ? 'Ekstraksi fitur TF-IDF • $classCount kelas • '
-                              'dataset dummy'
+                              'on-device'
                           : 'Model ML tidak dapat dimuat • memakai aturan '
                               'kata kunci',
                       style: TextStyle(

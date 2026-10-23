@@ -11,8 +11,10 @@ import 'text_normalizer.dart';
 /// reuse across screens) and exposes a category-id-oriented API plus a
 /// preprocessed-text variant for the classification UI.
 ///
-/// Asset: `assets/model_kategori_produk.json` — the *dummy* dataset model used
-/// while a real receipt dataset is not yet available.
+/// Asset: `assets/model_kategori_produk.json` — the model trained on
+/// `ML/Dataset_SmartReceipt_Sintetis.csv` (6.026 rows, 15 categories). Its
+/// export carries no `preprocessing` marker, so it expects raw OCR text; see
+/// [TfidfNaiveBayesEngine.usesApplicationPreprocessing].
 class MLClassifierService {
   MLClassifierService({TfidfNaiveBayesEngine? engine})
     : _engine = engine ?? TfidfNaiveBayesEngine();
@@ -55,6 +57,11 @@ class MLClassifierService {
   IndonesianTextPreprocessor get preprocessor => _preprocessing;
 
   /// Full prediction for [rawText] (typically an OCR line or item name).
+  ///
+  /// When the loaded model was trained on preprocessed text (its JSON carries
+  /// `"preprocessing": "flutter_id_v1"`), the same [IndonesianTextPreprocessor]
+  /// pipeline is applied here first. Skipping this would feed the model text it
+  /// was never trained on and quietly cost several points of accuracy.
   TfidfPrediction predict(String rawText) {
     if (!isReady) {
       return const TfidfPrediction(
@@ -65,7 +72,9 @@ class MLClassifierService {
         needsReview: true,
       );
     }
-    return _engine.predict(rawText);
+    final String input =
+        _engine.usesApplicationPreprocessing ? _preprocessing.normalize(rawText) : rawText;
+    return _engine.predict(input);
   }
 
   /// Convenience API returning just the app category id (1..9).

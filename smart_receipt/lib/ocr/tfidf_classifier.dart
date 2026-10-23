@@ -91,7 +91,7 @@ class TfidfNaiveBayesEngine {
   List<double>? _classLogPrior;
   List<List<double>>? _featureLogProb;
 
-  /// Number of model classes (15 in the shipped dummy dataset).
+  /// Number of model classes (15 in the shipped model).
   int get classCount => _classes.length;
 
   /// Model classes in their trained order; used by confusion-matrix reports.

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../navigation/app_nav.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/receipt_photo_preview.dart';
 import '../models/models.dart';
+import '../services/receipt_image_store.dart';
 import '../theme/theme_controller.dart';
 
 /// Screen 8 - Transaction Detail.
@@ -40,6 +42,8 @@ class TransactionDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     _ReceiptHeader(transaction: transaction),
+                    const SizedBox(height: 18),
+                    _ReceiptPhotoCard(transaction: transaction),
                     const SizedBox(height: 18),
                     SectionHeader(
                       title: 'Rincian Item',
@@ -185,6 +189,78 @@ class _ReceiptHeader extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Preview of the receipt photo that was captured for this transaction.
+///
+/// Tapping opens a full-screen, pinch-zoomable view — receipt text is far too
+/// small to read from a thumbnail, and verifying a saved total against the
+/// printed one is the main reason to look at the original at all.
+class _ReceiptPhotoCard extends StatelessWidget {
+  const _ReceiptPhotoCard({required this.transaction});
+
+  final Transaction transaction;
+
+  @override
+  Widget build(BuildContext context) {
+    final String? path = transaction.imagePath;
+    if (path == null || path.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final bool available = ReceiptImageStore.exists(path);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        SectionHeader(
+          title: 'Foto Struk',
+          trailing: available
+              ? Text(
+                  'Ketuk untuk memperbesar',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMuted,
+                  ),
+                )
+              : null,
+        ),
+        const SizedBox(height: 12),
+        if (!available)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
+              children: <Widget>[
+                Icon(
+                  Icons.image_not_supported_outlined,
+                  size: 20,
+                  color: AppColors.textMuted,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Foto struk tidak tersedia.',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ReceiptPhotoPreview(
+            imagePath: path,
+            heroTag: 'receipt-photo-${transaction.id}',
+          ),
+      ],
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -5,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
 import '../navigation/app_route.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/receipt_photo_preview.dart';
 import '../models/models.dart';
 import '../models/receipt_model.dart' as db;
 import '../ocr/ocr_raw_text.dart';
@@ -13,6 +16,7 @@ import '../ocr/receipt_classifier.dart';
 import '../ocr/receipt_parser.dart';
 import '../providers/receipt_provider.dart';
 import '../services/correction_training_service.dart';
+import '../services/receipt_image_store.dart';
 import '../theme/theme_controller.dart';
 import 'transaction_saved.dart';
 
@@ -49,6 +53,13 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
 
   /// Persists user category fixes so they can feed the next training run.
   final CorrectionTrainingService _corrections = CorrectionTrainingService();
+
+  /// Whether the receipt photo is shown at full height on the review screen.
+  ///
+  /// Expanded by default: the whole point of this screen is comparing the OCR
+  /// output against the print. It can be collapsed to a slim strip when the user
+  /// wants the item list closer to the top.
+  bool _photoExpanded = true;
 
   @override
   void initState() {
@@ -187,6 +198,13 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
                       _ParseWarnings(warnings: widget.scan.parsed.warnings),
                     ],
                     const SizedBox(height: 18),
+                    _ReceiptPhotoSection(
+                      imagePath: widget.scan.sourcePath,
+                      expanded: _photoExpanded,
+                      onToggle: () =>
+                          setState(() => _photoExpanded = !_photoExpanded),
+                    ),
+                    const SizedBox(height: 18),
                     SectionHeader(
                       title: 'Daftar Item',
                       trailing: Text(
@@ -237,6 +255,13 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
   Future<void> _save() async {
     final ReceiptProvider provider =
         Provider.of<ReceiptProvider>(context, listen: false);
+
+    // Copy the capture out of the temporary directory before it is referenced
+    // by a row: iOS purges temp files, which would leave the history preview
+    // pointing at nothing.
+    final String? storedImagePath =
+        await ReceiptImageStore().persist(widget.scan.sourcePath);
+
     final db.Receipt receipt = db.Receipt(
       storeName: _store,
       transactionDate: _date,
@@ -244,7 +269,7 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
       taxAmount: 0,
       subtotal: _itemsTotal.toDouble(),
       paymentMethod: widget.scan.parsed.paymentMethod,
-      imagePath: widget.scan.sourcePath,
+      imagePath: storedImagePath,
       ocrText: widget.scan.raw.fullText,
       status: 'saved',
       createdAt: DateTime.now(),
@@ -322,6 +347,76 @@ class _EmptyItemsNotice extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Receipt photo shown next to the corrections, collapsed by default.
+///
+/// OCR mistakes are far easier to fix while looking at the print, but a
+/// permanently full-height photo pushes the item list off screen. So the card
+/// keeps a compact strip visible at all times (enough to confirm the right
+/// photo was captured) and expands to a readable height on demand.
+class _ReceiptPhotoSection extends StatelessWidget {
+  const _ReceiptPhotoSection({
+    required this.imagePath,
+    required this.expanded,
+    required this.onToggle,
+  });
+
+  final String? imagePath;
+  final bool expanded;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool available =
+        imagePath != null &&
+        imagePath!.isNotEmpty &&
+        File(imagePath!).existsSync();
+    if (!available) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        SectionHeader(
+          title: 'Foto Struk',
+          trailing: TextButton(
+            onPressed: onToggle,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  expanded ? 'Ringkas' : 'Tampilkan',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.orange,
+                  ),
+                ),
+                Icon(
+                  expanded ? Icons.expand_less : Icons.expand_more,
+                  size: 16,
+                  color: AppColors.orange,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        ReceiptPhotoPreview(
+          imagePath: imagePath,
+          heroTag: 'review-receipt-photo',
+          height: expanded ? 420 : 96,
+        ),
+      ],
     );
   }
 }

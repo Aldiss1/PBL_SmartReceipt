@@ -16,6 +16,7 @@ ui.Transaction toUiTransaction(
     store: receipt.storeName,
     date: receipt.transactionDate,
     paymentMethod: receipt.paymentMethod ?? 'Tunai',
+    imagePath: receipt.imagePath,
     items: <ui.TransactionItem>[
       for (final db.Transaction item in receipt.transactions)
         ui.TransactionItem(

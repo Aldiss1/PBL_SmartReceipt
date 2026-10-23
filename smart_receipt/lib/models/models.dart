@@ -118,6 +118,7 @@ class Transaction {
     required this.date,
     required this.items,
     this.paymentMethod = 'Tunai',
+    this.imagePath,
   });
 
   final String id;
@@ -125,6 +126,12 @@ class Transaction {
   final DateTime date;
   final List<TransactionItem> items;
   final String paymentMethod;
+
+  /// Absolute path to the stored receipt photo, when one was kept.
+  ///
+  /// Null for receipts saved before images were persisted, and for scans whose
+  /// capture could not be copied into app storage.
+  final String? imagePath;
 
   int get total =>
       items.fold(0, (int sum, TransactionItem i) => sum + i.subtotal);

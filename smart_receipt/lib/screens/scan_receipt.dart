@@ -6,6 +6,7 @@ import '../theme/app_colors.dart';
 import '../navigation/app_route.dart';
 import '../widgets/app_widgets.dart';
 import 'ocr_processing.dart';
+import '../ocr/image_quality.dart';
 import '../widgets/receipt_mock.dart';
 import '../theme/theme_controller.dart';
 
@@ -48,6 +49,29 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
       if (!mounted) {
         return;
       }
+
+      // Reject a photo that plainly holds no paper — a desk, a keyboard, the
+      // floor — before spending time on OCR. The check is deliberately lenient
+      // and the user can always choose to continue.
+      bool hasPaper = true;
+      try {
+        hasPaper = await ImagePreprocessor().containsReceiptPaper(picked.path);
+      } catch (_) {
+        hasPaper = true; // never block the flow on a preprocessing hiccup
+      }
+      if (!hasPaper) {
+        if (!mounted) {
+          return;
+        }
+        final bool proceed = await _confirmWithoutReceipt();
+        if (!proceed || !mounted) {
+          return;
+        }
+      }
+
+      if (!mounted) {
+        return;
+      }
       Navigator.pushReplacement(
         context,
         appRoute(OcrProcessingScreen(imagePath: picked.path)),
@@ -81,6 +105,32 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
         setState(() => _busy = false);
       }
     }
+  }
+
+  /// Asks whether to continue when the photo shows no obvious receipt paper.
+  Future<bool> _confirmWithoutReceipt() async {
+    final bool? proceed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Struk tidak terdeteksi'),
+        content: const Text(
+          'Foto ini tampaknya tidak berisi struk. Pastikan struk terlihat '
+          'utuh dan mengisi sebagian besar bingkai, dengan latar yang tidak '
+          'terlalu gelap.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Foto Ulang'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Lanjutkan'),
+          ),
+        ],
+      ),
+    );
+    return proceed ?? false;
   }
 
   @override

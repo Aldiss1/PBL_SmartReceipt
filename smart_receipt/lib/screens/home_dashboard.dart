@@ -3,11 +3,14 @@ import 'package:provider/provider.dart';
 
 import '../theme/app_colors.dart';
 import '../navigation/app_nav.dart';
+import '../navigation/app_route.dart';
 import '../widgets/app_widgets.dart';
 import '../models/models.dart';
 import '../models/receipt_model.dart' as db;
+import '../data/receipt_adapter.dart';
 import '../providers/receipt_provider.dart';
 import '../theme/theme_controller.dart';
+import 'transaction_detail.dart';
 
 class HomeDashboard extends StatelessWidget {
   const HomeDashboard({super.key});
@@ -30,6 +33,14 @@ class HomeDashboard extends StatelessWidget {
               : provider.categoryNameFor(receipt.transactions.first.categoryId),
           datetime: formatDateTime(receipt.transactionDate),
           amount: '-${rupiah(receipt.totalAmount.round())}',
+          onTap: () => Navigator.push(
+            context,
+            appRoute(
+              TransactionDetailScreen(
+                transaction: toUiTransaction(receipt, provider.categoryNameFor),
+              ),
+            ),
+          ),
         ),
     ];
 
@@ -732,6 +743,7 @@ class _TransactionData {
     required this.category,
     required this.datetime,
     required this.amount,
+    required this.onTap,
   });
 
   final IconData icon;
@@ -739,6 +751,7 @@ class _TransactionData {
   final String category;
   final String datetime;
   final String amount;
+  final VoidCallback onTap;
 }
 
 class _NoTransactionsHint extends StatelessWidget {
@@ -821,104 +834,110 @@ class _TransactionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
+      child: Material(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.iconBox,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(t.icon, size: 22, color: AppColors.iconMuted),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: InkWell(
+          onTap: t.onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        t.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.iconBox,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(t.icon, size: 22, color: AppColors.iconMuted),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              t.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.lavender,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              t.category,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.chipText,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        t.datetime,
                         style: TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textDark,
+                          fontSize: 12,
+                          color: AppColors.textMuted,
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      t.amount,
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.lavender,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        t.category,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.chipText,
+                    const SizedBox(height: 3),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle, size: 13, color: AppColors.green),
+                        const SizedBox(width: 3),
+                        Text(
+                          'Valid',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.green,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  t.datetime,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                t.amount,
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.check_circle, size: 13, color: AppColors.green),
-                  const SizedBox(width: 3),
-                  Text(
-                    'Valid',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.green,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1012,8 +1031,3 @@ class _ScanPromoCard extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Bottom navigation is provided by AppBottomNav (see app_widgets.dart).
-// ---------------------------------------------------------------------------
-

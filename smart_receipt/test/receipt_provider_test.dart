@@ -4,9 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' hide Transaction;
 
+import 'package:smart_receipt/data/receipt_adapter.dart';
 import 'package:smart_receipt/helpers/database_helper.dart';
 import 'package:smart_receipt/models/receipt_model.dart';
 import 'package:smart_receipt/providers/receipt_provider.dart';
+import 'package:smart_receipt/services/receipt_image_store.dart';
 
 Receipt _receipt({
   required String store,
@@ -14,6 +16,7 @@ Receipt _receipt({
   required double total,
   required int categoryId,
   required double itemTotal,
+  String? imagePath,
 }) {
   return Receipt(
     storeName: store,
@@ -22,6 +25,7 @@ Receipt _receipt({
     taxAmount: 0,
     subtotal: total,
     paymentMethod: 'QRIS',
+    imagePath: imagePath,
     status: 'saved',
     createdAt: date,
     transactions: <Transaction>[
@@ -47,12 +51,17 @@ void main() {
 
   late Directory dir;
   late DatabaseHelper helper;
+  late ReceiptImageStore imageStore;
   late ReceiptProvider provider;
 
   setUp(() async {
     dir = Directory.systemTemp.createTempSync('smart_receipt_provider_');
     helper = DatabaseHelper(overridePath: p.join(dir.path, 'test.db'));
-    provider = ReceiptProvider(dbHelper: helper);
+    imageStore = ReceiptImageStore(directory: dir);
+    provider = ReceiptProvider(
+      dbHelper: helper,
+      imageStore: imageStore,
+    );
     await provider.loadData();
   });
 
@@ -146,6 +155,35 @@ void main() {
     expect(provider.totalThisMonth, 0);
     expect(provider.totalAllTime, 0);
     expect(provider.spendingByCategory, isEmpty);
+  });
+
+  test('persists scanned receipt image locally and maps it to UI transaction', () async {
+    final File capturedTemp = File(p.join(dir.path, 'temp_capture.jpg'))
+      ..writeAsBytesSync(<int>[0xFF, 0xD8, 0xFF, 0xD9]);
+
+    final int id = await provider.addReceipt(
+      _receipt(
+        store: 'Alfamart',
+        date: DateTime.now(),
+        total: 35000,
+        categoryId: 1,
+        itemTotal: 35000,
+        imagePath: capturedTemp.path,
+      ),
+    );
+
+    final Receipt saved = provider.receipts.single;
+    expect(saved.imagePath, isNotNull);
+    expect(saved.imagePath, isNot(equals(capturedTemp.path)));
+    expect(File(saved.imagePath!).existsSync(), isTrue);
+
+    final uiTx = toUiTransaction(saved, provider.categoryNameFor);
+    expect(uiTx.imagePath, saved.imagePath);
+
+    // Deleting the receipt also cleans up the stored local image.
+    final String storedPath = saved.imagePath!;
+    await provider.deleteReceipt(id);
+    expect(File(storedPath).existsSync(), isFalse);
   });
 
   test('category names resolve through the seeded categories', () {

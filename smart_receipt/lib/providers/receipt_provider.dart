@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show ChangeNotifier, debugPrint;
 
 import '../helpers/database_helper.dart';
 import '../models/receipt_model.dart';
+import '../services/receipt_image_store.dart';
 import '../services/spending_analytics.dart';
 
 /// Single source of truth for saved receipts and the aggregates derived from
@@ -12,10 +13,14 @@ import '../services/spending_analytics.dart';
 /// forecast. Totals are computed in Dart from the loaded receipts (via
 /// [SpendingAnalytics]) so they cannot drift from the rows on screen.
 class ReceiptProvider with ChangeNotifier {
-  ReceiptProvider({DatabaseHelper? dbHelper})
-      : _dbHelper = dbHelper ?? DatabaseHelper();
+  ReceiptProvider({
+    DatabaseHelper? dbHelper,
+    ReceiptImageStore? imageStore,
+  })  : _dbHelper = dbHelper ?? DatabaseHelper(),
+        _imageStore = imageStore ?? ReceiptImageStore();
 
   final DatabaseHelper _dbHelper;
+  final ReceiptImageStore _imageStore;
 
   List<Receipt> _receipts = <Receipt>[];
   List<Category> _categories = <Category>[];
@@ -135,11 +140,26 @@ class ReceiptProvider with ChangeNotifier {
 
   // ------------------------------------------------------------------ writes
 
-  /// Persists a receipt and its items, then refreshes all derived totals.
+  /// Persists a receipt (including copying its captured photo into permanent
+  /// local storage when not already persisted) and its items, then refreshes
+  /// all derived totals.
   Future<int> addReceipt(Receipt receipt) async {
-    final int id = await _dbHelper.insertReceipt(receipt);
+    String? storedImagePath = receipt.imagePath;
+    if (storedImagePath != null && storedImagePath.isNotEmpty) {
+      try {
+        storedImagePath =
+            await _imageStore.persist(storedImagePath) ?? storedImagePath;
+      } catch (_) {
+        // Keep original path if platform storage is unavailable in tests.
+      }
+    }
+    final Receipt toSave = storedImagePath != receipt.imagePath
+        ? receipt.copyWith(imagePath: storedImagePath)
+        : receipt;
 
-    for (final Transaction transaction in receipt.transactions) {
+    final int id = await _dbHelper.insertReceipt(toSave);
+
+    for (final Transaction transaction in toSave.transactions) {
       await _dbHelper.insertTransaction(
         Transaction(
           receiptId: id,
@@ -165,7 +185,15 @@ class ReceiptProvider with ChangeNotifier {
   }
 
   Future<void> deleteReceipt(int id) async {
+    final Receipt? existing = await _dbHelper.getReceiptById(id);
     await _dbHelper.deleteReceipt(id);
+    if (existing?.imagePath != null) {
+      try {
+        await _imageStore.remove(existing!.imagePath);
+      } catch (_) {
+        // Ignore cleanup failure when platform storage is unavailable.
+      }
+    }
     await loadData();
   }
 

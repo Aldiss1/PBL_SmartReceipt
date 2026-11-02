@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -10,18 +12,20 @@ import '../models/models.dart';
 import '../models/receipt_model.dart' as db;
 import '../data/receipt_adapter.dart';
 import '../providers/receipt_provider.dart';
+import '../services/receipt_image_store.dart';
 import '../theme/theme_controller.dart';
 import 'transaction_detail.dart';
 
 /// Screen 7 - Transaction History.
 ///
 /// Reads the receipts saved in SQLite through [ReceiptProvider], so a scan that
-/// was just saved appears here immediately.
+/// was just saved appears here immediately along with its local receipt photo.
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
 
   @override
-  State<TransactionHistoryScreen> createState() => _TransactionHistoryScreenState();
+  State<TransactionHistoryScreen> createState() =>
+      _TransactionHistoryScreenState();
 }
 
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
@@ -172,14 +176,18 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       itemCount: results.length,
       itemBuilder: (BuildContext context, int i) {
         final db.Receipt receipt = results[i];
-        return _HistoryCard(
-          receipt: receipt,
-          categoryName: provider.categoryNameFor,
-          onTap: () => Navigator.push(
-            context,
-            appRoute(
-              TransactionDetailScreen(
-                transaction: toUiTransaction(receipt, provider.categoryNameFor),
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _HistoryCard(
+            receipt: receipt,
+            categoryName: provider.categoryNameFor,
+            onTap: () => Navigator.push(
+              context,
+              appRoute(
+                TransactionDetailScreen(
+                  transaction:
+                      toUiTransaction(receipt, provider.categoryNameFor),
+                ),
               ),
             ),
           ),
@@ -208,7 +216,8 @@ class _SearchField extends StatelessWidget {
         style: TextStyle(fontSize: 13.5, color: AppColors.textDark),
         decoration: InputDecoration(
           isDense: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 14),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 15, horizontal: 14),
           hintText: 'Cari toko atau item',
           hintStyle: TextStyle(fontSize: 13.5, color: AppColors.textMuted),
           prefixIcon: Icon(Icons.search, size: 20, color: AppColors.textMuted),
@@ -220,7 +229,11 @@ class _SearchField extends StatelessWidget {
 }
 
 class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.label, required this.active, required this.onTap});
+  const _FilterChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   final String label;
   final bool active;
@@ -273,6 +286,7 @@ class _HistoryCard extends StatelessWidget {
     final String primary = categories.isEmpty ? 'Lainnya' : categories.first;
     final int distinct = categories.toSet().length;
     final Category category = categoryByName(primary);
+    final bool hasPhoto = ReceiptImageStore.exists(receipt.imagePath);
 
     return Material(
       color: AppColors.card,
@@ -284,13 +298,16 @@ class _HistoryCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: <Widget>[
-              IconBox(
-                icon: category.icon,
-                size: 44,
-                iconSize: 22,
-                background: category.color.withValues(alpha: 0.14),
-                color: category.color,
-              ),
+              if (hasPhoto)
+                _ReceiptThumbnail(file: File(receipt.imagePath!))
+              else
+                IconBox(
+                  icon: category.icon,
+                  size: 44,
+                  iconSize: 22,
+                  background: category.color.withValues(alpha: 0.14),
+                  color: category.color,
+                ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -309,7 +326,8 @@ class _HistoryCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       formatDateTime(receipt.transactionDate),
-                      style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                      style:
+                          TextStyle(fontSize: 11.5, color: AppColors.textMuted),
                     ),
                     const SizedBox(height: 7),
                     Row(
@@ -323,6 +341,38 @@ class _HistoryCard extends StatelessWidget {
                               fontSize: 10.5,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                        if (hasPhoto) ...<Widget>[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.iconBox,
+                              borderRadius: BorderRadius.circular(7),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Icon(
+                                  Icons.image_outlined,
+                                  size: 11,
+                                  color: AppColors.amber,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'Foto',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textLabel,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -346,13 +396,63 @@ class _HistoryCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '${receipt.transactions.length} item',
-                    style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                    style:
+                        TextStyle(fontSize: 11.5, color: AppColors.textMuted),
                   ),
                 ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ReceiptThumbnail extends StatelessWidget {
+  const _ReceiptThumbnail({required this.file});
+
+  final File file;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 46,
+      height: 46,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 46,
+              height: 46,
+              child: Image.file(
+                file,
+                fit: BoxFit.cover,
+                cacheWidth: 160,
+              ),
+            ),
+          ),
+          Positioned(
+            right: -3,
+            bottom: -3,
+            child: Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                color: AppColors.orange,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.card, width: 1.5),
+              ),
+              child: const Icon(
+                Icons.receipt_long,
+                size: 10,
+                color: Color(0xFF3A2A00),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

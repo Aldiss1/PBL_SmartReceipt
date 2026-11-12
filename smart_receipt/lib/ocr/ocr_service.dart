@@ -8,6 +8,7 @@ import 'image_quality.dart';
 import 'ocr_engine.dart';
 import 'ocr_raw_text.dart';
 import 'ocr_text_corrector.dart';
+import 'ocr_voting.dart';
 import 'receipt_parser.dart';
 
 /// Everything produced by scanning one receipt.
@@ -213,14 +214,23 @@ class OcrService {
     ParsedReceipt best = parsed;
     OcrRawResult bestRaw = raw;
 
-    Future<void> attempt(String path) async {
+    // Reads [path], keeps the reading when it beats the current best, and
+    // returns the raw result so callers can reuse it (ML Kit is
+    // deterministic per image, so the same file is never read twice).
+    Future<OcrRawResult> attempt(String path) async {
       final OcrRawResult retryRaw =
           correctOcrText(await _engine.recognize(path));
       final ParsedReceipt retryParsed = _parser.parse(retryRaw);
-      if (ReceiptParser.scoreOf(retryParsed) > ReceiptParser.scoreOf(best)) {
+      if (candidateBeats(
+        candidateScore: ReceiptParser.scoreOf(retryParsed),
+        candidateConfidence: retryRaw.averageConfidence,
+        bestScore: ReceiptParser.scoreOf(best),
+        bestConfidence: bestRaw.averageConfidence,
+      )) {
         best = retryParsed;
         bestRaw = retryRaw;
       }
+      return retryRaw;
     }
 
     // 1. Perspective correction — crop the receipt out of the surrounding frame
@@ -288,6 +298,7 @@ class OcrService {
     }
 
     // 3. Local binarisation, for faded thermal print and uneven lighting.
+    OcrRawResult? binaryRaw;
     if (_isWeak(best)) {
       try {
         final String binaryPath = '${dir.path}/ocr_binary_$stamp.jpg';
@@ -296,10 +307,57 @@ class OcrService {
           outputPath: binaryPath,
         );
         tempFiles.add(binaryPath);
-        await attempt(binaryPath);
+        // Kept for the amount vote below, not only for the score competition.
+        binaryRaw = await attempt(binaryPath);
       } catch (_) {
         // Ignore.
       }
+    }
+
+    // 4. Amount voting across same-resolution variants (original + binarized
+    //    + sharpened). A digit read consistently by >=2 variants is stronger
+    //    evidence than any single pass, so a faded amount that one variant
+    //    drops is recovered from the others. The combined result competes
+    //    like any other candidate -- it can never force a worse reading.
+    try {
+      final String sharpenedPath = '${dir.path}/ocr_sharpened_$stamp.jpg';
+      final String sharpenedResult = await _preprocessor.prepareSharpened(
+        preparedPath: quality.preparedPath,
+        outputPath: sharpenedPath,
+      );
+      tempFiles.add(sharpenedPath);
+
+      final List<OcrRawResult> variants = <OcrRawResult>[];
+      if (sharpenedResult == sharpenedPath) {
+        variants.add(correctOcrText(await _engine.recognize(sharpenedPath)));
+      }
+      OcrRawResult? binarized = binaryRaw;
+      if (binarized == null) {
+        // Strategy 3 skipped it (a prior candidate already looked strong):
+        // run it here so the vote still has three same-resolution readings.
+        final String binaryPath = '${dir.path}/ocr_binary_vote_$stamp.jpg';
+        await _preprocessor.prepareBinarized(
+          preparedPath: quality.preparedPath,
+          outputPath: binaryPath,
+        );
+        tempFiles.add(binaryPath);
+        binarized = correctOcrText(await _engine.recognize(binaryPath));
+      }
+      variants.add(binarized);
+
+      final OcrRawResult voted = combineAmountVotes(raw, variants);
+      final ParsedReceipt votedParsed = _parser.parse(voted);
+      if (candidateBeats(
+        candidateScore: ReceiptParser.scoreOf(votedParsed),
+        candidateConfidence: voted.averageConfidence,
+        bestScore: ReceiptParser.scoreOf(best),
+        bestConfidence: bestRaw.averageConfidence,
+      )) {
+        best = votedParsed;
+        bestRaw = voted;
+      }
+    } catch (_) {
+      // Voting is best-effort: keep the best reading found so far.
     }
 
     onRaw(bestRaw);

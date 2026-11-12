@@ -1,0 +1,2406 @@
+{
+ "_comment": "Dibangkitkan ML/make_fixtures.py dari model_kategori_produk.json. `text` sudah dipreprocess. Dart wajib menghasilkan label, categoryId, dan margin yang sama persis.",
+ "reviewMargin": 4.0,
+ "cases": [
+  {
+   "text": "goo pants",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 10.928872,
+   "confidence": 0.999749
+  },
+  {
+   "text": "goo pants",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 10.928872,
+   "confidence": 0.999749
+  },
+  {
+   "text": "dancow batita",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 4.569818,
+   "confidence": 0.873334
+  },
+  {
+   "text": "dancowbatita",
+   "label": "Perlu Review",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 2.675059,
+   "confidence": 0.508999
+  },
+  {
+   "text": "dancow batita",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 4.569818,
+   "confidence": 0.873334
+  },
+  {
+   "text": "chil kid",
+   "label": "Perlu Review",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 3.834402,
+   "confidence": 0.767696
+  },
+  {
+   "text": "chilkid",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 5.723869,
+   "confidence": 0.956262
+  },
+  {
+   "text": "chilkid",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 5.723869,
+   "confidence": 0.956262
+  },
+  {
+   "text": "promina bubur bayi",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 19.575067,
+   "confidence": 1.0
+  },
+  {
+   "text": "promina bubur",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 10.860188,
+   "confidence": 0.999731
+  },
+  {
+   "text": "promina bubur by",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 14.607387,
+   "confidence": 0.999994
+  },
+  {
+   "text": "promina buburbayi",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 18.026087,
+   "confidence": 1.0
+  },
+  {
+   "text": "promina bubur ba",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 12.319839,
+   "confidence": 0.999938
+  },
+  {
+   "text": "promina bayi",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 16.14225,
+   "confidence": 0.999999
+  },
+  {
+   "text": "prmna bubur bayi",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 16.332767,
+   "confidence": 0.999999
+  },
+  {
+   "text": "minyak telon my baby",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 7.027813,
+   "confidence": 0.987736
+  },
+  {
+   "text": "mny telon my bab",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 7.642807,
+   "confidence": 0.993332
+  },
+  {
+   "text": "myk telon my baby",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 11.649067,
+   "confidence": 0.999878
+  },
+  {
+   "text": "minyak telon my",
+   "label": "Perlu Review",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 0.687183,
+   "confidence": 0.124349
+  },
+  {
+   "text": "minyak telon my ba",
+   "label": "Perlu Review",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 2.694861,
+   "confidence": 0.513947
+  },
+  {
+   "text": "kabel data usb",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 4.656168,
+   "confidence": 0.882582
+  },
+  {
+   "text": "kbl data usb",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 5.67054,
+   "confidence": 0.953976
+  },
+  {
+   "text": "kabel dt usb",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 6.997082,
+   "confidence": 0.987358
+  },
+  {
+   "text": "kbl dt usb",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 8.264651,
+   "confidence": 0.996409
+  },
+  {
+   "text": "kabel data usb typ",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 5.717719,
+   "confidence": 0.956004
+  },
+  {
+   "text": "kabeldatausbtype",
+   "label": "Perlu Review",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 2.070784,
+   "confidence": 0.361635
+  },
+  {
+   "text": "kabel data",
+   "label": "Perlu Review",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 3.769871,
+   "confidence": 0.755989
+  },
+  {
+   "text": "kabel usb",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 8.846108,
+   "confidence": 0.997989
+  },
+  {
+   "text": "charger samsung",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 20.887324,
+   "confidence": 1.0
+  },
+  {
+   "text": "charger samsung",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 20.887324,
+   "confidence": 1.0
+  },
+  {
+   "text": "chrgr samsung",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 21.80066,
+   "confidence": 1.0
+  },
+  {
+   "text": "charger samsun",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 18.636681,
+   "confidence": 1.0
+  },
+  {
+   "text": "chargersamsung",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 18.657543,
+   "confidence": 1.0
+  },
+  {
+   "text": "charger",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 9.233214,
+   "confidence": 0.998634
+  },
+  {
+   "text": "chrgr samsung",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 21.80066,
+   "confidence": 1.0
+  },
+  {
+   "text": "charger samsung",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 20.887324,
+   "confidence": 1.0
+  },
+  {
+   "text": "adaptor charger anker",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 17.659916,
+   "confidence": 1.0
+  },
+  {
+   "text": "adaptor charge",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 10.067427,
+   "confidence": 0.999406
+  },
+  {
+   "text": "adaptor charger an",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 14.95088,
+   "confidence": 0.999996
+  },
+  {
+   "text": "adptr charger anker",
+   "label": "Elektronik",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 12.352389,
+   "confidence": 0.99994
+  },
+  {
+   "text": "whiskas makanan kucing",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 28.579043,
+   "confidence": 1.0
+  },
+  {
+   "text": "whiskas makana",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 13.880228,
+   "confidence": 0.999987
+  },
+  {
+   "text": "whiskas makanan ku",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 17.473826,
+   "confidence": 1.0
+  },
+  {
+   "text": "whiskas makanan",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 15.425233,
+   "confidence": 0.999997
+  },
+  {
+   "text": "whiskas kucing",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 22.447882,
+   "confidence": 1.0
+  },
+  {
+   "text": "whiskas mkn kucing",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 27.673563,
+   "confidence": 1.0
+  },
+  {
+   "text": "whiskas makanan kcng",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 24.487074,
+   "confidence": 1.0
+  },
+  {
+   "text": "whiskas makanan kuci",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 20.902971,
+   "confidence": 1.0
+  },
+  {
+   "text": "felix makanan kucing",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 22.203707,
+   "confidence": 1.0
+  },
+  {
+   "text": "felix makanan",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 8.497304,
+   "confidence": 0.997152
+  },
+  {
+   "text": "felix mkn kucing",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 17.080448,
+   "confidence": 0.999999
+  },
+  {
+   "text": "felix makanan kuci",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 15.43976,
+   "confidence": 0.999997
+  },
+  {
+   "text": "felix mkn kcng",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 13.529679,
+   "confidence": 0.999981
+  },
+  {
+   "text": "felix makanan kcng",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 18.707098,
+   "confidence": 1.0
+  },
+  {
+   "text": "felix mknn kucing",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 19.351039,
+   "confidence": 1.0
+  },
+  {
+   "text": "felix kucing",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 10.093851,
+   "confidence": 0.999422
+  },
+  {
+   "text": "royal canin kitten",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 13.465359,
+   "confidence": 0.99998
+  },
+  {
+   "text": "royal canin kitt",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 12.53269,
+   "confidence": 0.99995
+  },
+  {
+   "text": "royal canin",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 15.348257,
+   "confidence": 0.999997
+  },
+  {
+   "text": "royal canin ki",
+   "label": "Hewan Peliharaan",
+   "topLabel": "Hewan Peliharaan",
+   "categoryId": 9,
+   "margin": 13.639154,
+   "confidence": 0.999983
+  },
+  {
+   "text": "voucher google play",
+   "label": "Perlu Review",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 2.212516,
+   "confidence": 0.394953
+  },
+  {
+   "text": "vcr google play",
+   "label": "Lainnya",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 4.649646,
+   "confidence": 0.881904
+  },
+  {
+   "text": "vchr google play",
+   "label": "Lainnya",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 4.687905,
+   "confidence": 0.885831
+  },
+  {
+   "text": "voucher google",
+   "label": "Hiburan & Hobi",
+   "topLabel": "Hiburan & Hobi",
+   "categoryId": 9,
+   "margin": 4.409838,
+   "confidence": 0.854555
+  },
+  {
+   "text": "voucher google",
+   "label": "Hiburan & Hobi",
+   "topLabel": "Hiburan & Hobi",
+   "categoryId": 9,
+   "margin": 4.409838,
+   "confidence": 0.854555
+  },
+  {
+   "text": "vcr google pla",
+   "label": "Perlu Review",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 2.320435,
+   "confidence": 0.421012
+  },
+  {
+   "text": "vouchergoogleplay",
+   "label": "Perlu Review",
+   "topLabel": "Hiburan & Hobi",
+   "categoryId": 9,
+   "margin": 1.734157,
+   "confidence": 0.288045
+  },
+  {
+   "text": "voucher play",
+   "label": "Perlu Review",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 1.53452,
+   "confidence": 0.248891
+  },
+  {
+   "text": "langganan spotify premium",
+   "label": "Perlu Review",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 1.228327,
+   "confidence": 0.196119
+  },
+  {
+   "text": "langganan spotify premiu",
+   "label": "Perlu Review",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 1.584809,
+   "confidence": 0.25841
+  },
+  {
+   "text": "langganan spotify",
+   "label": "Hiburan & Hobi",
+   "topLabel": "Hiburan & Hobi",
+   "categoryId": 9,
+   "margin": 4.986394,
+   "confidence": 0.912722
+  },
+  {
+   "text": "lnggnn sptfy prmm",
+   "label": "Hiburan & Hobi",
+   "topLabel": "Hiburan & Hobi",
+   "categoryId": 9,
+   "margin": 7.419465,
+   "confidence": 0.991677
+  },
+  {
+   "text": "langganan premium",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 6.004151,
+   "confidence": 0.966596
+  },
+  {
+   "text": "lgn spotify prem",
+   "label": "Perlu Review",
+   "topLabel": "Hiburan & Hobi",
+   "categoryId": 9,
+   "margin": 1.933167,
+   "confidence": 0.330507
+  },
+  {
+   "text": "langganan spotify prm",
+   "label": "Hiburan & Hobi",
+   "topLabel": "Hiburan & Hobi",
+   "categoryId": 9,
+   "margin": 4.053777,
+   "confidence": 0.804509
+  },
+  {
+   "text": "lgn spotify premium",
+   "label": "Perlu Review",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 2.579615,
+   "confidence": 0.485144
+  },
+  {
+   "text": "langganan disney hotstar",
+   "label": "Perlu Review",
+   "topLabel": "Hiburan & Hobi",
+   "categoryId": 9,
+   "margin": 2.746998,
+   "confidence": 0.526959
+  },
+  {
+   "text": "langganan hotstar",
+   "label": "Perlu Review",
+   "topLabel": "Hiburan & Hobi",
+   "categoryId": 9,
+   "margin": 2.886484,
+   "confidence": 0.561543
+  },
+  {
+   "text": "lgn disney hotstar",
+   "label": "Perlu Review",
+   "topLabel": "Hiburan & Hobi",
+   "categoryId": 9,
+   "margin": 2.168002,
+   "confidence": 0.384366
+  },
+  {
+   "text": "langganan disney",
+   "label": "Perlu Review",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 1.407832,
+   "confidence": 0.225967
+  },
+  {
+   "text": "oskadon",
+   "label": "Lainnya",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 8.54754,
+   "confidence": 0.997291
+  },
+  {
+   "text": "vicks formula",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 13.681007,
+   "confidence": 0.999984
+  },
+  {
+   "text": "vicksformula",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 12.498942,
+   "confidence": 0.999948
+  },
+  {
+   "text": "vicks",
+   "label": "Perlu Review",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 2.637469,
+   "confidence": 0.499603
+  },
+  {
+   "text": "ultraflu",
+   "label": "Minuman",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 4.689373,
+   "confidence": 0.885979
+  },
+  {
+   "text": "ultrflu",
+   "label": "Perlu Review",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 1.75868,
+   "confidence": 0.2931
+  },
+  {
+   "text": "paratusin",
+   "label": "Perlu Review",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 2.609408,
+   "confidence": 0.492588
+  },
+  {
+   "text": "prtsn",
+   "label": "Perlu Review",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 1.60664,
+   "confidence": 0.262616
+  },
+  {
+   "text": "koyo salonpas",
+   "label": "Perlu Review",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 0.496002,
+   "confidence": 0.104982
+  },
+  {
+   "text": "koyo slnps",
+   "label": "Perlu Review",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 1.398569,
+   "confidence": 0.224351
+  },
+  {
+   "text": "koyosalonpas",
+   "label": "Perlu Review",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 1.236572,
+   "confidence": 0.197422
+  },
+  {
+   "text": "alkohol",
+   "label": "Kesehatan",
+   "topLabel": "Kesehatan",
+   "categoryId": 5,
+   "margin": 4.618651,
+   "confidence": 0.878638
+  },
+  {
+   "text": "alkhl",
+   "label": "Perlu Review",
+   "topLabel": "Kesehatan",
+   "categoryId": 5,
+   "margin": 2.445776,
+   "confidence": 0.451829
+  },
+  {
+   "text": "fish oil omega",
+   "label": "Perlu Review",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 2.844386,
+   "confidence": 0.551153
+  },
+  {
+   "text": "fish oil",
+   "label": "Perlu Review",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 0.955724,
+   "confidence": 0.156655
+  },
+  {
+   "text": "fish omega",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 5.874821,
+   "confidence": 0.962158
+  },
+  {
+   "text": "fishoilomega",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 4.756647,
+   "confidence": 0.892601
+  },
+  {
+   "text": "fishoilomega",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 4.756647,
+   "confidence": 0.892601
+  },
+  {
+   "text": "antimo",
+   "label": "Perlu Review",
+   "topLabel": "Kesehatan",
+   "categoryId": 5,
+   "margin": 1.636133,
+   "confidence": 0.268367
+  },
+  {
+   "text": "oralit",
+   "label": "Perlu Review",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 0.447973,
+   "confidence": 0.100554
+  },
+  {
+   "text": "ongkos kirim",
+   "label": "Lainnya",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 32.248658,
+   "confidence": 1.0
+  },
+  {
+   "text": "ongk krm",
+   "label": "Lainnya",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 19.103826,
+   "confidence": 1.0
+  },
+  {
+   "text": "ongkos",
+   "label": "Lainnya",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 21.986834,
+   "confidence": 1.0
+  },
+  {
+   "text": "ongkos kirimj",
+   "label": "Lainnya",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 30.215214,
+   "confidence": 1.0
+  },
+  {
+   "text": "ongk kirim",
+   "label": "Lainnya",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 24.841955,
+   "confidence": 1.0
+  },
+  {
+   "text": "ongkos kirim",
+   "label": "Lainnya",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 32.248658,
+   "confidence": 1.0
+  },
+  {
+   "text": "ongkos krm",
+   "label": "Lainnya",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 25.249539,
+   "confidence": 1.0
+  },
+  {
+   "text": "ongk kirim",
+   "label": "Lainnya",
+   "topLabel": "Lainnya",
+   "categoryId": 9,
+   "margin": 24.841955,
+   "confidence": 1.0
+  },
+  {
+   "text": "sumbangan panti asuhan",
+   "label": "Perlu Review",
+   "topLabel": "Hiburan & Hobi",
+   "categoryId": 9,
+   "margin": 0.072262,
+   "confidence": 0.071306
+  },
+  {
+   "text": "sumbangan asuhan",
+   "label": "Perlu Review",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 0.741903,
+   "confidence": 0.130431
+  },
+  {
+   "text": "sumbangan panti asuh",
+   "label": "Perlu Review",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 0.502741,
+   "confidence": 0.105617
+  },
+  {
+   "text": "sumbangan panti as",
+   "label": "Perlu Review",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 1.484128,
+   "confidence": 0.23959
+  },
+  {
+   "text": "sumbanganpantiasuhan",
+   "label": "Perlu Review",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 1.539327,
+   "confidence": 0.24979
+  },
+  {
+   "text": "sumbangan pant",
+   "label": "Perlu Review",
+   "topLabel": "Hiburan & Hobi",
+   "categoryId": 9,
+   "margin": 1.080766,
+   "confidence": 0.173892
+  },
+  {
+   "text": "sumbangan panti",
+   "label": "Perlu Review",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 0.365392,
+   "confidence": 0.093328
+  },
+  {
+   "text": "smbngn panti asuhan",
+   "label": "Perlu Review",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 1.62048,
+   "confidence": 0.265305
+  },
+  {
+   "text": "sumbangan pant",
+   "label": "Perlu Review",
+   "topLabel": "Hiburan & Hobi",
+   "categoryId": 9,
+   "margin": 1.080766,
+   "confidence": 0.173892
+  },
+  {
+   "text": "biaya notaris",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 5.381268,
+   "confidence": 0.939472
+  },
+  {
+   "text": "bia notaris",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 6.263309,
+   "confidence": 0.974024
+  },
+  {
+   "text": "by notaris",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 7.384327,
+   "confidence": 0.991382
+  },
+  {
+   "text": "mie instan ayam bawang",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 19.739245,
+   "confidence": 1.0
+  },
+  {
+   "text": "mie instan ayam bawan",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 18.736133,
+   "confidence": 1.0
+  },
+  {
+   "text": "mie instan ay bawang",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 17.110587,
+   "confidence": 0.999999
+  },
+  {
+   "text": "mie instan ayam bw",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 17.410231,
+   "confidence": 1.0
+  },
+  {
+   "text": "mie instan ayam",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 16.571688,
+   "confidence": 0.999999
+  },
+  {
+   "text": "mie instan ayam baw",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 17.856776,
+   "confidence": 1.0
+  },
+  {
+   "text": "mie instan bawang",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 13.581448,
+   "confidence": 0.999982
+  },
+  {
+   "text": "mie instan ayam bwg",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 18.783761,
+   "confidence": 1.0
+  },
+  {
+   "text": "indme ayam bawang",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 16.440807,
+   "confidence": 0.999999
+  },
+  {
+   "text": "mie instan aym bawang",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 19.409812,
+   "confidence": 1.0
+  },
+  {
+   "text": "mie instan ayam bawan",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 18.736133,
+   "confidence": 1.0
+  },
+  {
+   "text": "mie instan goreng rendang",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 22.786793,
+   "confidence": 1.0
+  },
+  {
+   "text": "mie instan rendang",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 14.459662,
+   "confidence": 0.999993
+  },
+  {
+   "text": "mie instan rendang",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 14.459662,
+   "confidence": 0.999993
+  },
+  {
+   "text": "mie instan goreng",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 20.125099,
+   "confidence": 1.0
+  },
+  {
+   "text": "mie instan goreng renda",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 18.961476,
+   "confidence": 1.0
+  },
+  {
+   "text": "indme goreng rendang",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 18.515935,
+   "confidence": 1.0
+  },
+  {
+   "text": "mie instan goreng",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 20.125099,
+   "confidence": 1.0
+  },
+  {
+   "text": "mie instan grg rendang",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 18.62334,
+   "confidence": 1.0
+  },
+  {
+   "text": "mie instan goreng ren",
+   "label": "Makanan",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 19.409355,
+   "confidence": 1.0
+  },
+  {
+   "text": "nu green tea",
+   "label": "Minuman",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 8.373863,
+   "confidence": 0.996779
+  },
+  {
+   "text": "nu tea",
+   "label": "Minuman",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 4.854684,
+   "confidence": 0.901644
+  },
+  {
+   "text": "nu green",
+   "label": "Minuman",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 4.519423,
+   "confidence": 0.867653
+  },
+  {
+   "text": "nescafe classic",
+   "label": "Minuman",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 17.101585,
+   "confidence": 0.999999
+  },
+  {
+   "text": "nescafe classi",
+   "label": "Minuman",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 18.442361,
+   "confidence": 1.0
+  },
+  {
+   "text": "nscfe classic",
+   "label": "Minuman",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 4.846882,
+   "confidence": 0.90095
+  },
+  {
+   "text": "nescafe classi",
+   "label": "Minuman",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 18.442361,
+   "confidence": 1.0
+  },
+  {
+   "text": "pepsi",
+   "label": "Perawatan Diri",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 6.322791,
+   "confidence": 0.975487
+  },
+  {
+   "text": "minuman isotonik lychee",
+   "label": "Minuman",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 29.03476,
+   "confidence": 1.0
+  },
+  {
+   "text": "marjan sirup melon",
+   "label": "Perlu Review",
+   "topLabel": "Kesehatan",
+   "categoryId": 5,
+   "margin": 0.135912,
+   "confidence": 0.075638
+  },
+  {
+   "text": "marjan srp melon",
+   "label": "Rumah Tangga",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 4.005069,
+   "confidence": 0.796735
+  },
+  {
+   "text": "marjan sirup",
+   "label": "Perlu Review",
+   "topLabel": "Kesehatan",
+   "categoryId": 5,
+   "margin": 2.926237,
+   "confidence": 0.571306
+  },
+  {
+   "text": "marjan srp mel",
+   "label": "Perlu Review",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 0.832395,
+   "confidence": 0.141042
+  },
+  {
+   "text": "marjan melon",
+   "label": "Rumah Tangga",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 4.368449,
+   "confidence": 0.849335
+  },
+  {
+   "text": "marjan sirup",
+   "label": "Perlu Review",
+   "topLabel": "Kesehatan",
+   "categoryId": 5,
+   "margin": 2.926237,
+   "confidence": 0.571306
+  },
+  {
+   "text": "marjansirup melon",
+   "label": "Perlu Review",
+   "topLabel": "Kesehatan",
+   "categoryId": 5,
+   "margin": 0.490937,
+   "confidence": 0.104507
+  },
+  {
+   "text": "nutrisari jeruk peras",
+   "label": "Perlu Review",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 1.287231,
+   "confidence": 0.205572
+  },
+  {
+   "text": "nutrisari jrk peras",
+   "label": "Perlu Review",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 0.025621,
+   "confidence": 0.068279
+  },
+  {
+   "text": "nutrisari jeruk",
+   "label": "Perlu Review",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 2.007307,
+   "confidence": 0.347114
+  },
+  {
+   "text": "nutrisari jerukperas",
+   "label": "Perlu Review",
+   "topLabel": "Makanan",
+   "categoryId": 1,
+   "margin": 0.012487,
+   "confidence": 0.067448
+  },
+  {
+   "text": "baju batik pria",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 16.050417,
+   "confidence": 0.999999
+  },
+  {
+   "text": "baju pria",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 13.313789,
+   "confidence": 0.999977
+  },
+  {
+   "text": "baju batik",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 10.972758,
+   "confidence": 0.99976
+  },
+  {
+   "text": "baju batik",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 10.972758,
+   "confidence": 0.99976
+  },
+  {
+   "text": "baju batik pri",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 11.140781,
+   "confidence": 0.999797
+  },
+  {
+   "text": "celana training",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 8.705355,
+   "confidence": 0.997686
+  },
+  {
+   "text": "cln training",
+   "label": "Perlu Review",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 1.068471,
+   "confidence": 0.172133
+  },
+  {
+   "text": "celana trnng",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 8.446641,
+   "confidence": 0.997004
+  },
+  {
+   "text": "celana trainin",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 7.87297,
+   "confidence": 0.994696
+  },
+  {
+   "text": "celanatraining",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 6.921843,
+   "confidence": 0.986384
+  },
+  {
+   "text": "celana training",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 8.705355,
+   "confidence": 0.997686
+  },
+  {
+   "text": "baju kaki pria",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 14.164399,
+   "confidence": 0.99999
+  },
+  {
+   "text": "ks kaki pria",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 15.085043,
+   "confidence": 0.999996
+  },
+  {
+   "text": "baju kaki",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 8.580534,
+   "confidence": 0.997379
+  },
+  {
+   "text": "kaoskaki pria",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 21.097921,
+   "confidence": 1.0
+  },
+  {
+   "text": "baju kaki",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 8.580534,
+   "confidence": 0.997379
+  },
+  {
+   "text": "sarung bhs",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 11.056374,
+   "confidence": 0.999779
+  },
+  {
+   "text": "sarungbhs",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 8.273961,
+   "confidence": 0.996442
+  },
+  {
+   "text": "sepatu adidas superstar",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 4.020338,
+   "confidence": 0.799197
+  },
+  {
+   "text": "sepatu adidas",
+   "label": "Pakaian & Fashion",
+   "topLabel": "Pakaian & Fashion",
+   "categoryId": 8,
+   "margin": 13.290738,
+   "confidence": 0.999976
+  },
+  {
+   "text": "pulpen pilot",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 13.979317,
+   "confidence": 0.999988
+  },
+  {
+   "text": "plpn pilot",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 8.949241,
+   "confidence": 0.998186
+  },
+  {
+   "text": "pulpenpilot",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 11.841517,
+   "confidence": 0.999899
+  },
+  {
+   "text": "pensil faber castell",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 27.511424,
+   "confidence": 1.0
+  },
+  {
+   "text": "pnsl faber castell",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 23.367819,
+   "confidence": 1.0
+  },
+  {
+   "text": "pensil faber",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 24.126395,
+   "confidence": 1.0
+  },
+  {
+   "text": "pensil faber",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 24.126395,
+   "confidence": 1.0
+  },
+  {
+   "text": "pnsl faber",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 21.767995,
+   "confidence": 1.0
+  },
+  {
+   "text": "pensil",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 15.892001,
+   "confidence": 0.999998
+  },
+  {
+   "text": "pensil faber caste",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 23.544082,
+   "confidence": 1.0
+  },
+  {
+   "text": "pensil fab",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 17.986661,
+   "confidence": 1.0
+  },
+  {
+   "text": "staples",
+   "label": "Perlu Review",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 3.566284,
+   "confidence": 0.716512
+  },
+  {
+   "text": "stpls",
+   "label": "Perlu Review",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 3.324469,
+   "confidence": 0.664945
+  },
+  {
+   "text": "stpls",
+   "label": "Perlu Review",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 3.324469,
+   "confidence": 0.664945
+  },
+  {
+   "text": "paper clip joyko",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 8.473847,
+   "confidence": 0.997084
+  },
+  {
+   "text": "paperclipjoyko",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 7.259691,
+   "confidence": 0.990249
+  },
+  {
+   "text": "paper clip joy",
+   "label": "Perlu Review",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 1.837529,
+   "confidence": 0.309699
+  },
+  {
+   "text": "paper joyko",
+   "label": "Pendidikan & ATK",
+   "topLabel": "Pendidikan & ATK",
+   "categoryId": 9,
+   "margin": 4.541682,
+   "confidence": 0.870188
+  },
+  {
+   "text": "paper clip",
+   "label": "Perlu Review",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 3.748276,
+   "confidence": 0.751983
+  },
+  {
+   "text": "map plastik",
+   "label": "Perlu Review",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 1.701244,
+   "confidence": 0.281342
+  },
+  {
+   "text": "formula sikat gigi",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 6.027858,
+   "confidence": 0.967353
+  },
+  {
+   "text": "formula sikat gg",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 7.87816,
+   "confidence": 0.994723
+  },
+  {
+   "text": "formula sikat ggi",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 6.217993,
+   "confidence": 0.972852
+  },
+  {
+   "text": "formula gigi",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 17.420447,
+   "confidence": 1.0
+  },
+  {
+   "text": "frmla sikat gigi",
+   "label": "Perawatan Diri",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 12.991099,
+   "confidence": 0.999968
+  },
+  {
+   "text": "formula sikat",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 10.44463,
+   "confidence": 0.999593
+  },
+  {
+   "text": "formulasikat gigi",
+   "label": "Bayi & Anak",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 5.654501,
+   "confidence": 0.953267
+  },
+  {
+   "text": "dove body wash",
+   "label": "Perawatan Diri",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 17.423975,
+   "confidence": 1.0
+  },
+  {
+   "text": "dove wash",
+   "label": "Perawatan Diri",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 10.342751,
+   "confidence": 0.999549
+  },
+  {
+   "text": "dove body",
+   "label": "Perawatan Diri",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 17.635226,
+   "confidence": 1.0
+  },
+  {
+   "text": "dovebody wash",
+   "label": "Perawatan Diri",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 14.394913,
+   "confidence": 0.999992
+  },
+  {
+   "text": "head shoulders sampo",
+   "label": "Perawatan Diri",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 12.070073,
+   "confidence": 0.99992
+  },
+  {
+   "text": "head shldrs shmpo",
+   "label": "Perawatan Diri",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 4.559274,
+   "confidence": 0.872163
+  },
+  {
+   "text": "head shouldersshampoo",
+   "label": "Perawatan Diri",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 10.879878,
+   "confidence": 0.999736
+  },
+  {
+   "text": "head shoulders",
+   "label": "Perawatan Diri",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 5.386269,
+   "confidence": 0.939756
+  },
+  {
+   "text": "head sampo",
+   "label": "Perawatan Diri",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 4.816432,
+   "confidence": 0.898199
+  },
+  {
+   "text": "head shoulders",
+   "label": "Perawatan Diri",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 5.386269,
+   "confidence": 0.939756
+  },
+  {
+   "text": "head shoulders sha",
+   "label": "Perlu Review",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 2.822491,
+   "confidence": 0.54573
+  },
+  {
+   "text": "head shoulders shmp",
+   "label": "Perawatan Diri",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 10.868838,
+   "confidence": 0.999733
+  },
+  {
+   "text": "rejoice sampo",
+   "label": "Perlu Review",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 0.302343,
+   "confidence": 0.088128
+  },
+  {
+   "text": "gudang garam surya",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 22.865163,
+   "confidence": 1.0
+  },
+  {
+   "text": "gudang garam sur",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 15.625672,
+   "confidence": 0.999998
+  },
+  {
+   "text": "gudang surya",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 22.976033,
+   "confidence": 1.0
+  },
+  {
+   "text": "gudang garam",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 15.709145,
+   "confidence": 0.999998
+  },
+  {
+   "text": "gudang garam filter international",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 20.836789,
+   "confidence": 1.0
+  },
+  {
+   "text": "gudang garam",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 15.709145,
+   "confidence": 0.999998
+  },
+  {
+   "text": "gudang garam filte",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 22.245921,
+   "confidence": 1.0
+  },
+  {
+   "text": "gudang garam filter",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 24.92978,
+   "confidence": 1.0
+  },
+  {
+   "text": "gudang garam fil",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 14.633215,
+   "confidence": 0.999994
+  },
+  {
+   "text": "gudang garam filter intrntnl",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 21.862039,
+   "confidence": 1.0
+  },
+  {
+   "text": "gudang garam filterinternational",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 17.27898,
+   "confidence": 1.0
+  },
+  {
+   "text": "gudang garam international",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 12.173378,
+   "confidence": 0.999928
+  },
+  {
+   "text": "la lights",
+   "label": "Perlu Review",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 1.952065,
+   "confidence": 0.334702
+  },
+  {
+   "text": "lalights",
+   "label": "Perlu Review",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 0.250951,
+   "confidence": 0.084084
+  },
+  {
+   "text": "camel filters",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 7.065083,
+   "confidence": 0.988179
+  },
+  {
+   "text": "camel fltrs",
+   "label": "Perlu Review",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 2.446256,
+   "confidence": 0.451948
+  },
+  {
+   "text": "camelfilters",
+   "label": "Rokok & Tembakau",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 5.656197,
+   "confidence": 0.953342
+  },
+  {
+   "text": "esse change",
+   "label": "Perlu Review",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 2.374078,
+   "confidence": 0.43414
+  },
+  {
+   "text": "essechange",
+   "label": "Minuman",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 4.146453,
+   "confidence": 0.818675
+  },
+  {
+   "text": "esse change",
+   "label": "Perlu Review",
+   "topLabel": "Minuman",
+   "categoryId": 2,
+   "margin": 2.374078,
+   "confidence": 0.43414
+  },
+  {
+   "text": "sabun cuci sabun cuci piring",
+   "label": "Rumah Tangga",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 8.095897,
+   "confidence": 0.995751
+  },
+  {
+   "text": "sabun cuci sabun",
+   "label": "Perlu Review",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 2.777415,
+   "confidence": 0.534534
+  },
+  {
+   "text": "sunlightsabuncucipiring",
+   "label": "Perlu Review",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 2.39303,
+   "confidence": 0.438802
+  },
+  {
+   "text": "sabun cuci sabun",
+   "label": "Perlu Review",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 2.777415,
+   "confidence": 0.534534
+  },
+  {
+   "text": "sabun cuci sb cci piring",
+   "label": "Rumah Tangga",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 10.367621,
+   "confidence": 0.99956
+  },
+  {
+   "text": "sabun cuci sbn cuci pi",
+   "label": "Perlu Review",
+   "topLabel": "Bayi & Anak",
+   "categoryId": 9,
+   "margin": 2.957296,
+   "confidence": 0.578895
+  },
+  {
+   "text": "sabun cuci sbn cci piring",
+   "label": "Rumah Tangga",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 9.987227,
+   "confidence": 0.999357
+  },
+  {
+   "text": "snlght sabun cuci piring",
+   "label": "Rumah Tangga",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 12.359925,
+   "confidence": 0.99994
+  },
+  {
+   "text": "hit aerosol",
+   "label": "Rumah Tangga",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 4.697864,
+   "confidence": 0.886834
+  },
+  {
+   "text": "hitaerosol",
+   "label": "Rumah Tangga",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 8.155392,
+   "confidence": 0.995996
+  },
+  {
+   "text": "hit arsl",
+   "label": "Perlu Review",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 1.454388,
+   "confidence": 0.234214
+  },
+  {
+   "text": "fumakilla obat nyamuk bakar",
+   "label": "Rumah Tangga",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 6.374884,
+   "confidence": 0.976702
+  },
+  {
+   "text": "fumakilla obt ny",
+   "label": "Perlu Review",
+   "topLabel": "Kesehatan",
+   "categoryId": 5,
+   "margin": 1.005001,
+   "confidence": 0.163275
+  },
+  {
+   "text": "fumakilla obt",
+   "label": "Perlu Review",
+   "topLabel": "Kesehatan",
+   "categoryId": 5,
+   "margin": 3.248844,
+   "confidence": 0.647892
+  },
+  {
+   "text": "fumakilla obat",
+   "label": "Kesehatan",
+   "topLabel": "Kesehatan",
+   "categoryId": 5,
+   "margin": 4.038105,
+   "confidence": 0.802033
+  },
+  {
+   "text": "fumakilla obt nyamuk bakar",
+   "label": "Rumah Tangga",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 5.989053,
+   "confidence": 0.966105
+  },
+  {
+   "text": "fumakilla obat nyamuk",
+   "label": "Rumah Tangga",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 8.24927,
+   "confidence": 0.996353
+  },
+  {
+   "text": "fumakilla nyamuk bakar",
+   "label": "Perlu Review",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 2.252136,
+   "confidence": 0.404459
+  },
+  {
+   "text": "fumakilla obat nyamuk bkr",
+   "label": "Rumah Tangga",
+   "topLabel": "Rumah Tangga",
+   "categoryId": 3,
+   "margin": 8.179142,
+   "confidence": 0.996089
+  },
+  {
+   "text": "kain lap microfiber",
+   "label": "Perlu Review",
+   "topLabel": "Elektronik",
+   "categoryId": 7,
+   "margin": 2.94021,
+   "confidence": 0.574724
+  },
+  {
+   "text": "listrik mobile token",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 9.992499,
+   "confidence": 0.99936
+  },
+  {
+   "text": "listrik token",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 17.448391,
+   "confidence": 1.0
+  },
+  {
+   "text": "listrik mobile",
+   "label": "Perlu Review",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 0.955969,
+   "confidence": 0.156687
+  },
+  {
+   "text": "listrik mobile tok",
+   "label": "Perlu Review",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 2.785764,
+   "confidence": 0.536611
+  },
+  {
+   "text": "biznet home internet",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 20.174681,
+   "confidence": 1.0
+  },
+  {
+   "text": "biznet home in",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 9.955322,
+   "confidence": 0.999336
+  },
+  {
+   "text": "biznet home intern",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 15.578612,
+   "confidence": 0.999998
+  },
+  {
+   "text": "biznet home inte",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 13.728818,
+   "confidence": 0.999985
+  },
+  {
+   "text": "biznet home",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 8.923679,
+   "confidence": 0.998139
+  },
+  {
+   "text": "biznet internet",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 22.540814,
+   "confidence": 1.0
+  },
+  {
+   "text": "biznet home intrnt",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 15.008244,
+   "confidence": 0.999996
+  },
+  {
+   "text": "tagihan telepon internet",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 33.198994,
+   "confidence": 1.0
+  },
+  {
+   "text": "tgh telepon internet",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 26.265962,
+   "confidence": 1.0
+  },
+  {
+   "text": "tagihan telepon",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 26.731103,
+   "confidence": 1.0
+  },
+  {
+   "text": "tagihantelepontelkom",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 23.33067,
+   "confidence": 1.0
+  },
+  {
+   "text": "tagihan telepon telk",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 26.412651,
+   "confidence": 1.0
+  },
+  {
+   "text": "tgh telepon telk",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 19.397583,
+   "confidence": 1.0
+  },
+  {
+   "text": "tghn tlpn internet",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 24.892834,
+   "confidence": 1.0
+  },
+  {
+   "text": "tagihan internet",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 33.590994,
+   "confidence": 1.0
+  },
+  {
+   "text": "tagihantelepontelkom",
+   "label": "Tagihan & Utilitas",
+   "topLabel": "Tagihan & Utilitas",
+   "categoryId": 9,
+   "margin": 23.33067,
+   "confidence": 1.0
+  },
+  {
+   "text": "bensin turbo",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 8.734982,
+   "confidence": 0.997753
+  },
+  {
+   "text": "pertamaxturbo",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 10.03832,
+   "confidence": 0.999389
+  },
+  {
+   "text": "prtmx turbo",
+   "label": "Perlu Review",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 3.619988,
+   "confidence": 0.727293
+  },
+  {
+   "text": "dexlite",
+   "label": "Perlu Review",
+   "topLabel": "Perawatan Diri",
+   "categoryId": 4,
+   "margin": 0.3912,
+   "confidence": 0.095534
+  },
+  {
+   "text": "dxlte",
+   "label": "Perlu Review",
+   "topLabel": "Rokok & Tembakau",
+   "categoryId": 9,
+   "margin": 2.049463,
+   "confidence": 0.356728
+  },
+  {
+   "text": "bensin dex",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 10.869944,
+   "confidence": 0.999734
+  },
+  {
+   "text": "prtmna dex",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 9.266041,
+   "confidence": 0.998678
+  },
+  {
+   "text": "prtmna dex",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 9.266041,
+   "confidence": 0.998678
+  },
+  {
+   "text": "shell power nitro",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 4.625756,
+   "confidence": 0.879393
+  },
+  {
+   "text": "shell power nitr",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 5.067572,
+   "confidence": 0.918976
+  },
+  {
+   "text": "shell nitro",
+   "label": "Perlu Review",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 2.304552,
+   "confidence": 0.417145
+  },
+  {
+   "text": "shell power",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 5.878199,
+   "confidence": 0.962281
+  },
+  {
+   "text": "shell power ni",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 4.958575,
+   "confidence": 0.910481
+  },
+  {
+   "text": "shellv power nitro",
+   "label": "Perlu Review",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 2.206189,
+   "confidence": 0.393442
+  },
+  {
+   "text": "parkir motor",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 13.38566,
+   "confidence": 0.999978
+  },
+  {
+   "text": "parkir mtr",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 7.541389,
+   "confidence": 0.992626
+  },
+  {
+   "text": "prkr motor",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 17.889064,
+   "confidence": 1.0
+  },
+  {
+   "text": "prk mtr",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 9.987307,
+   "confidence": 0.999357
+  },
+  {
+   "text": "prk motor",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 14.514447,
+   "confidence": 0.999993
+  },
+  {
+   "text": "prkr mtr",
+   "label": "Transportasi",
+   "topLabel": "Transportasi",
+   "categoryId": 6,
+   "margin": 14.11645,
+   "confidence": 0.99999
+  }
+ ]
+}

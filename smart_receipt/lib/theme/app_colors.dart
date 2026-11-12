@@ -138,7 +138,7 @@ class AppPalette {
   /// Background of the badge and icon tile that sit on the spending banner.
   final Color spendBannerObjectBg;
 
-  /// Palette sampled from the original "01 - Home Dashboard" design.
+  /// Palette sampled from `Document/desain_home_dashboard.png`.
   static const AppPalette light = AppPalette(
     bg: Color(0xFFF9F9FF),
     navy: Color(0xFF131A33),

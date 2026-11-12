@@ -1,90 +1,1205 @@
 {
-  "_comment": "Dataset evaluasi dummy untuk model TF-IDF + Naive Bayes. Label adalah kelas asli model (15 kelas). Ganti dengan data struk nyata ketika tersedia.",
-  "samples": [
-    {"text": "INDOMIE GORENG SPECIAL", "label": "Makanan"},
-    {"text": "MIE INSTAN KUAH AYAM", "label": "Makanan"},
-    {"text": "NASI GORENG SPESIAL", "label": "Makanan"},
-    {"text": "AYAM GEPREK SAOS", "label": "Makanan"},
-    {"text": "TELUR AYAM 1 KG", "label": "Makanan"},
-    {"text": "ROTI TAWAR GANDUM", "label": "Makanan"},
-    {"text": "BISKUIT OREO 133GR", "label": "Makanan"},
-    {"text": "KERUPUK UDANG", "label": "Makanan"},
-    {"text": "SARDEN ABC TOMAT", "label": "Makanan"},
-    {"text": "TEMPE MENDOAN", "label": "Makanan"},
-
-    {"text": "AQUA 600ML", "label": "Minuman"},
-    {"text": "TEH BOTOL SOSRO", "label": "Minuman"},
-    {"text": "KOPI KAPAL API SACHET", "label": "Minuman"},
-    {"text": "SUSU ULTRA MILK 250ML", "label": "Minuman"},
-    {"text": "MINUMAN ISOTONIK MIZONE", "label": "Minuman"},
-    {"text": "POCARI SWEAT 500ML", "label": "Minuman"},
-    {"text": "SPRITE 390ML", "label": "Minuman"},
-    {"text": "YAKULT 5 PCS", "label": "Minuman"},
-
-    {"text": "PERTALITE 5 LITER", "label": "Transportasi"},
-    {"text": "PERTAMAX TURBO", "label": "Transportasi"},
-    {"text": "BENSIN PERTAMINA", "label": "Transportasi"},
-    {"text": "TIKET BUS ANTARKOTA", "label": "Transportasi"},
-    {"text": "PARKIR MAL", "label": "Transportasi"},
-    {"text": "GOJEK RIDE", "label": "Transportasi"},
-    {"text": "TARIF TOL JAGORAWI", "label": "Transportasi"},
-
-    {"text": "TOKEN LISTRIK PLN 100RB", "label": "Tagihan & Utilitas"},
-    {"text": "PDAM AIR BULAN SEPTEMBER", "label": "Tagihan & Utilitas"},
-    {"text": "INTERNET INDIHOME", "label": "Tagihan & Utilitas"},
-    {"text": "PULSA TELKOMSEL 50000", "label": "Tagihan & Utilitas"},
-
-    {"text": "TISU PASEO 250S", "label": "Rumah Tangga"},
-    {"text": "DETERJEN RINSO 800GR", "label": "Rumah Tangga"},
-    {"text": "SABUN CUCI SUNLIGHT", "label": "Rumah Tangga"},
-    {"text": "PEWANGI MOLTO 1L", "label": "Rumah Tangga"},
-    {"text": "SAPU IJUK", "label": "Rumah Tangga"},
-    {"text": "EMBER PLASTIK 20L", "label": "Rumah Tangga"},
-    {"text": "KARBOL WIPOL 800ML", "label": "Rumah Tangga"},
-
-    {"text": "SABUN LIFEBUOY BATANG", "label": "Perawatan Diri"},
-    {"text": "SHAMPOO PANTENE 170ML", "label": "Perawatan Diri"},
-    {"text": "PASTA GIGI PEPSODENT", "label": "Perawatan Diri"},
-    {"text": "DEODORAN NIVEA ROLL ON", "label": "Perawatan Diri"},
-    {"text": "LOTION GARNIER 100ML", "label": "Perawatan Diri"},
-    {"text": "PARFUM WARDAH", "label": "Perawatan Diri"},
-
-    {"text": "OBAT PARACETAMOL 500MG", "label": "Kesehatan"},
-    {"text": "VITAMIN C IPI", "label": "Kesehatan"},
-    {"text": "BODREX MIGRA", "label": "Kesehatan"},
-    {"text": "PLESTER HANSAPLAST", "label": "Kesehatan"},
-    {"text": "BETADINE SOLUTION", "label": "Kesehatan"},
-
-    {"text": "CHARGER HP 20W", "label": "Elektronik"},
-    {"text": "POWER BANK 10000MAH", "label": "Elektronik"},
-    {"text": "KABEL USB TYPE C", "label": "Elektronik"},
-    {"text": "EARPHONE BLUETOOTH", "label": "Elektronik"},
-    {"text": "FLASH DISK 32GB", "label": "Elektronik"},
-    {"text": "LAMPU LED 12W", "label": "Elektronik"},
-
-    {"text": "KAOS POLOS COTTON", "label": "Pakaian & Fashion"},
-    {"text": "KEMEJA BATIK LENGAN PANJANG", "label": "Pakaian & Fashion"},
-    {"text": "CELANA JEANS LEVIS", "label": "Pakaian & Fashion"},
-    {"text": "JAKET BOMBER", "label": "Pakaian & Fashion"},
-    {"text": "SEPATU SNEAKERS", "label": "Pakaian & Fashion"},
-    {"text": "SANDAL JEPIT SWALLOW", "label": "Pakaian & Fashion"},
-
-    {"text": "BUKU TULIS SIDU 38 LEMBAR", "label": "Pendidikan & ATK"},
-    {"text": "PULPEN STANDARD AE7", "label": "Pendidikan & ATK"},
-    {"text": "BUKU KURSUS BAHASA INGGRIS", "label": "Pendidikan & ATK"},
-
-    {"text": "POPOK BAYI PAMPERS M", "label": "Bayi & Anak"},
-    {"text": "SUSU FORMULA BAYI 400GR", "label": "Bayi & Anak"},
-    {"text": "MAINAN EDUKASI ANAK", "label": "Bayi & Anak"},
-
-    {"text": "MAKANAN KUCING WHISKAS", "label": "Hewan Peliharaan"},
-    {"text": "PASIR KUCING 5KG", "label": "Hewan Peliharaan"},
-
-    {"text": "TIKET BIOSKOP XXI", "label": "Hiburan & Hobi"},
-    {"text": "VOUCHER GAME ONLINE", "label": "Hiburan & Hobi"},
-    {"text": "LANGGANAN NETFLIX", "label": "Hiburan & Hobi"},
-
-    {"text": "ROKOK GUDANG GARAM 12", "label": "Rokok & Tembakau"},
-    {"text": "ROKOK SAMPOERNA MILD", "label": "Rokok & Tembakau"}
-  ]
+ "_comment": "Data evaluasi untuk model TF-IDF + Naive Bayes yang dikirim ke aplikasi. Diambil dari split test Dataset_SmartReceipt_Sintetis.csv (produk tidak pernah dilihat model, duplikat verbatim terhadap train sudah dibuang). `text` adalah teks MENTAH seperti keluaran OCR; aplikasi menerapkan IndonesianTextPreprocessor sebelum memprediksi karena model bertanda preprocessing=flutter_id_v1. Dibangkitkan oleh ML/make_fixtures.py.",
+ "samples": [
+  {
+   "text": "Goo.N Pants",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "65973175 Goo.N Pants",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "Dancow Batita",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "DANCOWBATITA",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "6673773525472 Dancow Batita",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "Chil Kid",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "CHILKID",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "433279159342 CHILKID",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "Promina Bubur Bayi",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "PROMINA BUBUR",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "PROMINA BUBUR BY",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "PROMINA BUBURBAYI",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "PROMINA BUBUR BA",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "PROMINA BAYI",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "PRMNA BUBUR BAYI",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "Minyak Telon My Baby",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "MNY TELON MY BAB",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "MYK TELON MY BABY",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "MINYAK TELON MY",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "MINYAK TELON MY BA",
+   "label": "Bayi & Anak"
+  },
+  {
+   "text": "Kabel Data USB Type-C",
+   "label": "Elektronik"
+  },
+  {
+   "text": "KBL DATA USB TYPE-C",
+   "label": "Elektronik"
+  },
+  {
+   "text": "KABEL DT USB TYPE-C",
+   "label": "Elektronik"
+  },
+  {
+   "text": "KBL DT USB TYPE-C",
+   "label": "Elektronik"
+  },
+  {
+   "text": "KABEL DATA USB TYP",
+   "label": "Elektronik"
+  },
+  {
+   "text": "KABELDATAUSBTYPE-C",
+   "label": "Elektronik"
+  },
+  {
+   "text": "KABEL DATA TYPE-C",
+   "label": "Elektronik"
+  },
+  {
+   "text": "KABEL USB TYPE-C",
+   "label": "Elektronik"
+  },
+  {
+   "text": "Charger Samsung 25W",
+   "label": "Elektronik"
+  },
+  {
+   "text": "CHARGER SAMSUNG",
+   "label": "Elektronik"
+  },
+  {
+   "text": "CHRGR SAMSUNG 25W",
+   "label": "Elektronik"
+  },
+  {
+   "text": "CHARGER SAMSUN",
+   "label": "Elektronik"
+  },
+  {
+   "text": "CHARGERSAMSUNG 25W",
+   "label": "Elektronik"
+  },
+  {
+   "text": "CHARGER 25W",
+   "label": "Elektronik"
+  },
+  {
+   "text": "CHRGR SAMSUNG 25",
+   "label": "Elektronik"
+  },
+  {
+   "text": "61423243 CHARGER SAMSUNG",
+   "label": "Elektronik"
+  },
+  {
+   "text": "Adaptor Charger Anker",
+   "label": "Elektronik"
+  },
+  {
+   "text": "ADAPTOR CHARGE",
+   "label": "Elektronik"
+  },
+  {
+   "text": "ADAPTOR CHARGER AN",
+   "label": "Elektronik"
+  },
+  {
+   "text": "ADPTR CHARGER ANKER",
+   "label": "Elektronik"
+  },
+  {
+   "text": "Whiskas Makanan Kucing",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "WHISKAS MAKANA",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "WHISKAS MAKANAN KU",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "2 WHISKAS MAKANAN",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "WHISKAS KUCING",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "WHISKAS MKN KUCING",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "WHISKAS MAKANAN KCNG",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "WHISKAS MAKANAN KUCI",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "Felix Makanan Kucing",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "FELIX MAKANAN",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "FELIX MKN KUCING",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "FELIX MAKANAN KUCI",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "FELIX MKN KCNG",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "FELIX MAKANAN KCNG",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "FELIX MKNN KUCING",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "FELIX KUCING",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "4 Royal Canin Kitten",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "ROYAL CANIN KITT",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "ROYAL CANIN",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "ROYAL CANIN KI",
+   "label": "Hewan Peliharaan"
+  },
+  {
+   "text": "Voucher Google Play",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "4 VCR GOOGLE PLAY",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "VCHR GOOGLE PLAY",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "VOUCHER GOOGLE",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "VOUCHER GOOGLE P",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "VCR GOOGLE PLA",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "VOUCHERGOOGLEPLAY",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "VOUCHER PLAY",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "Langganan Spotify Premium",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "LANGGANAN SPOTIFY PREMIU",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "LANGGANAN SPOTIFY",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "LNGGNN SPTFY PRMM",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "LANGGANAN PREMIUM",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "LGN SPOTIFY PREM",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "LANGGANAN SPOTIFY PRM",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "LGN SPOTIFY PREMIUM",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "Langganan Disney+ Hotstar",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "LANGGANAN HOTSTAR",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "LGN DISNEY+ HOTSTAR",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "LANGGANAN DISNEY+",
+   "label": "Hiburan & Hobi"
+  },
+  {
+   "text": "Oskadon",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "Vicks Formula 44",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "VICKSFORMULA 44",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "VICKS 44",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "Ultraflu",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "ULTRFLU",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "Paratusin",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "PRTSN",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "Koyo Salonpas",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "KOYO SLNPS",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "KOYOSALONPAS",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "Alkohol 70%",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "ALKHL 70%",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "Fish Oil Omega 3",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "FISH OIL 3",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "FISH OMEGA 3",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "FISHOILOMEGA 3",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "881156322539 FISHOILOMEGA 3",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "Antimo",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "Oralit",
+   "label": "Kesehatan"
+  },
+  {
+   "text": "Ongkos Kirim J&T",
+   "label": "Lainnya"
+  },
+  {
+   "text": "ONGK KRM J&T",
+   "label": "Lainnya"
+  },
+  {
+   "text": "ONGKOS J&T",
+   "label": "Lainnya"
+  },
+  {
+   "text": "1 ONGKOS KIRIMJ&T",
+   "label": "Lainnya"
+  },
+  {
+   "text": "ONGK KIRIM J&T",
+   "label": "Lainnya"
+  },
+  {
+   "text": "2 ONGKOS KIRIM J",
+   "label": "Lainnya"
+  },
+  {
+   "text": "ONGKOS KRM J&T",
+   "label": "Lainnya"
+  },
+  {
+   "text": "085813410392 ONGK KIRIM J&T",
+   "label": "Lainnya"
+  },
+  {
+   "text": "Sumbangan Panti Asuhan",
+   "label": "Lainnya"
+  },
+  {
+   "text": "SUMBANGAN ASUHAN",
+   "label": "Lainnya"
+  },
+  {
+   "text": "SUMBANGAN PANTI ASUH",
+   "label": "Lainnya"
+  },
+  {
+   "text": "SUMBANGAN PANTI AS",
+   "label": "Lainnya"
+  },
+  {
+   "text": "SUMBANGANPANTIASUHAN",
+   "label": "Lainnya"
+  },
+  {
+   "text": "3 SUMBANGAN PANT",
+   "label": "Lainnya"
+  },
+  {
+   "text": "SUMBANGAN PANTI",
+   "label": "Lainnya"
+  },
+  {
+   "text": "SMBNGN PANTI ASUHAN",
+   "label": "Lainnya"
+  },
+  {
+   "text": "158321443458 3 SUMBANGAN PANT",
+   "label": "Lainnya"
+  },
+  {
+   "text": "Biaya Notaris",
+   "label": "Lainnya"
+  },
+  {
+   "text": "BIA NOTARIS",
+   "label": "Lainnya"
+  },
+  {
+   "text": "BY NOTARIS",
+   "label": "Lainnya"
+  },
+  {
+   "text": "Indomie Ayam Bawang",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE AYAM BAWAN",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE AY BAWANG 69G",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE AYAM BW 69GR",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE AYAM 69 G",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE AYAM BAW",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE BAWANG",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE AYAM BWG 69",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDME AYAM BAWANG",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE AYM BAWANG 69 G",
+   "label": "Makanan"
+  },
+  {
+   "text": "635110203830 INDOMIE AYAM BAWAN",
+   "label": "Makanan"
+  },
+  {
+   "text": "Indomie Goreng Rendang 91 gr",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE RENDANG",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE GR RENDANG 9",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE GORENG R",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE GORENG RENDA",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDME GORENG RENDANG 91GR",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE GORENG 91G",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE GRG RENDANG",
+   "label": "Makanan"
+  },
+  {
+   "text": "INDOMIE GORENG REN",
+   "label": "Makanan"
+  },
+  {
+   "text": "Nu Green Tea",
+   "label": "Minuman"
+  },
+  {
+   "text": "NU TEA",
+   "label": "Minuman"
+  },
+  {
+   "text": "NU GREEN",
+   "label": "Minuman"
+  },
+  {
+   "text": "Nescafe Classic",
+   "label": "Minuman"
+  },
+  {
+   "text": "NESCAFE CLASSI",
+   "label": "Minuman"
+  },
+  {
+   "text": "NSCFE CLASSIC",
+   "label": "Minuman"
+  },
+  {
+   "text": "5579169662232 NESCAFE CLASSI",
+   "label": "Minuman"
+  },
+  {
+   "text": "Pepsi",
+   "label": "Minuman"
+  },
+  {
+   "text": "Mizone Lychee",
+   "label": "Minuman"
+  },
+  {
+   "text": "Marjan Sirup Melon",
+   "label": "Minuman"
+  },
+  {
+   "text": "MARJAN SRP MELON",
+   "label": "Minuman"
+  },
+  {
+   "text": "MARJAN SIRUP",
+   "label": "Minuman"
+  },
+  {
+   "text": "MARJAN SRP MEL",
+   "label": "Minuman"
+  },
+  {
+   "text": "MARJAN MELON",
+   "label": "Minuman"
+  },
+  {
+   "text": "MARJAN SIRUP M",
+   "label": "Minuman"
+  },
+  {
+   "text": "2 MARJANSIRUP MELON",
+   "label": "Minuman"
+  },
+  {
+   "text": "4 Nutrisari Jeruk Peras",
+   "label": "Minuman"
+  },
+  {
+   "text": "NUTRISARI JRK PERAS",
+   "label": "Minuman"
+  },
+  {
+   "text": "NUTRISARI JERUK",
+   "label": "Minuman"
+  },
+  {
+   "text": "NUTRISARI JERUKPERAS",
+   "label": "Minuman"
+  },
+  {
+   "text": "Kemeja Batik Pria",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "KEMEJA PRIA",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "KEMEJA BATIK",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "KEMEJA BATIK P",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "KEMEJA BATIK PRI",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "Celana Training",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "CLN TRAINING",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "CELANA TRNNG",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "CELANA TRAININ",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "CELANATRAINING",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "3035210750249 Celana Training",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "Kaos Kaki Pria",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "KS KAKI PRIA",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "KAOS KAKI",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "KAOSKAKI PRIA",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "12031648 KAOS KAKI",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "Sarung BHS",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "SARUNGBHS",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "4 Sepatu Adidas Superstar",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "SEPATU ADIDAS",
+   "label": "Pakaian & Fashion"
+  },
+  {
+   "text": "Pulpen Pilot",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "PLPN PILOT",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "PULPENPILOT",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "Pensil Warna Faber-Castell",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "PNSL WARNA FABER-CASTELL",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "PENSIL WARNA FABER-C",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "PENSIL WARNA FABER",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "2 PNSL WARNA FABER",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "PENSIL WARNA",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "PENSIL WARNA FABER-CASTE",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "PENSIL WARNA FAB",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "Isi Staples",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "ISI STPLS",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "73114973 ISI STPLS",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "Paper Clip Joyko",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "PAPERCLIPJOYKO",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "PAPER CLIP JOY",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "PAPER JOYKO",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "PAPER CLIP",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "Map Plastik",
+   "label": "Pendidikan & ATK"
+  },
+  {
+   "text": "Formula Sikat Gigi",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "FORMULA SIKAT GG",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "FORMULA SIKAT GGI",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "FORMULA GIGI",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "FRMLA SIKAT GIGI",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "FORMULA SIKAT",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "FORMULASIKAT GIGI",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "Dove Body Wash",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "DOVE WASH",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "DOVE BODY",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "DOVEBODY WASH",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "Head & Shoulders Shampoo",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "HEAD & SHLDRS SHMPO",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "HEAD & SHOULDERSSHAMPOO",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "HEAD & SHOULDERS",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "HEAD & SHAMPOO",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "HEAD & SHOULDERS S",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "HEAD & SHOULDERS SHA",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "HEAD & SHOULDERS SHMP",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "Rejoice Shampoo",
+   "label": "Perawatan Diri"
+  },
+  {
+   "text": "Gudang Garam Surya 12",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "GUDANG GARAM SUR",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "GUDANG SURYA 12",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "GUDANG GARAM 12",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "Gudang Garam Filter International",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "GUDANG GARAM F",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "GUDANG GARAM FILTE",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "GUDANG GARAM FILTER",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "GUDANG GARAM FIL",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "GUDANG GARAM FILTER INTRNTNL",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "GUDANG GARAM FILTERINTERNATIONAL",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "GUDANG GARAM INTERNATIONAL",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "LA Lights",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "LALIGHTS",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "Camel Filters",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "CAMEL FLTRS",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "CAMELFILTERS",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "Esse Change",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "ESSECHANGE",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "94941210 Esse Change",
+   "label": "Rokok & Tembakau"
+  },
+  {
+   "text": "Sunlight Sabun Cuci Piring",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "SUNLIGHT SABUN",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "SUNLIGHTSABUNCUCIPIRING",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "SUNLIGHT SABUN C",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "SUNLIGHT SB CCI PIRING",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "SUNLIGHT SBN CUCI PI",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "SUNLIGHT SBN CCI PIRING",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "SNLGHT SABUN CUCI PIRING",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "Hit Aerosol",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "HITAEROSOL",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "HIT ARSL",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "Fumakilla Obat Nyamuk Bakar",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "FUMAKILLA OBT NY",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "FUMAKILLA OBT",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "FUMAKILLA OBAT",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "FUMAKILLA OBT NYAMUK BAKAR",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "FUMAKILLA OBAT NYAMUK",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "FUMAKILLA NYAMUK BAKAR",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "FUMAKILLA OBAT NYAMUK BKR",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "Kain Lap Microfiber",
+   "label": "Rumah Tangga"
+  },
+  {
+   "text": "PLN Mobile Token",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "PLN TOKEN",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "PLN MOBILE",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "PLN MOBILE TOK",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "Biznet Home Internet",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "2 BIZNET HOME IN",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "BIZNET HOME INTERN",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "BIZNET HOME INTE",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "BIZNET HOME",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "BIZNET INTERNET",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "BIZNET HOME INTRNT",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "Tagihan Telepon Telkom",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "TGH TELEPON TELKOM",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "TAGIHAN TELEPON",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "TAGIHANTELEPONTELKOM",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "TAGIHAN TELEPON TELK",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "TGH TELEPON TELK",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "TGHN TLPN TELKOM",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "TAGIHAN TELKOM",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "612388480877 TAGIHANTELEPONTELKOM",
+   "label": "Tagihan & Utilitas"
+  },
+  {
+   "text": "Pertamax Turbo",
+   "label": "Transportasi"
+  },
+  {
+   "text": "PERTAMAXTURBO",
+   "label": "Transportasi"
+  },
+  {
+   "text": "PRTMX TURBO",
+   "label": "Transportasi"
+  },
+  {
+   "text": "Dexlite",
+   "label": "Transportasi"
+  },
+  {
+   "text": "DXLTE",
+   "label": "Transportasi"
+  },
+  {
+   "text": "Pertamina Dex",
+   "label": "Transportasi"
+  },
+  {
+   "text": "PRTMNA DEX",
+   "label": "Transportasi"
+  },
+  {
+   "text": "30586874 PRTMNA DEX",
+   "label": "Transportasi"
+  },
+  {
+   "text": "Shell V-Power Nitro+",
+   "label": "Transportasi"
+  },
+  {
+   "text": "SHELL V-POWER NITR",
+   "label": "Transportasi"
+  },
+  {
+   "text": "SHELL NITRO+",
+   "label": "Transportasi"
+  },
+  {
+   "text": "SHELL V-POWER",
+   "label": "Transportasi"
+  },
+  {
+   "text": "SHELL V-POWER NI",
+   "label": "Transportasi"
+  },
+  {
+   "text": "SHELLV-POWER NITRO+",
+   "label": "Transportasi"
+  },
+  {
+   "text": "Parkir Motor",
+   "label": "Transportasi"
+  },
+  {
+   "text": "PARKIR MTR",
+   "label": "Transportasi"
+  },
+  {
+   "text": "PRKR MOTOR",
+   "label": "Transportasi"
+  },
+  {
+   "text": "1 PRK MTR",
+   "label": "Transportasi"
+  },
+  {
+   "text": "PRK MOTOR",
+   "label": "Transportasi"
+  },
+  {
+   "text": "PRKR MTR",
+   "label": "Transportasi"
+  }
+ ]
 }

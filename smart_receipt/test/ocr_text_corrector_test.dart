@@ -168,5 +168,34 @@ void main() {
       final OcrRawResult result = correctOcrText(empty);
       expect(result.isEmpty, isTrue);
     });
+
+    // -----------------------------------------------------------------------
+    // Digits inside a product name
+    // -----------------------------------------------------------------------
+    test('a digit at the end of a word becomes the letter it resembles', () {
+      // Real ML Kit output read `SOTO` as `SOT0`. The old rule only fixed a
+      // digit when both neighbours were letters, or when it sat at the very
+      // start/end of the whole string, so a digit before a space was missed.
+      expect(_fix('1 SOT0 MEDAN-NASI 59.500'), contains('SOTO'));
+    });
+
+    test('a pack size is still left alone', () {
+      // `85G`, `250S` and `600ML` must survive: their digits are flanked by
+      // digits or by nothing at all.
+      for (final String name in <String>[
+        'SABUN LIFEBUOY 85G',
+        'TISSUE PASEO 250S',
+        'AQUA 600ML',
+        'KOPI KAPAL API 65G',
+        'INDOMIE MI GORENG 85G',
+      ]) {
+        expect(_fix(name), contains(name), reason: '$name must not be altered');
+      }
+    });
+
+    test('a subtotal split by OCR is rejoined', () {
+      // `SUB TOTAL` came back as `Sub Tota l`.
+      expect(_fix('Sub Tota l 60.454'), contains('SUB TOTAL'));
+    });
   });
 }

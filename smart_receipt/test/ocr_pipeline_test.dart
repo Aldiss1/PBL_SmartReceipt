@@ -329,6 +329,57 @@ void main() {
       expect(region.top / r.height, greaterThan(0.1));
     });
 
+    test('accepts a receipt photographed on a dark table under uneven light',
+        () async {
+      // A real capture: the sheet covers about a third of the frame, sits on a
+      // dark wooden table, is lit unevenly (one corner much brighter), and
+      // carries JPEG noise. Paper tone is therefore spread over ~40 grey levels,
+      // so no single level holds enough pixels for a flat histogram scan, and
+      // `paperLevel - 30` used to keep only the brightest corner. Both mistakes
+      // made the app reject a perfectly good photo with "Struk tidak terdeteksi".
+      final img.Image photo = img.Image(width: 1200, height: 1600);
+      img.fill(photo, color: img.ColorRgb8(70, 46, 29));
+      // Sheet, inset from the edges like a hand-held capture.
+      const int x1 = 300;
+      const int y1 = 140;
+      const int x2 = 960;
+      const int y2 = 1460;
+      for (int y = y1; y < y2; y++) {
+        // Vertical lighting gradient: bright at the top, falling into shadow.
+        final double t = (y - y1) / (y2 - y1);
+        final int tone = (246 - 70 * t * t).round();
+        for (int x = x1; x < x2; x++) {
+          // Sensor noise, so the paper tone is not one flat level.
+          final int n = ((x * 37 + y * 17) % 13) - 6;
+          photo.setPixelRgb(x, y, tone + n, tone + n, tone + n - 4);
+        }
+      }
+      // Print on the sheet.
+      for (int y = y1 + 40; y < y2 - 40; y += 30) {
+        img.fillRect(photo,
+            x1: x1 + 30,
+            y1: y,
+            x2: x2 - 60,
+            y2: y + 8,
+            color: img.ColorRgb8(95, 93, 88));
+      }
+
+      final String src = await write(photo, 'dark_table.jpg');
+      final ImageQualityReport r = await ImagePreprocessor().prepare(
+        sourcePath: src,
+        outputPath: '${tmp.path}/dark_table_out.jpg',
+      );
+
+      expect(
+        await ImagePreprocessor().containsReceiptPaper(r.preparedPath),
+        isTrue,
+      );
+      expect(
+        await ImagePreprocessor().detectPaperBounds(r.preparedPath),
+        isNotNull,
+      );
+    });
+
     test('reports no paper for a keyboard-only photo', () async {
       final img.Image photo = img.Image(width: 1000, height: 1200);
       img.fill(photo, color: img.ColorRgb8(150, 148, 146));

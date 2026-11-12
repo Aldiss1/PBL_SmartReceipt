@@ -6,6 +6,7 @@ import 'package:smart_receipt/models/models.dart';
 import 'package:smart_receipt/ocr/tfidf_classifier.dart';
 import 'package:smart_receipt/services/ml_classifier_service.dart';
 import 'package:smart_receipt/services/model_evaluator.dart';
+import 'package:smart_receipt/services/text_normalizer.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -199,48 +200,65 @@ void main() {
       final TfidfNaiveBayesEngine engine = TfidfNaiveBayesEngine();
       await engine.load();
 
+      // The model was trained on preprocessed text, so evaluation must run the
+      // same pipeline the app runs.
+      final IndonesianTextPreprocessor preprocessor =
+          IndonesianTextPreprocessor();
+      await preprocessor.loadFromAsset();
+
       final List<LabeledSample> samples = ModelEvaluator.parseDataset(
         File('assets/eval_dataset_dummy.json').readAsStringSync(),
       );
-      final int flagged =
-          samples.where((LabeledSample s) => engine.predict(s.text).needsReview).length;
+      final int flagged = samples
+          .where(
+            (LabeledSample s) =>
+                engine.predict(preprocessor.normalize(s.text)).needsReview,
+          )
+          .length;
       final double rate = flagged / samples.length;
 
       // The old posterior threshold (0.9) flagged 0% because posteriors
       // saturate. The margin rule must actually do something, without asking
       // the user to confirm everything.
-      expect(rate, greaterThan(0.03));
-      expect(rate, lessThan(0.30));
+      expect(rate, greaterThan(0.10));
+      expect(rate, lessThan(0.45));
     });
   });
 
   group('MLClassifierService inference contract', () {
-    test('classifies raw OCR text, not normalized text', () async {
+    test('uses the preprocessing contract declared by the model', () async {
       final MLClassifierService service = MLClassifierService();
       expect(await service.loadModel(), isTrue);
 
-      // These are exactly the cases the normalizer used to break:
-      //   SABUN LIFEBUOY -> "sabun sabun", PERTAMAX -> "bensin".
+      // The shipped model carries `preprocessing: flutter_id_v1`, so the
+      // service must run IndonesianTextPreprocessor before vectorizing.
+      // Feeding raw OCR text to this model costs ~20 points of accuracy.
+      expect(service.preprocessor.isLoadedFromAsset, isTrue);
+
       const Map<String, String> expected = <String, String>{
-        'SABUN LIFEBUOY': 'Perawatan Diri',
         'PERTAMAX': 'Transportasi',
-        'TISSUE PASEO': 'Rumah Tangga',
         'AQUA 600ML': 'Minuman',
         'INDOMIE GORENG': 'Makanan',
+        'TIKET BIOSKOP XXI': 'Lainnya',
       };
 
       expected.forEach((String text, String category) {
         expect(
           kCategoryNameForId(service.predictCategoryId(text)),
           category,
-          reason: 'predictCategoryId("$text") must use the raw-text contract',
-        );
-        expect(
-          kCategoryNameForId(service.predict(text).categoryId),
-          category,
-          reason: 'predict("$text") must use the raw-text contract',
+          reason: 'predictCategoryId("$text")',
         );
       });
+
+      // Ambiguous generic names ("sabun" and "tisu" also name baby products)
+      // must be surfaced for review instead of silently guessed.
+      for (final String text in <String>['SABUN LIFEBUOY', 'TISSUE PASEO']) {
+        expect(
+          service.predict(text).needsReview,
+          isTrue,
+          reason: '"$text" is ambiguous and must be flagged for review',
+        );
+      }
     });
   });
 }

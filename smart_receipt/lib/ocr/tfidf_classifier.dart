@@ -9,6 +9,7 @@ import '../models/categories.dart';
 class TfidfPrediction {
   const TfidfPrediction({
     required this.label,
+    required this.topLabel,
     required this.categoryId,
     required this.confidence,
     required this.posterior,
@@ -17,8 +18,18 @@ class TfidfPrediction {
     this.alternatives = const <String, double>{},
   });
 
-  /// Raw model class label, e.g. "Makanan", "Tagihan & Utilitas".
+  /// Display label: the model's winner, or "Perlu Review" when [needsReview].
+  ///
+  /// Use this for UI. Do **not** use it to measure accuracy — review-flagged
+  /// items would count as wrong even when the model's pick was correct. For
+  /// metrics use [topLabel].
   final String label;
+
+  /// The model's actual top-1 class, ignoring the review gate.
+  ///
+  /// This is what an accuracy/confusion-matrix report must compare against the
+  /// ground truth; the review gate is a UI policy, not a prediction.
+  final String topLabel;
 
   /// Mapped app category id (1..9), aligned with `kAppCategories` /
   /// the `categories` table in SQLite.
@@ -378,6 +389,7 @@ class TfidfNaiveBayesEngine {
     if (vector.isEmpty) {
       return TfidfPrediction(
         label: _fallbackLabel,
+        topLabel: _fallbackLabel,
         categoryId: kFallbackCategoryId,
         confidence: 0.0,
         posterior: 0.0,
@@ -414,6 +426,7 @@ class TfidfNaiveBayesEngine {
     final bool needsReview = margin < _reviewMargin;
     return TfidfPrediction(
       label: needsReview ? _fallbackLabel : _classes[bestIndex],
+      topLabel: _classes[bestIndex],
       // Even when flagged for review, the category shown to the user must be
       // the model's own top pick — not a runner-up alternative.
       categoryId: classToCategoryId[_classes[bestIndex]] ?? kFallbackCategoryId,

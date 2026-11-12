@@ -16,6 +16,7 @@ class TransactionSavedScreen extends StatelessWidget {
     required this.date,
     required this.items,
     this.paymentMethod = 'Tunai',
+    this.total,
   });
 
   final String store;
@@ -23,8 +24,13 @@ class TransactionSavedScreen extends StatelessWidget {
   final List<TransactionItem> items;
   final String paymentMethod;
 
+  /// Amount printed on the receipt. Differs from the sum of [items] whenever
+  /// the receipt adds tax or takes a discount, so it is passed in rather than
+  /// recomputed.
+  final int? total;
+
   int get _total =>
-      items.fold(0, (int sum, TransactionItem i) => sum + i.subtotal);
+      total ?? items.fold(0, (int sum, TransactionItem i) => sum + i.subtotal);
 
   @override
   Widget build(BuildContext context) {

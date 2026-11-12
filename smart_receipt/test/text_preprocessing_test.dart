@@ -152,7 +152,10 @@ void main() {
   });
 }
 
-/// Reads the exported model from the test fixture copy of the asset.
+/// Reads the fixture model: an **older export** that predates the
+/// `preprocessing` key, kept so the engine's backwards compatibility with
+/// older model files stays covered. `shipped_model_test.dart` and
+/// `model_parity_test.dart` are the ones that read the real asset.
 String _modelFixtureJson() {
   final File file = File('test/fixtures/model_kategori_produk.json');
   if (!file.existsSync()) {

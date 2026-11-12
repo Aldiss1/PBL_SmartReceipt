@@ -1,0 +1,1205 @@
+{
+ "_comment": "Dibangkitkan ML/make_fixtures.py. `expected` berasal dari ML/preprocessing.py; Dart wajib menghasilkan string identik.",
+ "cases": [
+  {
+   "raw": "Goo.N Pants",
+   "expected": "goo pants"
+  },
+  {
+   "raw": "65973175 Goo.N Pants",
+   "expected": "goo pants"
+  },
+  {
+   "raw": "Dancow Batita",
+   "expected": "dancow batita"
+  },
+  {
+   "raw": "DANCOWBATITA",
+   "expected": "dancowbatita"
+  },
+  {
+   "raw": "6673773525472 Dancow Batita",
+   "expected": "dancow batita"
+  },
+  {
+   "raw": "Chil Kid",
+   "expected": "chil kid"
+  },
+  {
+   "raw": "CHILKID",
+   "expected": "chilkid"
+  },
+  {
+   "raw": "433279159342 CHILKID",
+   "expected": "chilkid"
+  },
+  {
+   "raw": "Promina Bubur Bayi",
+   "expected": "promina bubur bayi"
+  },
+  {
+   "raw": "PROMINA BUBUR",
+   "expected": "promina bubur"
+  },
+  {
+   "raw": "PROMINA BUBUR BY",
+   "expected": "promina bubur by"
+  },
+  {
+   "raw": "PROMINA BUBURBAYI",
+   "expected": "promina buburbayi"
+  },
+  {
+   "raw": "PROMINA BUBUR BA",
+   "expected": "promina bubur ba"
+  },
+  {
+   "raw": "PROMINA BAYI",
+   "expected": "promina bayi"
+  },
+  {
+   "raw": "PRMNA BUBUR BAYI",
+   "expected": "prmna bubur bayi"
+  },
+  {
+   "raw": "Minyak Telon My Baby",
+   "expected": "minyak telon my baby"
+  },
+  {
+   "raw": "MNY TELON MY BAB",
+   "expected": "mny telon my bab"
+  },
+  {
+   "raw": "MYK TELON MY BABY",
+   "expected": "myk telon my baby"
+  },
+  {
+   "raw": "MINYAK TELON MY",
+   "expected": "minyak telon my"
+  },
+  {
+   "raw": "MINYAK TELON MY BA",
+   "expected": "minyak telon my ba"
+  },
+  {
+   "raw": "Kabel Data USB Type-C",
+   "expected": "kabel data usb"
+  },
+  {
+   "raw": "KBL DATA USB TYPE-C",
+   "expected": "kbl data usb"
+  },
+  {
+   "raw": "KABEL DT USB TYPE-C",
+   "expected": "kabel dt usb"
+  },
+  {
+   "raw": "KBL DT USB TYPE-C",
+   "expected": "kbl dt usb"
+  },
+  {
+   "raw": "KABEL DATA USB TYP",
+   "expected": "kabel data usb typ"
+  },
+  {
+   "raw": "KABELDATAUSBTYPE-C",
+   "expected": "kabeldatausbtype"
+  },
+  {
+   "raw": "KABEL DATA TYPE-C",
+   "expected": "kabel data"
+  },
+  {
+   "raw": "KABEL USB TYPE-C",
+   "expected": "kabel usb"
+  },
+  {
+   "raw": "Charger Samsung 25W",
+   "expected": "charger samsung"
+  },
+  {
+   "raw": "CHARGER SAMSUNG",
+   "expected": "charger samsung"
+  },
+  {
+   "raw": "CHRGR SAMSUNG 25W",
+   "expected": "chrgr samsung"
+  },
+  {
+   "raw": "CHARGER SAMSUN",
+   "expected": "charger samsun"
+  },
+  {
+   "raw": "CHARGERSAMSUNG 25W",
+   "expected": "chargersamsung"
+  },
+  {
+   "raw": "CHARGER 25W",
+   "expected": "charger"
+  },
+  {
+   "raw": "CHRGR SAMSUNG 25",
+   "expected": "chrgr samsung"
+  },
+  {
+   "raw": "61423243 CHARGER SAMSUNG",
+   "expected": "charger samsung"
+  },
+  {
+   "raw": "Adaptor Charger Anker",
+   "expected": "adaptor charger anker"
+  },
+  {
+   "raw": "ADAPTOR CHARGE",
+   "expected": "adaptor charge"
+  },
+  {
+   "raw": "ADAPTOR CHARGER AN",
+   "expected": "adaptor charger an"
+  },
+  {
+   "raw": "ADPTR CHARGER ANKER",
+   "expected": "adptr charger anker"
+  },
+  {
+   "raw": "Whiskas Makanan Kucing",
+   "expected": "whiskas makanan kucing"
+  },
+  {
+   "raw": "WHISKAS MAKANA",
+   "expected": "whiskas makana"
+  },
+  {
+   "raw": "WHISKAS MAKANAN KU",
+   "expected": "whiskas makanan ku"
+  },
+  {
+   "raw": "2 WHISKAS MAKANAN",
+   "expected": "whiskas makanan"
+  },
+  {
+   "raw": "WHISKAS KUCING",
+   "expected": "whiskas kucing"
+  },
+  {
+   "raw": "WHISKAS MKN KUCING",
+   "expected": "whiskas mkn kucing"
+  },
+  {
+   "raw": "WHISKAS MAKANAN KCNG",
+   "expected": "whiskas makanan kcng"
+  },
+  {
+   "raw": "WHISKAS MAKANAN KUCI",
+   "expected": "whiskas makanan kuci"
+  },
+  {
+   "raw": "Felix Makanan Kucing",
+   "expected": "felix makanan kucing"
+  },
+  {
+   "raw": "FELIX MAKANAN",
+   "expected": "felix makanan"
+  },
+  {
+   "raw": "FELIX MKN KUCING",
+   "expected": "felix mkn kucing"
+  },
+  {
+   "raw": "FELIX MAKANAN KUCI",
+   "expected": "felix makanan kuci"
+  },
+  {
+   "raw": "FELIX MKN KCNG",
+   "expected": "felix mkn kcng"
+  },
+  {
+   "raw": "FELIX MAKANAN KCNG",
+   "expected": "felix makanan kcng"
+  },
+  {
+   "raw": "FELIX MKNN KUCING",
+   "expected": "felix mknn kucing"
+  },
+  {
+   "raw": "FELIX KUCING",
+   "expected": "felix kucing"
+  },
+  {
+   "raw": "4 Royal Canin Kitten",
+   "expected": "royal canin kitten"
+  },
+  {
+   "raw": "ROYAL CANIN KITT",
+   "expected": "royal canin kitt"
+  },
+  {
+   "raw": "ROYAL CANIN",
+   "expected": "royal canin"
+  },
+  {
+   "raw": "ROYAL CANIN KI",
+   "expected": "royal canin ki"
+  },
+  {
+   "raw": "Voucher Google Play",
+   "expected": "voucher google play"
+  },
+  {
+   "raw": "4 VCR GOOGLE PLAY",
+   "expected": "vcr google play"
+  },
+  {
+   "raw": "VCHR GOOGLE PLAY",
+   "expected": "vchr google play"
+  },
+  {
+   "raw": "VOUCHER GOOGLE",
+   "expected": "voucher google"
+  },
+  {
+   "raw": "VOUCHER GOOGLE P",
+   "expected": "voucher google"
+  },
+  {
+   "raw": "VCR GOOGLE PLA",
+   "expected": "vcr google pla"
+  },
+  {
+   "raw": "VOUCHERGOOGLEPLAY",
+   "expected": "vouchergoogleplay"
+  },
+  {
+   "raw": "VOUCHER PLAY",
+   "expected": "voucher play"
+  },
+  {
+   "raw": "Langganan Spotify Premium",
+   "expected": "langganan spotify premium"
+  },
+  {
+   "raw": "LANGGANAN SPOTIFY PREMIU",
+   "expected": "langganan spotify premiu"
+  },
+  {
+   "raw": "LANGGANAN SPOTIFY",
+   "expected": "langganan spotify"
+  },
+  {
+   "raw": "LNGGNN SPTFY PRMM",
+   "expected": "lnggnn sptfy prmm"
+  },
+  {
+   "raw": "LANGGANAN PREMIUM",
+   "expected": "langganan premium"
+  },
+  {
+   "raw": "LGN SPOTIFY PREM",
+   "expected": "lgn spotify prem"
+  },
+  {
+   "raw": "LANGGANAN SPOTIFY PRM",
+   "expected": "langganan spotify prm"
+  },
+  {
+   "raw": "LGN SPOTIFY PREMIUM",
+   "expected": "lgn spotify premium"
+  },
+  {
+   "raw": "Langganan Disney+ Hotstar",
+   "expected": "langganan disney hotstar"
+  },
+  {
+   "raw": "LANGGANAN HOTSTAR",
+   "expected": "langganan hotstar"
+  },
+  {
+   "raw": "LGN DISNEY+ HOTSTAR",
+   "expected": "lgn disney hotstar"
+  },
+  {
+   "raw": "LANGGANAN DISNEY+",
+   "expected": "langganan disney"
+  },
+  {
+   "raw": "Oskadon",
+   "expected": "oskadon"
+  },
+  {
+   "raw": "Vicks Formula 44",
+   "expected": "vicks formula"
+  },
+  {
+   "raw": "VICKSFORMULA 44",
+   "expected": "vicksformula"
+  },
+  {
+   "raw": "VICKS 44",
+   "expected": "vicks"
+  },
+  {
+   "raw": "Ultraflu",
+   "expected": "ultraflu"
+  },
+  {
+   "raw": "ULTRFLU",
+   "expected": "ultrflu"
+  },
+  {
+   "raw": "Paratusin",
+   "expected": "paratusin"
+  },
+  {
+   "raw": "PRTSN",
+   "expected": "prtsn"
+  },
+  {
+   "raw": "Koyo Salonpas",
+   "expected": "koyo salonpas"
+  },
+  {
+   "raw": "KOYO SLNPS",
+   "expected": "koyo slnps"
+  },
+  {
+   "raw": "KOYOSALONPAS",
+   "expected": "koyosalonpas"
+  },
+  {
+   "raw": "Alkohol 70%",
+   "expected": "alkohol"
+  },
+  {
+   "raw": "ALKHL 70%",
+   "expected": "alkhl"
+  },
+  {
+   "raw": "Fish Oil Omega 3",
+   "expected": "fish oil omega"
+  },
+  {
+   "raw": "FISH OIL 3",
+   "expected": "fish oil"
+  },
+  {
+   "raw": "FISH OMEGA 3",
+   "expected": "fish omega"
+  },
+  {
+   "raw": "FISHOILOMEGA 3",
+   "expected": "fishoilomega"
+  },
+  {
+   "raw": "881156322539 FISHOILOMEGA 3",
+   "expected": "fishoilomega"
+  },
+  {
+   "raw": "Antimo",
+   "expected": "antimo"
+  },
+  {
+   "raw": "Oralit",
+   "expected": "oralit"
+  },
+  {
+   "raw": "Ongkos Kirim J&T",
+   "expected": "ongkos kirim"
+  },
+  {
+   "raw": "ONGK KRM J&T",
+   "expected": "ongk krm"
+  },
+  {
+   "raw": "ONGKOS J&T",
+   "expected": "ongkos"
+  },
+  {
+   "raw": "1 ONGKOS KIRIMJ&T",
+   "expected": "ongkos kirimj"
+  },
+  {
+   "raw": "ONGK KIRIM J&T",
+   "expected": "ongk kirim"
+  },
+  {
+   "raw": "2 ONGKOS KIRIM J",
+   "expected": "ongkos kirim"
+  },
+  {
+   "raw": "ONGKOS KRM J&T",
+   "expected": "ongkos krm"
+  },
+  {
+   "raw": "085813410392 ONGK KIRIM J&T",
+   "expected": "ongk kirim"
+  },
+  {
+   "raw": "Sumbangan Panti Asuhan",
+   "expected": "sumbangan panti asuhan"
+  },
+  {
+   "raw": "SUMBANGAN ASUHAN",
+   "expected": "sumbangan asuhan"
+  },
+  {
+   "raw": "SUMBANGAN PANTI ASUH",
+   "expected": "sumbangan panti asuh"
+  },
+  {
+   "raw": "SUMBANGAN PANTI AS",
+   "expected": "sumbangan panti as"
+  },
+  {
+   "raw": "SUMBANGANPANTIASUHAN",
+   "expected": "sumbanganpantiasuhan"
+  },
+  {
+   "raw": "3 SUMBANGAN PANT",
+   "expected": "sumbangan pant"
+  },
+  {
+   "raw": "SUMBANGAN PANTI",
+   "expected": "sumbangan panti"
+  },
+  {
+   "raw": "SMBNGN PANTI ASUHAN",
+   "expected": "smbngn panti asuhan"
+  },
+  {
+   "raw": "158321443458 3 SUMBANGAN PANT",
+   "expected": "sumbangan pant"
+  },
+  {
+   "raw": "Biaya Notaris",
+   "expected": "biaya notaris"
+  },
+  {
+   "raw": "BIA NOTARIS",
+   "expected": "bia notaris"
+  },
+  {
+   "raw": "BY NOTARIS",
+   "expected": "by notaris"
+  },
+  {
+   "raw": "Indomie Ayam Bawang",
+   "expected": "mie instan ayam bawang"
+  },
+  {
+   "raw": "INDOMIE AYAM BAWAN",
+   "expected": "mie instan ayam bawan"
+  },
+  {
+   "raw": "INDOMIE AY BAWANG 69G",
+   "expected": "mie instan ay bawang"
+  },
+  {
+   "raw": "INDOMIE AYAM BW 69GR",
+   "expected": "mie instan ayam bw"
+  },
+  {
+   "raw": "INDOMIE AYAM 69 G",
+   "expected": "mie instan ayam"
+  },
+  {
+   "raw": "INDOMIE AYAM BAW",
+   "expected": "mie instan ayam baw"
+  },
+  {
+   "raw": "INDOMIE BAWANG",
+   "expected": "mie instan bawang"
+  },
+  {
+   "raw": "INDOMIE AYAM BWG 69",
+   "expected": "mie instan ayam bwg"
+  },
+  {
+   "raw": "INDME AYAM BAWANG",
+   "expected": "indme ayam bawang"
+  },
+  {
+   "raw": "INDOMIE AYM BAWANG 69 G",
+   "expected": "mie instan aym bawang"
+  },
+  {
+   "raw": "635110203830 INDOMIE AYAM BAWAN",
+   "expected": "mie instan ayam bawan"
+  },
+  {
+   "raw": "Indomie Goreng Rendang 91 gr",
+   "expected": "mie instan goreng rendang"
+  },
+  {
+   "raw": "INDOMIE RENDANG",
+   "expected": "mie instan rendang"
+  },
+  {
+   "raw": "INDOMIE GR RENDANG 9",
+   "expected": "mie instan rendang"
+  },
+  {
+   "raw": "INDOMIE GORENG R",
+   "expected": "mie instan goreng"
+  },
+  {
+   "raw": "INDOMIE GORENG RENDA",
+   "expected": "mie instan goreng renda"
+  },
+  {
+   "raw": "INDME GORENG RENDANG 91GR",
+   "expected": "indme goreng rendang"
+  },
+  {
+   "raw": "INDOMIE GORENG 91G",
+   "expected": "mie instan goreng"
+  },
+  {
+   "raw": "INDOMIE GRG RENDANG",
+   "expected": "mie instan grg rendang"
+  },
+  {
+   "raw": "INDOMIE GORENG REN",
+   "expected": "mie instan goreng ren"
+  },
+  {
+   "raw": "Nu Green Tea",
+   "expected": "nu green tea"
+  },
+  {
+   "raw": "NU TEA",
+   "expected": "nu tea"
+  },
+  {
+   "raw": "NU GREEN",
+   "expected": "nu green"
+  },
+  {
+   "raw": "Nescafe Classic",
+   "expected": "nescafe classic"
+  },
+  {
+   "raw": "NESCAFE CLASSI",
+   "expected": "nescafe classi"
+  },
+  {
+   "raw": "NSCFE CLASSIC",
+   "expected": "nscfe classic"
+  },
+  {
+   "raw": "5579169662232 NESCAFE CLASSI",
+   "expected": "nescafe classi"
+  },
+  {
+   "raw": "Pepsi",
+   "expected": "pepsi"
+  },
+  {
+   "raw": "Mizone Lychee",
+   "expected": "minuman isotonik lychee"
+  },
+  {
+   "raw": "Marjan Sirup Melon",
+   "expected": "marjan sirup melon"
+  },
+  {
+   "raw": "MARJAN SRP MELON",
+   "expected": "marjan srp melon"
+  },
+  {
+   "raw": "MARJAN SIRUP",
+   "expected": "marjan sirup"
+  },
+  {
+   "raw": "MARJAN SRP MEL",
+   "expected": "marjan srp mel"
+  },
+  {
+   "raw": "MARJAN MELON",
+   "expected": "marjan melon"
+  },
+  {
+   "raw": "MARJAN SIRUP M",
+   "expected": "marjan sirup"
+  },
+  {
+   "raw": "2 MARJANSIRUP MELON",
+   "expected": "marjansirup melon"
+  },
+  {
+   "raw": "4 Nutrisari Jeruk Peras",
+   "expected": "nutrisari jeruk peras"
+  },
+  {
+   "raw": "NUTRISARI JRK PERAS",
+   "expected": "nutrisari jrk peras"
+  },
+  {
+   "raw": "NUTRISARI JERUK",
+   "expected": "nutrisari jeruk"
+  },
+  {
+   "raw": "NUTRISARI JERUKPERAS",
+   "expected": "nutrisari jerukperas"
+  },
+  {
+   "raw": "Kemeja Batik Pria",
+   "expected": "baju batik pria"
+  },
+  {
+   "raw": "KEMEJA PRIA",
+   "expected": "baju pria"
+  },
+  {
+   "raw": "KEMEJA BATIK",
+   "expected": "baju batik"
+  },
+  {
+   "raw": "KEMEJA BATIK P",
+   "expected": "baju batik"
+  },
+  {
+   "raw": "KEMEJA BATIK PRI",
+   "expected": "baju batik pri"
+  },
+  {
+   "raw": "Celana Training",
+   "expected": "celana training"
+  },
+  {
+   "raw": "CLN TRAINING",
+   "expected": "cln training"
+  },
+  {
+   "raw": "CELANA TRNNG",
+   "expected": "celana trnng"
+  },
+  {
+   "raw": "CELANA TRAININ",
+   "expected": "celana trainin"
+  },
+  {
+   "raw": "CELANATRAINING",
+   "expected": "celanatraining"
+  },
+  {
+   "raw": "3035210750249 Celana Training",
+   "expected": "celana training"
+  },
+  {
+   "raw": "Kaos Kaki Pria",
+   "expected": "baju kaki pria"
+  },
+  {
+   "raw": "KS KAKI PRIA",
+   "expected": "ks kaki pria"
+  },
+  {
+   "raw": "KAOS KAKI",
+   "expected": "baju kaki"
+  },
+  {
+   "raw": "KAOSKAKI PRIA",
+   "expected": "kaoskaki pria"
+  },
+  {
+   "raw": "12031648 KAOS KAKI",
+   "expected": "baju kaki"
+  },
+  {
+   "raw": "Sarung BHS",
+   "expected": "sarung bhs"
+  },
+  {
+   "raw": "SARUNGBHS",
+   "expected": "sarungbhs"
+  },
+  {
+   "raw": "4 Sepatu Adidas Superstar",
+   "expected": "sepatu adidas superstar"
+  },
+  {
+   "raw": "SEPATU ADIDAS",
+   "expected": "sepatu adidas"
+  },
+  {
+   "raw": "Pulpen Pilot",
+   "expected": "pulpen pilot"
+  },
+  {
+   "raw": "PLPN PILOT",
+   "expected": "plpn pilot"
+  },
+  {
+   "raw": "PULPENPILOT",
+   "expected": "pulpenpilot"
+  },
+  {
+   "raw": "Pensil Warna Faber-Castell",
+   "expected": "pensil faber castell"
+  },
+  {
+   "raw": "PNSL WARNA FABER-CASTELL",
+   "expected": "pnsl faber castell"
+  },
+  {
+   "raw": "PENSIL WARNA FABER-C",
+   "expected": "pensil faber"
+  },
+  {
+   "raw": "PENSIL WARNA FABER",
+   "expected": "pensil faber"
+  },
+  {
+   "raw": "2 PNSL WARNA FABER",
+   "expected": "pnsl faber"
+  },
+  {
+   "raw": "PENSIL WARNA",
+   "expected": "pensil"
+  },
+  {
+   "raw": "PENSIL WARNA FABER-CASTE",
+   "expected": "pensil faber caste"
+  },
+  {
+   "raw": "PENSIL WARNA FAB",
+   "expected": "pensil fab"
+  },
+  {
+   "raw": "Isi Staples",
+   "expected": "staples"
+  },
+  {
+   "raw": "ISI STPLS",
+   "expected": "stpls"
+  },
+  {
+   "raw": "73114973 ISI STPLS",
+   "expected": "stpls"
+  },
+  {
+   "raw": "Paper Clip Joyko",
+   "expected": "paper clip joyko"
+  },
+  {
+   "raw": "PAPERCLIPJOYKO",
+   "expected": "paperclipjoyko"
+  },
+  {
+   "raw": "PAPER CLIP JOY",
+   "expected": "paper clip joy"
+  },
+  {
+   "raw": "PAPER JOYKO",
+   "expected": "paper joyko"
+  },
+  {
+   "raw": "PAPER CLIP",
+   "expected": "paper clip"
+  },
+  {
+   "raw": "Map Plastik",
+   "expected": "map plastik"
+  },
+  {
+   "raw": "Formula Sikat Gigi",
+   "expected": "formula sikat gigi"
+  },
+  {
+   "raw": "FORMULA SIKAT GG",
+   "expected": "formula sikat gg"
+  },
+  {
+   "raw": "FORMULA SIKAT GGI",
+   "expected": "formula sikat ggi"
+  },
+  {
+   "raw": "FORMULA GIGI",
+   "expected": "formula gigi"
+  },
+  {
+   "raw": "FRMLA SIKAT GIGI",
+   "expected": "frmla sikat gigi"
+  },
+  {
+   "raw": "FORMULA SIKAT",
+   "expected": "formula sikat"
+  },
+  {
+   "raw": "FORMULASIKAT GIGI",
+   "expected": "formulasikat gigi"
+  },
+  {
+   "raw": "Dove Body Wash",
+   "expected": "dove body wash"
+  },
+  {
+   "raw": "DOVE WASH",
+   "expected": "dove wash"
+  },
+  {
+   "raw": "DOVE BODY",
+   "expected": "dove body"
+  },
+  {
+   "raw": "DOVEBODY WASH",
+   "expected": "dovebody wash"
+  },
+  {
+   "raw": "Head & Shoulders Shampoo",
+   "expected": "head shoulders sampo"
+  },
+  {
+   "raw": "HEAD & SHLDRS SHMPO",
+   "expected": "head shldrs shmpo"
+  },
+  {
+   "raw": "HEAD & SHOULDERSSHAMPOO",
+   "expected": "head shouldersshampoo"
+  },
+  {
+   "raw": "HEAD & SHOULDERS",
+   "expected": "head shoulders"
+  },
+  {
+   "raw": "HEAD & SHAMPOO",
+   "expected": "head sampo"
+  },
+  {
+   "raw": "HEAD & SHOULDERS S",
+   "expected": "head shoulders"
+  },
+  {
+   "raw": "HEAD & SHOULDERS SHA",
+   "expected": "head shoulders sha"
+  },
+  {
+   "raw": "HEAD & SHOULDERS SHMP",
+   "expected": "head shoulders shmp"
+  },
+  {
+   "raw": "Rejoice Shampoo",
+   "expected": "rejoice sampo"
+  },
+  {
+   "raw": "Gudang Garam Surya 12",
+   "expected": "gudang garam surya"
+  },
+  {
+   "raw": "GUDANG GARAM SUR",
+   "expected": "gudang garam sur"
+  },
+  {
+   "raw": "GUDANG SURYA 12",
+   "expected": "gudang surya"
+  },
+  {
+   "raw": "GUDANG GARAM 12",
+   "expected": "gudang garam"
+  },
+  {
+   "raw": "Gudang Garam Filter International",
+   "expected": "gudang garam filter international"
+  },
+  {
+   "raw": "GUDANG GARAM F",
+   "expected": "gudang garam"
+  },
+  {
+   "raw": "GUDANG GARAM FILTE",
+   "expected": "gudang garam filte"
+  },
+  {
+   "raw": "GUDANG GARAM FILTER",
+   "expected": "gudang garam filter"
+  },
+  {
+   "raw": "GUDANG GARAM FIL",
+   "expected": "gudang garam fil"
+  },
+  {
+   "raw": "GUDANG GARAM FILTER INTRNTNL",
+   "expected": "gudang garam filter intrntnl"
+  },
+  {
+   "raw": "GUDANG GARAM FILTERINTERNATIONAL",
+   "expected": "gudang garam filterinternational"
+  },
+  {
+   "raw": "GUDANG GARAM INTERNATIONAL",
+   "expected": "gudang garam international"
+  },
+  {
+   "raw": "LA Lights",
+   "expected": "la lights"
+  },
+  {
+   "raw": "LALIGHTS",
+   "expected": "lalights"
+  },
+  {
+   "raw": "Camel Filters",
+   "expected": "camel filters"
+  },
+  {
+   "raw": "CAMEL FLTRS",
+   "expected": "camel fltrs"
+  },
+  {
+   "raw": "CAMELFILTERS",
+   "expected": "camelfilters"
+  },
+  {
+   "raw": "Esse Change",
+   "expected": "esse change"
+  },
+  {
+   "raw": "ESSECHANGE",
+   "expected": "essechange"
+  },
+  {
+   "raw": "94941210 Esse Change",
+   "expected": "esse change"
+  },
+  {
+   "raw": "Sunlight Sabun Cuci Piring",
+   "expected": "sabun cuci sabun cuci piring"
+  },
+  {
+   "raw": "SUNLIGHT SABUN",
+   "expected": "sabun cuci sabun"
+  },
+  {
+   "raw": "SUNLIGHTSABUNCUCIPIRING",
+   "expected": "sunlightsabuncucipiring"
+  },
+  {
+   "raw": "SUNLIGHT SABUN C",
+   "expected": "sabun cuci sabun"
+  },
+  {
+   "raw": "SUNLIGHT SB CCI PIRING",
+   "expected": "sabun cuci sb cci piring"
+  },
+  {
+   "raw": "SUNLIGHT SBN CUCI PI",
+   "expected": "sabun cuci sbn cuci pi"
+  },
+  {
+   "raw": "SUNLIGHT SBN CCI PIRING",
+   "expected": "sabun cuci sbn cci piring"
+  },
+  {
+   "raw": "SNLGHT SABUN CUCI PIRING",
+   "expected": "snlght sabun cuci piring"
+  },
+  {
+   "raw": "Hit Aerosol",
+   "expected": "hit aerosol"
+  },
+  {
+   "raw": "HITAEROSOL",
+   "expected": "hitaerosol"
+  },
+  {
+   "raw": "HIT ARSL",
+   "expected": "hit arsl"
+  },
+  {
+   "raw": "Fumakilla Obat Nyamuk Bakar",
+   "expected": "fumakilla obat nyamuk bakar"
+  },
+  {
+   "raw": "FUMAKILLA OBT NY",
+   "expected": "fumakilla obt ny"
+  },
+  {
+   "raw": "FUMAKILLA OBT",
+   "expected": "fumakilla obt"
+  },
+  {
+   "raw": "FUMAKILLA OBAT",
+   "expected": "fumakilla obat"
+  },
+  {
+   "raw": "FUMAKILLA OBT NYAMUK BAKAR",
+   "expected": "fumakilla obt nyamuk bakar"
+  },
+  {
+   "raw": "FUMAKILLA OBAT NYAMUK",
+   "expected": "fumakilla obat nyamuk"
+  },
+  {
+   "raw": "FUMAKILLA NYAMUK BAKAR",
+   "expected": "fumakilla nyamuk bakar"
+  },
+  {
+   "raw": "FUMAKILLA OBAT NYAMUK BKR",
+   "expected": "fumakilla obat nyamuk bkr"
+  },
+  {
+   "raw": "Kain Lap Microfiber",
+   "expected": "kain lap microfiber"
+  },
+  {
+   "raw": "PLN Mobile Token",
+   "expected": "listrik mobile token"
+  },
+  {
+   "raw": "PLN TOKEN",
+   "expected": "listrik token"
+  },
+  {
+   "raw": "PLN MOBILE",
+   "expected": "listrik mobile"
+  },
+  {
+   "raw": "PLN MOBILE TOK",
+   "expected": "listrik mobile tok"
+  },
+  {
+   "raw": "Biznet Home Internet",
+   "expected": "biznet home internet"
+  },
+  {
+   "raw": "2 BIZNET HOME IN",
+   "expected": "biznet home in"
+  },
+  {
+   "raw": "BIZNET HOME INTERN",
+   "expected": "biznet home intern"
+  },
+  {
+   "raw": "BIZNET HOME INTE",
+   "expected": "biznet home inte"
+  },
+  {
+   "raw": "BIZNET HOME",
+   "expected": "biznet home"
+  },
+  {
+   "raw": "BIZNET INTERNET",
+   "expected": "biznet internet"
+  },
+  {
+   "raw": "BIZNET HOME INTRNT",
+   "expected": "biznet home intrnt"
+  },
+  {
+   "raw": "Tagihan Telepon Telkom",
+   "expected": "tagihan telepon internet"
+  },
+  {
+   "raw": "TGH TELEPON TELKOM",
+   "expected": "tgh telepon internet"
+  },
+  {
+   "raw": "TAGIHAN TELEPON",
+   "expected": "tagihan telepon"
+  },
+  {
+   "raw": "TAGIHANTELEPONTELKOM",
+   "expected": "tagihantelepontelkom"
+  },
+  {
+   "raw": "TAGIHAN TELEPON TELK",
+   "expected": "tagihan telepon telk"
+  },
+  {
+   "raw": "TGH TELEPON TELK",
+   "expected": "tgh telepon telk"
+  },
+  {
+   "raw": "TGHN TLPN TELKOM",
+   "expected": "tghn tlpn internet"
+  },
+  {
+   "raw": "TAGIHAN TELKOM",
+   "expected": "tagihan internet"
+  },
+  {
+   "raw": "612388480877 TAGIHANTELEPONTELKOM",
+   "expected": "tagihantelepontelkom"
+  },
+  {
+   "raw": "Pertamax Turbo",
+   "expected": "bensin turbo"
+  },
+  {
+   "raw": "PERTAMAXTURBO",
+   "expected": "pertamaxturbo"
+  },
+  {
+   "raw": "PRTMX TURBO",
+   "expected": "prtmx turbo"
+  },
+  {
+   "raw": "Dexlite",
+   "expected": "dexlite"
+  },
+  {
+   "raw": "DXLTE",
+   "expected": "dxlte"
+  },
+  {
+   "raw": "Pertamina Dex",
+   "expected": "bensin dex"
+  },
+  {
+   "raw": "PRTMNA DEX",
+   "expected": "prtmna dex"
+  },
+  {
+   "raw": "30586874 PRTMNA DEX",
+   "expected": "prtmna dex"
+  },
+  {
+   "raw": "Shell V-Power Nitro+",
+   "expected": "shell power nitro"
+  },
+  {
+   "raw": "SHELL V-POWER NITR",
+   "expected": "shell power nitr"
+  },
+  {
+   "raw": "SHELL NITRO+",
+   "expected": "shell nitro"
+  },
+  {
+   "raw": "SHELL V-POWER",
+   "expected": "shell power"
+  },
+  {
+   "raw": "SHELL V-POWER NI",
+   "expected": "shell power ni"
+  },
+  {
+   "raw": "SHELLV-POWER NITRO+",
+   "expected": "shellv power nitro"
+  },
+  {
+   "raw": "Parkir Motor",
+   "expected": "parkir motor"
+  },
+  {
+   "raw": "PARKIR MTR",
+   "expected": "parkir mtr"
+  },
+  {
+   "raw": "PRKR MOTOR",
+   "expected": "prkr motor"
+  },
+  {
+   "raw": "1 PRK MTR",
+   "expected": "prk mtr"
+  },
+  {
+   "raw": "PRK MOTOR",
+   "expected": "prk motor"
+  },
+  {
+   "raw": "PRKR MTR",
+   "expected": "prkr mtr"
+  }
+ ]
+}

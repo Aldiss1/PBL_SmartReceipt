@@ -1,0 +1,124 @@
+{
+  "_comment": "Ground truth for the on-device OCR harness. The three struk_*.jpg receipts were read by hand from the photos in /sdcard/Pictures. The cord_*.jpg entries are CORD v2 test-split receipts; their item names come from the dataset annotations (valid_line / gt_parse menu.nm), so they are machine-labelled rather than hand-checked.",
+  "receipts": [
+    {
+      "file": "struk_alfamart.jpg",
+      "source": "foto sendiri (Alfamart)",
+      "items": [
+        "SABUN LIFEBUOY 85G",
+        "SHAMPO CLEAR 170ML",
+        "INDOMIE GORENG",
+        "AQUA 600ML",
+        "BATERAI ABC AA",
+        "TISSUE PASEO 250S",
+        "SUSU UHT ULTRA 1L",
+        "KOPI KAPAL API 65G",
+        "PASTA GIGI PEPSODENT",
+        "ROTI KRIM KEJU"
+      ],
+      "itemCount": 10,
+      "total": 154000,
+      "subtotal": 147200,
+      "discount": 7200,
+      "tax": 14000
+    },
+    {
+      "file": "struk_real.jpg",
+      "source": "foto sendiri (Indomaret)",
+      "items": [
+        "INDOMIE MI GORENG 85G",
+        "AQUA AIR MINERAL 600ML",
+        "SARI ROTI TAWAR 400G",
+        "TELUR AYAM NEGERI 1KG",
+        "SABUN LIFEBUOY 85G",
+        "PASTA GIGI PEPSODENT 190G",
+        "SUSU UHT ULTRA 1L",
+        "KOPI KAPAL API 65G",
+        "ROTI KRIM KEJU",
+        "TISSUE PASEO 250 LEMBAR"
+      ],
+      "itemCount": 10,
+      "total": 133078,
+      "subtotal": 126200,
+      "discount": 6310,
+      "tax": 13188
+    },
+    {
+      "file": "struk_singkatan.jpg",
+      "source": "foto sendiri (Superindo, singkatan)",
+      "items": [
+        "SBN LIFBUY 85G",
+        "SHMP CLEAR 170ML",
+        "MIE GRG INDOME 85G",
+        "AIR MNRAL AQUA 600",
+        "BTR ABC AA 2PCS",
+        "TISU PASEO 250S",
+        "SU UHT ULTRA 1L",
+        "KOPI KPL API 65G",
+        "PST GIGI PEPSDN",
+        "RTI KRIM KEJU"
+      ],
+      "itemCount": 10,
+      "total": 166500,
+      "subtotal": 152400,
+      "discount": 2400,
+      "tax": 16500
+    },
+    {
+      "file": "cord_01.jpg",
+      "source": "CORD v2 test",
+      "items": ["J.STB PROMO", "Y.B.BAT", "Y.BASO PROM"],
+      "itemCount": 3,
+      "total": 91000
+    },
+    {
+      "file": "cord_02.jpg",
+      "source": "CORD v2 test",
+      "items": ["ICE BLACKCOFFE", "AVOCADO COFFEE", "CHIKEN KATSU FF"],
+      "itemCount": 3,
+      "total": 174600
+    },
+    {
+      "file": "cord_03.jpg",
+      "source": "CORD v2 test",
+      "items": ["EGG TART", "CHOCO CUS ARD PASTRY", "REDBEAN BREAD"],
+      "itemCount": 3,
+      "total": 46000
+    },
+    {
+      "file": "cord_04.jpg",
+      "source": "CORD v2 test",
+      "items": ["BLUS WANITA", "SHOPPING BAG"],
+      "itemCount": 2,
+      "total": 120000
+    },
+    {
+      "file": "cord_05.jpg",
+      "source": "CORD v2 test",
+      "items": ["BASO KUAH", "A.MINERAL GELAS"],
+      "itemCount": 2,
+      "total": 51300
+    },
+    {
+      "file": "cord_06.jpg",
+      "source": "CORD v2 test",
+      "items": [
+        "RedVelvet Cheese Slc",
+        "Chicken Baked Rice",
+        "Fish n Chips",
+        "Mushroom Soup",
+        "Chamomile",
+        "Iced Tea"
+      ],
+      "itemCount": 6,
+      "total": 281435
+    },
+    {
+      "file": "cord_07.jpg",
+      "source": "CORD v2 test",
+      "items": ["Lemon Tea (L)", "Caramel Small"],
+      "itemCount": 2,
+      "total": 63000
+    }
+  ]
+}

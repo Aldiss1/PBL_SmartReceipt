@@ -46,3 +46,11 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Receipt photos for the on-device OCR harness. Not bundled into the APK, and
+# the held-out sets are reproducible from ML/.cord_cache via
+# `python ML/draw_heldout_set.py`.
+/test_assets/struk/heldout/
+/test_assets/struk/heldout_b/
+/test_assets/struk/heldout_c/
+/test_assets/struk/heldout_d/

@@ -330,7 +330,19 @@ class ImagePreprocessor {
     }
     // A little below the paper tone, so paper that is unevenly lit still reads
     // as bright while the next-darkest surface (a keyboard, a desk) does not.
-    final int threshold = math.max(1, paperLevel - 30);
+    int threshold = math.max(1, paperLevel - 30);
+    // A receipt photographed on a dark table is lit unevenly: one corner of the
+    // paper is the brightest thing in the frame while the far end falls off into
+    // shadow. `paperLevel - 30` then keeps only that lit corner, the sheet never
+    // forms one rectangle, and the capture is rejected as "no receipt". Splitting
+    // halfway between the paper tone and the background tone holds the whole
+    // sheet together, and only ever lowers the threshold, so a photo that already
+    // passed is unaffected.
+    final int background = _medianLevel(histogram, total);
+    final int split = (paperLevel + background) ~/ 2;
+    if (split < threshold) {
+      threshold = math.max(1, split);
+    }
 
     // Bright pixels are the paper candidates.
     final List<bool> bright = List<bool>.filled(total, false);
@@ -469,10 +481,37 @@ class ImagePreprocessor {
   ///
   /// A tiny highlight (a window reflection, a specular spot) is ignored, but
   /// the paper itself always covers far more than 4% of a receipt photo.
+  /// Middle grey level of the image: the tone of the background, since the
+  /// background covers most of a photo of a receipt.
+  int _medianLevel(List<int> histogram, int total) {
+    final int half = total ~/ 2;
+    int seen = 0;
+    for (int level = 0; level <= 255; level++) {
+      seen += histogram[level];
+      if (seen >= half) {
+        return level;
+      }
+    }
+    return 128;
+  }
+
   int _brightLevel(List<int> histogram, int total) {
     final int minPopulation = math.max(1, (total * 0.04).round());
+    // Count each level together with its neighbours. On a real photo the paper
+    // tone is spread over 30-40 levels by the lighting gradient and JPEG noise,
+    // so no single level ever holds 4% of the pixels and a plain scan finds
+    // nothing. Smoothing first makes the paper show up as the bright plateau it
+    // is; a flat synthetic image is unaffected because its population is already
+    // concentrated on one level.
+    const int window = 4;
     for (int level = 255; level >= 0; level--) {
-      if (histogram[level] >= minPopulation) {
+      int population = 0;
+      for (int j = math.max(0, level - window);
+          j <= math.min(255, level + window);
+          j++) {
+        population += histogram[j];
+      }
+      if (population >= minPopulation) {
         return level;
       }
     }

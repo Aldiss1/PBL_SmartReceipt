@@ -47,6 +47,7 @@ class EvaluationReport {
     required this.labels,
     required this.sampleCount,
     required this.correctCount,
+    this.reviewCount = 0,
   });
 
   /// Fraction of samples whose predicted label matches the ground truth.
@@ -70,6 +71,12 @@ class EvaluationReport {
 
   final int sampleCount;
   final int correctCount;
+
+  /// Number of samples the review gate flagged (top-2 classes too close).
+  final int reviewCount;
+
+  /// Fraction of samples that would be auto-accepted without user review.
+  double get reviewCoverage => sampleCount == 0 ? 0 : 1 - reviewCount / sampleCount;
 
   /// Total predicted+actual cells, handy for a quick "sample size" subtitle.
   int get labelCount => labels.length;
@@ -154,9 +161,17 @@ class ModelEvaluator {
 
     int correct = 0;
     int total = 0;
+    int reviewCount = 0;
     for (final LabeledSample sample in samples) {
       final String input = preprocess == null ? sample.text : preprocess!(sample.text);
-      final String predicted = engine.predict(input).label;
+      final TfidfPrediction prediction = engine.predict(input);
+      // Measure the model's actual decision. `label` is the display label and
+      // becomes "Perlu Review" whenever the gate fires; counting that as a
+      // wrong prediction would report review coverage as accuracy loss.
+      final String predicted = prediction.topLabel;
+      if (prediction.needsReview) {
+        reviewCount++;
+      }
       final int actualIndex = indexOf[sample.label] ?? -1;
       if (actualIndex < 0) {
         continue;
@@ -266,6 +281,7 @@ class ModelEvaluator {
       labels: labels,
       sampleCount: total,
       correctCount: correct,
+      reviewCount: reviewCount,
     );
   }
 }

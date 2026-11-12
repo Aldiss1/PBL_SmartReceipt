@@ -178,12 +178,9 @@ class OcrService {
       return true;
     }
     // A receipt without a printed total, or one whose items do not reconcile
-    // with it, is a good candidate for a second look.
-    if (!parsed.totalFromReceipt) {
-      return true;
-    }
-    final int gap = (parsed.total + parsed.discountTotal - parsed.itemsTotal).abs();
-    return gap > 100;
+    // with it, is a good candidate for a second look. The check is shared with
+    // the parser so tax and discounts are handled the same way in both places.
+    return !ReceiptParser.reconciles(parsed);
   }
 
   /// Retries OCR on better-prepared variants of the image and keeps the best

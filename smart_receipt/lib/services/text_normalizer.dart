@@ -132,9 +132,15 @@ class IndonesianTextPreprocessor {
   );
   static final RegExp _plainNumber = RegExp(r'\b\d+\b');
   static final RegExp _percent = RegExp(r'\d+\s*%');
+  /// Bare units and quantity markers left over after [_numberUnit].
+  ///
+  /// Must list exactly the `units` array of `text_normalization_id.json` (plus
+  /// `x`/`qty`), because `ML/preprocessing.py` builds the same pattern from
+  /// that file. A mismatch here means the model sees different tokens in
+  /// training and on-device; `test/preprocessing_parity_test.dart` guards it.
   static final RegExp _unitNoise = RegExp(
-    r'\b(?:x|qty|pcs|pc|pck|ctn|dus|box|botol|bks|bungkus|sachet|sct|'
-    r'kg|gr|gram|ml|ltr|liter|ons|papan|rim|set|pack|pak|lusin)\b',
+    r'\b(?:x|qty|kg|gr|gram|ons|ml|ltr|liter|cc|pcs|pc|pck|pack|pak|ctn|dus|'
+    r'box|botol|bks|bungkus|sachet|sct|lusin|rim|set)\b',
   );
   static final RegExp _nonAlnum = RegExp(r'[^a-z0-9\s]');
   static final RegExp _repeated = RegExp(r'(.)\1{2,}');
@@ -214,7 +220,24 @@ class IndonesianTextPreprocessor {
         mapped.split(_spaces).where((String t) => t.length >= 2),
       );
     }
-    return result;
+    return _collapseRepeats(result);
+  }
+
+  /// Drops consecutive duplicate tokens.
+  ///
+  /// The rule table maps brands to their generic form ("lifebuoy" → "sabun")
+  /// while the generic form is also present as an identity mapping
+  /// ("sabun" → "sabun"), so "SABUN LIFEBUOY" used to normalize to
+  /// "sabun sabun". Collapsing twins keeps the signal and matches
+  /// `ML/preprocessing.py`.
+  static List<String> _collapseRepeats(List<String> tokens) {
+    final List<String> out = <String>[];
+    for (final String token in tokens) {
+      if (out.isEmpty || out.last != token) {
+        out.add(token);
+      }
+    }
+    return out;
   }
 
   String _applyMultiWordRules(String text) {

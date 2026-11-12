@@ -66,6 +66,7 @@ class MLClassifierService {
     if (!isReady) {
       return const TfidfPrediction(
         label: 'Perlu Review',
+        topLabel: 'Perlu Review',
         categoryId: kFallbackCategoryId,
         confidence: 0,
         posterior: 0,

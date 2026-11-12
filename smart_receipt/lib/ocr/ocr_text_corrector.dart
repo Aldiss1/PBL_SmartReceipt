@@ -86,6 +86,13 @@ String _correctLine(String line) {
 final List<_KeywordFix> _keywordFixes = <_KeywordFix>[
   // Longer patterns first so they are not partially consumed by shorter ones.
   _KeywordFix(RegExp(r'\bGRAND\s*T[O0]TAL\b', caseSensitive: false), 'GRAND TOTAL'),
+  // `SUB TOTAL` is often split by the recognizer into `Sub Tota l`, so the
+  // spaces are allowed between every letter of the last word.
+  _KeywordFix(RegExp(r'\bSUB\s*T[O0]T\s*A\s*L\b', caseSensitive: false), 'SUB TOTAL'),
+  // `TOTAL` loses its final letter to the period on faded receipts: `TOTA.`
+  _KeywordFix(RegExp(r'\bT[O0]TA\b', caseSensitive: false), 'TOTAL'),
+  // `PB1` (pajak restoran) is printed tight, but OCR separates the digits.
+  _KeywordFix(RegExp(r'\bPB\s*1\b', caseSensitive: false), 'PB1'),
   _KeywordFix(RegExp(r'\bSUBT[O0]TAL\b', caseSensitive: false), 'SUBTOTAL'),
   _KeywordFix(RegExp(r'\bSUB\s*T[O0]TAL\b', caseSensitive: false), 'SUB TOTAL'),
   _KeywordFix(RegExp(r'\bT[O0]TAL\b', caseSensitive: false), 'TOTAL'),
@@ -156,6 +163,19 @@ _LineParts _splitLine(String line) {
   return _LineParts(name: name, numbers: numbers);
 }
 
+/// A pack size such as `85G`, `250S`, `1L` or `600ML` sits at the end of a
+/// product name and must never be mistaken for an amount.
+///
+/// `_looksLikeAmount` substitutes OCR letter-for-digit lookalikes, which turns
+/// `85G` into `856` and `250S` into `2505`. That is where the mangled product
+/// names on real receipts came from — not from the recogniser.
+final RegExp _packSize = RegExp(
+  r'^\d+(?:[.,]\d+)?(?:g|gr|kg|ml|l|s|pcs|lbr|lembar|sheet)$',
+  caseSensitive: false,
+);
+
+bool _isPackSize(String token) => _packSize.hasMatch(token.trim());
+
 /// Returns true when [token] is a printed amount — possibly containing OCR
 /// letter-substitutions like `O` for `0` or `l` for `1`.
 ///
@@ -166,7 +186,12 @@ _LineParts _splitLine(String line) {
 ///   - With parentheses: `(1.300)`
 ///   - Tokens where the majority of non-separator characters are digits or
 ///     common OCR letter-substitutes for digits (O, l, I, S, B, Z, G).
+///
+/// Rejects pack sizes: `85G` and `250S` are part of a product name.
 bool _looksLikeAmount(String token) {
+  if (_isPackSize(token)) {
+    return false;
+  }
   String t = token
       .replaceAll(RegExp(r'^[Rr][Pp]\.?\s*'), '')
       .replaceAll(RegExp(r'^[(]'), '')
@@ -208,29 +233,30 @@ class _LineParts {
 /// OCR error (e.g. `SAB0N` → `SABON`, `1NDOMIE` → `INDOMIE`).
 ///
 /// The rule: substitute only when BOTH neighbours are letters, OR the digit is
-/// at word boundary (start/end of the whole string) and the adjacent character
-/// is a letter. This keeps `600ML` intact (`6` and `M` flank the `0` but `6`
-/// is a digit so no substitution on that position).
+/// at a word boundary (start/end of a word, including next to a space) and the
+/// adjacent character is a letter. This keeps `600ML` intact (`6` and `M` flank
+/// the `0` but `6` is a digit so no substitution on that position) and it also
+/// repairs `SOT0 MEDAN` → `SOTO MEDAN`, which the string-edge-only rule missed.
 String _fixNamePart(String name) {
   if (name.isEmpty) {
     return name;
   }
+  bool isLetter(int i) =>
+      i >= 0 && i < name.length && RegExp(r'[A-Za-z]').hasMatch(name[i]);
+  bool isBoundary(int i) => i < 0 || i >= name.length || name[i] == ' ';
+
   final StringBuffer buf = StringBuffer();
   for (int i = 0; i < name.length; i++) {
     final String ch = name[i];
     final String? fix = _digitToLetter[ch];
     if (fix != null) {
-      final bool prevLetter =
-          i > 0 && RegExp(r'[A-Za-z]').hasMatch(name[i - 1]);
-      final bool nextLetter =
-          i < name.length - 1 && RegExp(r'[A-Za-z]').hasMatch(name[i + 1]);
-      final bool atStart = i == 0;
-      final bool atEnd = i == name.length - 1;
-      // Require both sides to be letters unless at the very start or end of
-      // the string (where one side cannot exist).
+      final bool prevLetter = isLetter(i - 1);
+      final bool nextLetter = isLetter(i + 1);
+      // Require both sides to be letters unless the digit touches a word edge,
+      // where the missing side cannot be a letter.
       final bool shouldFix = (prevLetter && nextLetter) ||
-          (atStart && nextLetter) ||
-          (atEnd && prevLetter);
+          (isBoundary(i - 1) && nextLetter) ||
+          (isBoundary(i + 1) && prevLetter);
       if (shouldFix) {
         buf.write(fix);
         continue;

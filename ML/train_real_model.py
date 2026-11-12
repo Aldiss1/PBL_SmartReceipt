@@ -1,127 +1,58 @@
-"""Train and export the SmartReceipt classifier with Flutter-aligned text rules.
+"""Train and export the SmartReceipt classifier (CLI).
 
 Usage:
   python -m pip install -r requirements.txt
   python train_real_model.py --base Dataset_SmartReceipt_Sintetis.csv \
-      --real struk_asli.csv --output model_kategori_produk_real.json
+      --catalog Dataset_Katalog_Indonesia_Sintetis_v1.csv \
+      --output model_kategori_produk.json
 
-The optional real CSV must contain receipt_text,kategori. Keep a held-out
-real-test CSV out of --real so its metrics remain an honest final evaluation.
+Semua resep pelatihan ada di `training.py`, yang juga dipakai notebook laporan,
+sehingga keduanya menghasilkan artefak yang sama.
 
-Leakage guard: rows whose nama_produk appears in the base validation/test
-splits are excluded from training, and the exported model is trained on
-train+val only, so the synthetic test set stays held-out and re-verifiable.
+Leakage guards (dijaga `training.split_dataset` / `training.fit_production_model`):
+
+* split per produk; produk val/test tidak pernah masuk train,
+* baris val/test yang teks mentahnya identik dengan train dibuang,
+* metrik dilaporkan dari model yang dilatih pada train saja,
+* model ekspor dilatih pada train + val, tidak pernah menyentuh test.
+
+Preprocessing memakai `preprocessing.TextPreprocessor`, kembaran Python dari
+`IndonesianTextPreprocessor` di Flutter. Jangan menambahkan salinan lokal.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
-import random
-import re
 from pathlib import Path
 
 import joblib
-import numpy as np
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score, classification_report, f1_score
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
 
-SEED = 42
-random.seed(SEED)
-np.random.seed(SEED)
+import training as T
+from preprocessing import PREPROCESSING_VERSION, TextPreprocessor
 
 
-class FlutterPreprocessor:
-    """Python implementation of Flutter IndonesianTextPreprocessor rules."""
-
-    currency = re.compile(r"(?:rp\.?\s*)?\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{2})?")
-    number_unit = re.compile(
-        r"\b\d+\s*(?:x|pcs|pc|pck|ctn|dus|box|botol|bks|bungkus|sachet|sct|"
-        r"kg|gr|gram|ml|ltr|liter|ons|papan|rim|set|pack|pak|lusin|mah|gb|tb|"
-        r"watt|w|v|volt|s|l|g|ma|mm|cm|m)\b"
-    )
-    plain_number = re.compile(r"\b\d+\b")
-    percent = re.compile(r"\d+\s*%")
-    non_alnum = re.compile(r"[^a-z0-9\s]")
-    repeated = re.compile(r"(.)\1{2,}")
-    spaces = re.compile(r"\s+")
-
-    def __init__(self, rules_path: Path):
-        rules = json.loads(rules_path.read_text(encoding="utf-8"))
-        self.abbreviations = {
-            self.key(key): value for key, value in rules["abbreviations"].items()
-        }
-        self.stopwords = {self.key(value) for value in rules["stopwords"]}
-        self.units = {self.key(value) for value in rules["units"]}
-        unit_pattern = "|".join(re.escape(value) for value in sorted(self.units, key=len, reverse=True))
-        self.unit_noise = re.compile(rf"\b(?:x|qty|{unit_pattern})\b")
-
-    def key(self, value: str) -> str:
-        return self.spaces.sub(" ", value.lower()).strip()
-
-    def normalize(self, value: str) -> str:
-        text = str(value).lower()
-        text = (text.replace("’", "'").replace("‘", "'").replace("“", '"')
-                     .replace("”", '"').replace("–", "-").replace("—", "-")
-                     .replace("×", "x"))
-        text = self.percent.sub(" ", text)
-        text = self.currency.sub(" ", text)
-        text = self.number_unit.sub(" ", text)
-        text = self.unit_noise.sub(" ", text)
-        text = self.plain_number.sub(" ", text)
-        text = self.repeated.sub(lambda match: match.group(1) * 2, text)
-        text = self.spaces.sub(" ", self.non_alnum.sub(" ", text)).strip()
-        tokens = [token for token in text.split() if len(token) >= 2]
-        joined = " ".join(tokens)
-        for key, replacement in self.abbreviations.items():
-            if " " in key and key in joined:
-                joined = joined.replace(key, replacement)
-        result: list[str] = []
-        for token in joined.split():
-            if len(token) < 2 or token in self.units or token in self.stopwords:
-                continue
-            result.extend(word for word in self.abbreviations.get(token, token).split() if len(word) >= 2)
-        return " ".join(result)
-
-
-def load_csv(path: Path, preprocessor: FlutterPreprocessor) -> pd.DataFrame:
-    frame = pd.read_csv(path).dropna(subset=["receipt_text", "kategori"]).copy()
+def load_csv(path: Path, preprocessor: TextPreprocessor) -> pd.DataFrame:
+    frame = pd.read_csv(path)
     required = {"receipt_text", "kategori"}
     if not required.issubset(frame.columns):
         raise ValueError(f"{path} must contain: {', '.join(sorted(required))}")
-    frame["text"] = frame["receipt_text"].map(preprocessor.normalize)
-    return frame[frame["text"].str.len() > 0].reset_index(drop=True)
+    frame = frame.dropna(subset=["receipt_text", "kategori"]).copy()
+    frame["receipt_text"] = frame["receipt_text"].astype(str)
+    frame = frame[frame["receipt_text"].map(preprocessor.normalize).str.len() > 0]
+    return frame.reset_index(drop=True)
 
 
-def exclude_products(frame: pd.DataFrame, forbidden: set[str]) -> pd.DataFrame:
-    """Drop rows whose product appears in a held-out split (leakage guard)."""
-    if forbidden and "nama_produk" in frame.columns:
-        return frame[~frame["nama_produk"].isin(forbidden)].reset_index(drop=True)
-    return frame
-
-
-def export_model(model: Pipeline, path: Path, threshold: float) -> None:
-    tfidf = model.named_steps["tfidf"]
-    nb = model.named_steps["nb"]
-    payload = {
-        "classes": [str(item) for item in nb.classes_],
-        "analyzer": tfidf.analyzer,
-        "ngram_range": list(tfidf.ngram_range),
-        "sublinear_tf": tfidf.sublinear_tf,
-        "norm": tfidf.norm,
-        "lowercase": tfidf.lowercase,
-        "preprocessing": "flutter_id_v1",
-        "vocabulary": {key: int(value) for key, value in tfidf.vocabulary_.items()},
-        "idf": [round(float(value), 5) for value in tfidf.idf_],
-        "class_log_prior": [round(float(value), 6) for value in nb.class_log_prior_],
-        "feature_log_prob": [[round(float(value), 4) for value in row] for row in nb.feature_log_prob_],
-        "threshold": threshold,
-        "fallback_label": "Perlu Review",
-    }
-    path.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+def report(name: str, frame: pd.DataFrame, prediction) -> None:
+    truth = frame["kategori"]
+    print(
+        f"{name}: n={len(frame)}, "
+        f"15-kelas acc={accuracy_score(truth, prediction):.3f} "
+        f"macro_f1={f1_score(truth, prediction, average='macro'):.3f} | "
+        f"9-kelas acc={accuracy_score(T.to_app_categories(truth), T.to_app_categories(prediction)):.3f} "
+        f"macro_f1={f1_score(T.to_app_categories(truth), T.to_app_categories(prediction), average='macro'):.3f}"
+    )
 
 
 def main() -> None:
@@ -129,53 +60,183 @@ def main() -> None:
     parser.add_argument("--base", type=Path, required=True)
     parser.add_argument("--catalog", type=Path, action="append", default=[])
     parser.add_argument("--real", type=Path, action="append", default=[])
+    parser.add_argument(
+        "--real-train",
+        type=Path,
+        action="append",
+        default=[],
+        help=(
+            "Data struk asli untuk DILATIH (bukan untuk diuji). Wajib terpisah "
+            "dari --real-test; skrip menolak jalan bila ada teks yang sama."
+        ),
+    )
     parser.add_argument("--real-test", type=Path)
-    parser.add_argument("--rules", type=Path, default=Path("../smart_receipt/assets/text_normalization_id.json"))
-    parser.add_argument("--output", type=Path, default=Path("model_kategori_produk_real.json"))
-    parser.add_argument("--threshold", type=float, default=0.90)
+    parser.add_argument(
+        "--rules",
+        type=Path,
+        default=None,
+        help="Override tabel aturan preprocessing (default: assets/text_normalization_id.json)",
+    )
+    parser.add_argument("--output", type=Path, default=Path("model_kategori_produk.json"))
+    parser.add_argument(
+        "--ngram", type=int, nargs=2, default=list(T.DEFAULT_PARAMS["ngram"])
+    )
+    parser.add_argument("--alpha", type=float, default=T.DEFAULT_PARAMS["alpha"])
+    parser.add_argument(
+        "--fit-prior",
+        action=argparse.BooleanOptionalAction,
+        default=T.DEFAULT_PARAMS["fit_prior"],
+    )
+    parser.add_argument("--noise-copies", type=int, default=T.DEFAULT_NOISE_COPIES)
+    parser.add_argument(
+        "--real-noise-copies",
+        type=int,
+        default=T.DEFAULT_REAL_NOISE_COPIES,
+        help="Salinan ber-noise untuk data --real-train (0 = tanpa augmentasi)",
+    )
+    parser.add_argument(
+        "--review-margin",
+        type=float,
+        default=None,
+        help="Patok margin review manual; default dikalibrasi pada data validasi",
+    )
+    parser.add_argument("--target-accept-accuracy", type=float, default=0.95)
+    parser.add_argument("--min-coverage", type=float, default=0.60)
     args = parser.parse_args()
 
-    preprocessor = FlutterPreprocessor(args.rules)
+    preprocessor = TextPreprocessor(args.rules)
+    params = {
+        "ngram": tuple(args.ngram),
+        "alpha": args.alpha,
+        "fit_prior": args.fit_prior,
+    }
+
     base = load_csv(args.base, preprocessor)
-    train = base[base["split"] == "train"]
-    validation = base[base["split"] == "val"]
-    test = base[base["split"] == "test"]
-    test_products = set(test.get("nama_produk", pd.Series(dtype=str)))
-    val_products = set(validation.get("nama_produk", pd.Series(dtype=str)))
-    # Produk val+test tidak boleh muncul di data latih saat metrik dilaporkan,
-    # dan produk test tidak boleh muncul di model ekspor akhir.
-    catalog_raw = [load_csv(path, preprocessor) for path in args.catalog]
-    catalog_train = [exclude_products(frame, val_products | test_products) for frame in catalog_raw]
-    real_train = [load_csv(path, preprocessor) for path in args.real]
-    training = pd.concat([train, *catalog_train, *real_train], ignore_index=True)
+    train, validation, test = T.split_dataset(base, preprocessor)
 
-    model = Pipeline([
-        ("tfidf", TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 4), sublinear_tf=True, max_features=20000)),
-        ("nb", MultinomialNB(alpha=0.03, fit_prior=True)),
-    ])
-    model.fit(training["text"], training["kategori"])
+    catalogs = [load_csv(path, preprocessor) for path in args.catalog]
+    catalog = pd.concat(catalogs, ignore_index=True) if catalogs else None
 
-    for name, frame in (("validation", validation), ("synthetic test", test)):
-        prediction = model.predict(frame["text"])
-        print(f"{name}: n={len(frame)}, accuracy={accuracy_score(frame['kategori'], prediction):.3f}, "
-              f"macro_f1={f1_score(frame['kategori'], prediction, average='macro'):.3f}")
+    # --- Data struk asli untuk latihan -------------------------------------
+    real_train_frames = [load_csv(path, preprocessor) for path in args.real_train]
+    real_train = (
+        pd.concat(real_train_frames, ignore_index=True)
+        if real_train_frames
+        else None
+    )
+    real_test = (
+        T.prepare(load_csv(args.real_test, preprocessor), preprocessor)
+        if args.real_test
+        else None
+    )
+    if real_train is not None and real_test is not None:
+        # Kebocoran paling mudah terjadi di sini: baris yang sama dipakai untuk
+        # melatih sekaligus menguji. Tolak dengan keras, bukan sekadar dicatat.
+        shared = set(real_train["receipt_text"]) & set(real_test["receipt_text"])
+        assert not shared, (
+            f"{len(shared)} teks muncul di --real-train dan --real-test, "
+            f"mis. {sorted(shared)[:3]}"
+        )
+    if real_train is not None:
+        print(
+            f"\n[real-train] {len(real_train)} baris struk asli ikut dilatih "
+            f"(kelas: {real_train['kategori'].nunique()})"
+        )
 
-    if args.real_test:
-        real_test = load_csv(args.real_test, preprocessor)
-        prediction = model.predict(real_test["text"])
-        print("\nREAL HELD-OUT TEST")
-        print(f"n={len(real_test)}, accuracy={accuracy_score(real_test['kategori'], prediction):.3f}, "
-              f"macro_f1={f1_score(real_test['kategori'], prediction, average='macro'):.3f}")
-        print(classification_report(real_test["kategori"], prediction, digits=3, zero_division=0))
+    # --- Metrik: model dilatih pada train saja ------------------------------
+    held_out = set()
+    for frame in (validation, test):
+        if "nama_produk" in frame.columns:
+            held_out |= set(frame["nama_produk"])
+    model = T.fit_eval_model(
+        train,
+        catalog,
+        preprocessor,
+        held_out_products=held_out,
+        params=params,
+        n_noisy=args.noise_copies,
+        seed=1,
+        real_train=real_train,
+        real_noise_copies=args.real_noise_copies,
+    )
 
-    # Model ekspor akhir dilatih pada train+val, tanpa produk test (tetap held-out).
-    export_train = pd.concat([train, validation, *real_train], ignore_index=True)
-    export_catalog = [exclude_products(frame, test_products) for frame in catalog_raw]
-    all_training = pd.concat([export_train, *export_catalog], ignore_index=True)
-    model.fit(all_training["text"], all_training["kategori"])
-    export_model(model, args.output, args.threshold)
-    joblib.dump(model, args.output.with_suffix(".joblib"))
-    print(f"\nExported {args.output} and {args.output.with_suffix('.joblib')}")
+    print("\n=== EVALUASI (model dilatih pada train saja) ===")
+    report("validation", validation, model.predict(validation["text"]))
+    test_pred = model.predict(test["text"])
+    report("synthetic test", test, test_pred)
+    print("\nTest - classification report (15 kelas):")
+    print(classification_report(test["kategori"], test_pred, digits=3, zero_division=0))
+    print("Test - classification report (9 kategori aplikasi):")
+    print(
+        classification_report(
+            T.to_app_categories(test["kategori"]),
+            T.to_app_categories(test_pred),
+            digits=3,
+            zero_division=0,
+        )
+    )
+
+    if real_test is not None:
+        print("\n=== REAL HELD-OUT TEST ===")
+        report("real test", real_test, model.predict(real_test["text"]))
+        print(
+            classification_report(
+                real_test["kategori"],
+                model.predict(real_test["text"]),
+                digits=3,
+                zero_division=0,
+            )
+        )
+
+    # --- Margin review: dikalibrasi di validasi, dicek di test --------------
+    if args.review_margin is not None:
+        review_margin = float(args.review_margin)
+        print(f"\n[review] margin dipatok manual: {review_margin}")
+    else:
+        review_margin, table = T.calibrate_review_margin(
+            model,
+            validation,
+            target_accuracy=args.target_accept_accuracy,
+            min_coverage=args.min_coverage,
+        )
+        print(f"\n[review] margin terpilih dari validasi: {review_margin}")
+        print(table.to_string(index=False, float_format=lambda v: f"{v:.3f}"))
+    for name, frame in (("validation", validation), ("test", test)):
+        coverage, accuracy = T.review_report(model, frame, review_margin)
+        print(
+            f"[review] {name}: coverage={coverage:.1%}, "
+            f"accuracy_diterima={accuracy:.1%}"
+        )
+    if real_test is not None:
+        coverage, accuracy = T.review_report(model, real_test, review_margin)
+        print(
+            f"[review] real test: coverage={coverage:.1%}, "
+            f"accuracy_diterima={accuracy:.1%}"
+        )
+
+    # --- Artefak produksi: train + val, tanpa produk test -------------------
+    real_frames = [load_csv(path, preprocessor) for path in args.real]
+    train_plus_real = pd.concat([train, *real_frames], ignore_index=True) if real_frames else train
+    final_model, final_training = T.fit_production_model(
+        train_plus_real,
+        validation,
+        test,
+        catalog,
+        preprocessor,
+        params=params,
+        n_noisy=args.noise_copies,
+        seed=3,
+        real_train=real_train,
+        real_noise_copies=args.real_noise_copies,
+    )
+    T.export_model(final_model, args.output, review_margin)
+    joblib.dump(final_model, args.output.with_suffix(".joblib"))
+    print(
+        f"\nExported {args.output} dan {args.output.with_suffix('.joblib')}\n"
+        f"  preprocessing={PREPROCESSING_VERSION} review_margin={review_margin}\n"
+        f"  vocab={len(final_model.named_steps['tfidf'].vocabulary_)} "
+        f"train_rows={len(final_training)}"
+    )
 
 
 if __name__ == "__main__":

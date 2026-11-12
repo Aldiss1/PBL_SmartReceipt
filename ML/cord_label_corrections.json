@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "Koreksi label hasil pemeriksaan manusia atas seluruh 377 baris",
+    "real_struk_indonesia.csv yang berlabel otomatis.",
+    "Pemeriksaan pertama menemukan 8 label keliru dengan pola konsisten: kata",
+    "rasa (caramel, choco, hazelnut) diperiksa sebelum kata minuman (tea),",
+    "sehingga minuman berlabel Makanan; sebaliknya OREO GREEN TEA SPREAD adalah",
+    "selai, bukan minuman. Urutan aturan di import_cord.py sudah diperbaiki,",
+    "sehingga kini hanya 2 baris yang masih ambigu dan butuh keputusan manusia:",
+    "keduanya kata rasa tanpa kata benda minuman, yang di struk kafe hampir",
+    "pasti minuman tetapi secara harfiah bisa juga kue.",
+    "Dipakai import_cord.py lewat argumen --corrections."
+  ],
+  "koreksi": {
+    "BUBBLE GUM": "Makanan",
+    "Caramel Small": "Minuman",
+    "Hot Chocolate Marshmallo": "Minuman",
+    "M-Caramel Black Tea": "Minuman",
+    "OREO GREEN TEA SPREAD": "Makanan",
+    "PEARL CHOCO TEA": "Minuman",
+    "S-Caramel Milk Tea": "Minuman",
+    "S-Hazelnut KOI Cafe": "Minuman"
+  }
+}

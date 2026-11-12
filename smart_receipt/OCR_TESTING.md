@@ -100,6 +100,31 @@ Ini yang paling mendekati pemakaian nyata — minimarket, bukan restoran:
 | Held-out C (10) | item ketemu | 25/31 (80,6%) | **26/31 (83,9%)** |
 | Held-out C (10) | jumlah item tepat | 2/10 | **6/10** |
 
+### Hasil confidence voting (2026-11-12)
+
+Voting amount antar 3 varian resolusi-same (asli + binarisasi + sharpened)
+plus tie-breaker confidence ML Kit (spec 2026-11-05, plan 2026-11-12).
+Diukur di emulator (API 36) dengan harness yang sama; kolom "sebelum" adalah
+angka "Sesudah" tabel di atas.
+
+| Set | Metrik | Sebelum | Sesudah voting |
+|---|---|---|---|
+| Dev (10) | CER | 12,3% | 12,3% |
+| Dev (10) | WER | 21,9% | 21,9% |
+| Dev (10) | item ketemu | 34/51 (66,7%) | 34/51 (66,7%) |
+| Dev (10) | total tepat | 8/10 | 8/10 |
+| Held-out C (10) | CER | 13,9% | 13,9% |
+| Held-out C (10) | WER | 32,9% | 32,9% |
+| Held-out C (10) | item ketemu | 26/31 (83,9%) | 26/31 (83,9%) |
+| Held-out C (10) | jumlah item tepat | 6/10 | 6/10 |
+| Held-out C (10) | total tepat | — (belum pernah dicatat) | 9/10 |
+
+Hasil identik: pada kedua set, bacaan amount yang sudah ada konsisten antar
+varian, sehingga voting **mengonfirmasi** (bukan mengganti) bacaan utama —
+perilaku "tidak pernah lebih buruk" bekerja sesuai desain. Fitur ini adalah
+jaring pengaman untuk struk lemah di mana satu varian kehilangan amount;
+set D (masih bersih) sengaja tidak diukur agar tetap tak ternodai.
+
 ### Angka yang boleh dikutip (held-out D, diukur sekali)
 
 | Metrik | Nilai |

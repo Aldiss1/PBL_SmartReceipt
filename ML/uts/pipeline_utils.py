@@ -4,12 +4,15 @@ Modul ini dipakai oleh seluruh notebook anggota tim agar tahapan
 pra-pengolahan, ekstraksi fitur TF-IDF, dan pembagian data BENAR-BENAR
 identik. Dengan begitu perbandingan performa antar model menjadi adil:
 satu-satunya yang berbeda hanyalah algoritma klasifikasinya.
+
+`TextPreprocessor` tidak lagi didefinisikan di sini: implementasinya dipindah
+ke `ML/preprocessing.py` supaya notebook, skrip pelatihan, dan aplikasi Dart
+memakai satu sumber aturan. Nama lama tetap diekspor untuk kompatibilitas.
 """
 
 from __future__ import annotations
 
-import json
-import re
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -36,6 +39,17 @@ CATALOG_CSV = ML_DIR / "Dataset_Katalog_Indonesia_Sintetis_v1.csv"
 RULES_PATH = PROJECT_DIR / "smart_receipt" / "assets" / "text_normalization_id.json"
 RESULTS_CSV = UTS_DIR / "hasil_perbandingan.csv"
 
+# Notebook bisa dijalankan dari folder mana pun; pastikan `ML/` ada di path
+# supaya `preprocessing` dapat diimpor.
+if str(ML_DIR) not in sys.path:
+    sys.path.insert(0, str(ML_DIR))
+
+from preprocessing import (  # noqa: E402  (butuh sys.path di atas)
+    DEFAULT_RULES_PATH,
+    PREPROCESSING_VERSION,
+    TextPreprocessor,
+)
+
 # Konfigurasi TF-IDF yang dikunci untuk semua anggota tim.
 TFIDF_CONFIG = dict(
     analyzer="char_wb",
@@ -44,70 +58,23 @@ TFIDF_CONFIG = dict(
     max_features=20000,
 )
 
-
-class TextPreprocessor:
-    """Pra-pengolahan teks struk, selaras dengan aturan aplikasi Flutter."""
-
-    currency = re.compile(r"(?:rp\.?\s*)?\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{2})?")
-    number_unit = re.compile(
-        r"\b\d+\s*(?:x|pcs|pc|pck|ctn|dus|box|botol|bks|bungkus|sachet|sct|"
-        r"kg|gr|gram|ml|ltr|liter|ons|papan|rim|set|pack|pak|lusin|mah|gb|tb|"
-        r"watt|w|v|volt|s|l|g|ma|mm|cm|m)\b"
-    )
-    plain_number = re.compile(r"\b\d+\b")
-    percent = re.compile(r"\d+\s*%")
-    non_alnum = re.compile(r"[^a-z0-9\s]")
-    repeated = re.compile(r"(.)\1{2,}")
-    spaces = re.compile(r"\s+")
-
-    def __init__(self, rules_path: Path = RULES_PATH):
-        rules = json.loads(Path(rules_path).read_text(encoding="utf-8"))
-        self.abbreviations = {
-            self._key(key): value for key, value in rules["abbreviations"].items()
-        }
-        self.stopwords = {self._key(value) for value in rules["stopwords"]}
-        self.units = {self._key(value) for value in rules["units"]}
-        unit_pattern = "|".join(
-            re.escape(value) for value in sorted(self.units, key=len, reverse=True)
-        )
-        self.unit_noise = re.compile(rf"\b(?:x|qty|{unit_pattern})\b")
-
-    def _key(self, value: str) -> str:
-        return self.spaces.sub(" ", value.lower()).strip()
-
-    def normalize(self, value: str) -> str:
-        text = str(value).lower()
-        text = (
-            text.replace("’", "'")
-            .replace("‘", "'")
-            .replace("“", '"')
-            .replace("”", '"')
-            .replace("–", "-")
-            .replace("—", "-")
-            .replace("×", "x")
-        )
-        text = self.percent.sub(" ", text)
-        text = self.currency.sub(" ", text)
-        text = self.number_unit.sub(" ", text)
-        text = self.unit_noise.sub(" ", text)
-        text = self.plain_number.sub(" ", text)
-        text = self.repeated.sub(lambda match: match.group(1) * 2, text)
-        text = self.spaces.sub(" ", self.non_alnum.sub(" ", text)).strip()
-        tokens = [token for token in text.split() if len(token) >= 2]
-        joined = " ".join(tokens)
-        for key, replacement in self.abbreviations.items():
-            if " " in key and key in joined:
-                joined = joined.replace(key, replacement)
-        result: list[str] = []
-        for token in joined.split():
-            if len(token) < 2 or token in self.units or token in self.stopwords:
-                continue
-            result.extend(
-                word
-                for word in self.abbreviations.get(token, token).split()
-                if len(word) >= 2
-            )
-        return " ".join(result)
+__all__ = [
+    "BASE_CSV",
+    "CATALOG_CSV",
+    "DEFAULT_RULES_PATH",
+    "PREPROCESSING_VERSION",
+    "RULES_PATH",
+    "SEED",
+    "TFIDF_CONFIG",
+    "TextPreprocessor",
+    "build_vectorizer",
+    "evaluate_model",
+    "fit_features",
+    "load_splits",
+    "print_result",
+    "save_result",
+    "summary_table",
+]
 
 
 def _prepare(path: Path, preprocessor: TextPreprocessor) -> pd.DataFrame:
@@ -117,13 +84,17 @@ def _prepare(path: Path, preprocessor: TextPreprocessor) -> pd.DataFrame:
     return frame
 
 
-def load_splits(rules_path: Path = RULES_PATH):
+def load_splits(rules_path: Path = DEFAULT_RULES_PATH):
     """Muat data latih/validasi/uji dengan leakage guard berbasis produk.
 
     - Data latih : split ``train`` dari dataset utama + katalog yang produknya
       tidak muncul di split val/test dataset utama.
     - Data uji   : split ``test`` dataset utama (produk belum pernah dilihat).
     - Data val   : split ``val`` dataset utama, hanya untuk pemantauan.
+
+    Baris val/test yang teks mentahnya identik dengan baris train dibuang,
+    karena duplikat verbatim menaikkan akurasi tanpa mengukur generalisasi
+    (9 baris uji dan 7 baris validasi pada dataset sintetis).
     """
     preprocessor = TextPreprocessor(rules_path)
     base = _prepare(BASE_CSV, preprocessor)
@@ -135,6 +106,10 @@ def load_splits(rules_path: Path = RULES_PATH):
 
     held_out = set(val["nama_produk"]) | set(test["nama_produk"])
     catalog_train = catalog[~catalog["nama_produk"].isin(held_out)]
+
+    seen_text = set(train["receipt_text"].astype(str))
+    val = val[~val["receipt_text"].astype(str).isin(seen_text)]
+    test = test[~test["receipt_text"].astype(str).isin(seen_text)]
 
     train = pd.concat([train, catalog_train], ignore_index=True)
     val = val.reset_index(drop=True)

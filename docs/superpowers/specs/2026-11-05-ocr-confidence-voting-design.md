@@ -1,7 +1,15 @@
 # Desain: Confidence ML Kit sebagai Tie-Breaker + Multi-Variant Voting
 
 Tanggal: 2026-11-05
-Status: menunggu persetujuan
+Status: disetujui (2026-11-12) — diimplementasikan sesuai scope spec ini
+      (voting amount + tie-breaker confidence). Perluasan voting ke nama item
+      disengaja di luar scope ini; pertimbangkan sebagai follow-up terpisah.
+
+Catatan implementasi (2026-11-12): `prepareSharpened` dihapus dari
+`image_quality.dart` pada commit d76be49 (dead code — satu-satunya calon
+pemakainya adalah fitur ini yang belum disetujui). Method itu (49 baris)
+harus dikembalikan, misalnya dari `git show d76be49^:smart_receipt/lib/ocr/image_quality.dart`,
+sebelum voting diimplementasikan.
 
 ## Intent & why
 

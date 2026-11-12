@@ -9,7 +9,6 @@ class AppPalette {
   const AppPalette({
     required this.bg,
     required this.navy,
-    required this.navyDeep,
     required this.orange,
     required this.amber,
     required this.green,
@@ -27,11 +26,8 @@ class AppPalette {
     required this.redSoft,
     required this.greenSoft,
     required this.amberSoft,
-    required this.orangeSoft,
     required this.categoryColors,
     required this.iconMuted,
-    required this.mutedScale,
-    required this.heroGradient,
     required this.viewfinderGradient,
     required this.panelGradient,
     required this.brandGradient,
@@ -53,7 +49,6 @@ class AppPalette {
 
   final Color bg;
   final Color navy;
-  final Color navyDeep;
   final Color orange;
   final Color amber;
   final Color green;
@@ -71,19 +66,12 @@ class AppPalette {
   final Color redSoft;
   final Color greenSoft;
   final Color amberSoft;
-  final Color orangeSoft;
 
   /// Accent colour per category, in the same order as `kCategories`.
   final List<Color> categoryColors;
 
   /// Neutral colour for icons drawn on [iconBox] or [card].
   final Color iconMuted;
-
-  /// De-emphasised grey scale used by the analysis bars.
-  final List<Color> mutedScale;
-
-  /// Gradient behind the hero summary cards (total spend, prediction, header).
-  final List<Color> heroGradient;
 
   /// Gradient behind image / receipt placeholders.
   final List<Color> viewfinderGradient;
@@ -101,7 +89,7 @@ class AppPalette {
   /// Colour of the glyph drawn on the app logo tile.
   final Color brandIcon;
 
-  /// Colour of the non-highlighted bars drawn on top of [heroGradient].
+  /// Colour of the non-highlighted bars in the category bar charts.
   final Color heroTrack;
 
   /// Content colour drawn on top of a [navy] surface.
@@ -142,7 +130,6 @@ class AppPalette {
   static const AppPalette light = AppPalette(
     bg: Color(0xFFF9F9FF),
     navy: Color(0xFF131A33),
-    navyDeep: Color(0xFF151C27),
     orange: Color(0xFFFEA619),
     amber: Color(0xFF8C5D10),
     green: Color(0xFF009668),
@@ -160,7 +147,6 @@ class AppPalette {
     redSoft: Color(0xFFFCE9EA),
     greenSoft: Color(0xFFE1F4EC),
     amberSoft: Color(0xFFFCEFD8),
-    orangeSoft: Color(0xFFFDF0DC),
     categoryColors: <Color>[
       Color(0xFFFEA619),
       Color(0xFF4C8DF6),
@@ -173,16 +159,6 @@ class AppPalette {
       Color(0xFF8A8D97),
     ],
     iconMuted: Color(0xFF3A4152),
-    mutedScale: <Color>[
-      Color(0xFF3D445C),
-      Color(0xFF686F84),
-      Color(0xFF9299AD),
-    ],
-    heroGradient: <Color>[
-      Color(0xFF141A34),
-      Color(0xFF1B2036),
-      Color(0xFF3B3730),
-    ],
     viewfinderGradient: <Color>[
       Color(0xFF141A34),
       Color(0xFF1B2036),
@@ -220,7 +196,6 @@ class AppPalette {
   static const AppPalette dark = AppPalette(
     bg: Color(0xFF000000),
     navy: Color(0xFF0095F6),
-    navyDeep: Color(0xFF000000),
     orange: Color(0xFFFA7E1E),
     amber: Color(0xFFFCAF45),
     green: Color(0xFF78DE45),
@@ -238,7 +213,6 @@ class AppPalette {
     redSoft: Color(0xFF2A1416),
     greenSoft: Color(0xFF15260E),
     amberSoft: Color(0xFF2A2110),
-    orangeSoft: Color(0xFF2A1B0E),
     categoryColors: <Color>[
       Color(0xFFFA7E1E),
       Color(0xFF0095F6),
@@ -251,16 +225,6 @@ class AppPalette {
       Color(0xFFA8A8A8),
     ],
     iconMuted: Color(0xFFA8A8A8),
-    mutedScale: <Color>[
-      Color(0xFF4A4A4A),
-      Color(0xFF6E6E6E),
-      Color(0xFF9A9A9A),
-    ],
-    heroGradient: <Color>[
-      Color(0xFF33204A),
-      Color(0xFF43214F),
-      Color(0xFF522343),
-    ],
     viewfinderGradient: <Color>[
       Color(0xFF121212),
       Color(0xFF1C1C1C),
@@ -307,7 +271,6 @@ class AppColors {
 
   static Color get bg => _palette.bg;
   static Color get navy => _palette.navy;
-  static Color get navyDeep => _palette.navyDeep;
   static Color get orange => _palette.orange;
   static Color get amber => _palette.amber;
   static Color get green => _palette.green;
@@ -325,10 +288,7 @@ class AppColors {
   static Color get redSoft => _palette.redSoft;
   static Color get greenSoft => _palette.greenSoft;
   static Color get amberSoft => _palette.amberSoft;
-  static Color get orangeSoft => _palette.orangeSoft;
   static Color get iconMuted => _palette.iconMuted;
-  static List<Color> get mutedScale => _palette.mutedScale;
-  static List<Color> get heroGradient => _palette.heroGradient;
   static List<Color> get viewfinderGradient => _palette.viewfinderGradient;
   static List<Color> get panelGradient => _palette.panelGradient;
   static List<Color> get brandGradient => _palette.brandGradient;

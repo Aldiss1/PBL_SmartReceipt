@@ -15,7 +15,7 @@ tersedia untuk kedua platform itu; scaffolding web/desktop sudah dihapus.
 
 ```
 lib/
-  data/          adapter antara model OCR dan model penyimpanan
+  data/          adapter model database (receipt_model) ke model UI (models)
   helpers/       akses SQLite
   models/        model data, kategori, transaksi
   navigation/    rute dan transisi halaman

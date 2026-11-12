@@ -66,7 +66,6 @@ void main() {
   test('starts empty', () {
     expect(provider.receipts, isEmpty);
     expect(provider.totalThisMonth, 0);
-    expect(provider.totalAllTime, 0);
     expect(provider.spendingByCategory, isEmpty);
     expect(provider.monthOverMonthChange, isNull);
   });
@@ -87,9 +86,7 @@ void main() {
     expect(provider.receipts.single.storeName, 'Indomaret');
     expect(provider.receipts.single.transactions.length, 1);
     expect(provider.totalThisMonth, 50000);
-    expect(provider.totalAllTime, 50000);
     expect(provider.countThisMonth, 1);
-    expect(provider.countAllTime, 1);
     expect(provider.spendingByCategory['Makanan'], 50000);
     expect(provider.monthlyTotals.last.total, 50000);
     expect(provider.recentReceipts(3).length, 1);
@@ -127,30 +124,8 @@ void main() {
     expect(provider.spendingByCategory['Minuman'], 150000);
   });
 
-  test('deleting a receipt removes it from every aggregate', () async {
-    final DateTime now = DateTime.now();
-    final int id = await provider.addReceipt(
-      _receipt(
-        store: 'Hapus',
-        date: now,
-        total: 25000,
-        categoryId: 1,
-        itemTotal: 25000,
-      ),
-    );
-    expect(provider.totalThisMonth, 25000);
-
-    await provider.deleteReceipt(id);
-
-    expect(provider.receipts, isEmpty);
-    expect(provider.totalThisMonth, 0);
-    expect(provider.totalAllTime, 0);
-    expect(provider.spendingByCategory, isEmpty);
-  });
-
   test('category names resolve through the seeded categories', () {
     expect(provider.categoryNameFor(1), 'Makanan');
     expect(provider.categoryNameFor(999), 'Lainnya');
-    expect(provider.getCategoryById(2)?.name, 'Minuman');
   });
 }

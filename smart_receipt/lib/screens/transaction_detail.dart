@@ -24,16 +24,10 @@ class TransactionDetailScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: <Widget>[
-            const AppStatusBar(),
             AppTopBar(
               title: 'Detail Transaksi',
               subtitle: transaction.id,
               onBack: () => Navigator.maybePop(context),
-              actions: <Widget>[
-                CircleIconButton(icon: Icons.delete_outline, onTap: () {}),
-                const SizedBox(width: 10),
-                CircleIconButton(icon: Icons.edit_outlined, onTap: () {}),
-              ],
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -379,8 +373,6 @@ class _SummaryCard extends StatelessWidget {
       child: Column(
         children: <Widget>[
           _row('Subtotal', rupiah(transaction.total)),
-          const SizedBox(height: 12),
-          _row('Diskon', '-Rp0'),
           const SizedBox(height: 12),
           _row('Kategori', '${transaction.categories.length} kategori'),
           Padding(

@@ -254,31 +254,6 @@ void main() {
       expect(decoded!.width, r.width);
     });
 
-    test('sharpened copy is measurably sharper than the blurred source',
-        () async {
-      // Create an artificially blurred receipt image.
-      final img.Image blurred = img.gaussianBlur(_receiptImage(), radius: 4);
-      final String src = await write(blurred, 'blur_sharp_src.jpg');
-      final String prepared = '${tmp.path}/blur_sharp_prep.jpg';
-      await ImagePreprocessor()
-          .prepare(sourcePath: src, outputPath: prepared);
-
-      final String sharpenedPath = '${tmp.path}/sharpened.jpg';
-      await ImagePreprocessor().prepareSharpened(
-        preparedPath: prepared,
-        outputPath: sharpenedPath,
-      );
-
-      final img.Image? orig = img.decodeImage(File(prepared).readAsBytesSync());
-      final img.Image? sharp =
-          img.decodeImage(File(sharpenedPath).readAsBytesSync());
-      expect(orig, isNotNull);
-      expect(sharp, isNotNull);
-      // Same dimensions — sharpening must not resize.
-      expect(sharp!.width, orig!.width);
-      expect(sharp.height, orig.height);
-    });
-
     test('detects the receipt paper on a dark keyboard background', () async {
       // A photo taken on a keyboard: dark keys around a bright sheet. Ink-based
       // detection used to swallow the keys; paper-based detection must not.

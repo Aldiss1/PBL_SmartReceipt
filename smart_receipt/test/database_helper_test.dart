@@ -115,41 +115,6 @@ void main() {
     expect(receipts.single.transactions.first.itemName, 'Indomie Goreng');
   });
 
-  test('analytics use transaction_date, not created_at', () async {
-    // Printed in October but entered much later.
-    await _save(
-      helper,
-      _receipt(
-        store: 'Lama',
-        date: DateTime(2026, 10, 31, 23, 30),
-        total: 50000,
-        createdAt: DateTime(2026, 12, 1),
-      ),
-    );
-    await _save(
-      helper,
-      _receipt(
-        store: 'November',
-        date: DateTime(2026, 11, 1),
-        total: 90000,
-        createdAt: DateTime(2026, 11, 1),
-      ),
-    );
-
-    final double october = await helper.getTotalSpendingBetween(
-      DateTime(2026, 10, 1),
-      DateTime(2026, 11, 1),
-    );
-    expect(october, 50000);
-
-    final Map<String, double> byCategory = await helper.getSpendingByCategory(
-      from: DateTime(2026, 10, 1),
-      toExclusive: DateTime(2026, 11, 1),
-    );
-    expect(byCategory['Makanan'], 7000);
-    expect(byCategory['Minuman'], 3000);
-  });
-
   test('deleting a receipt cascades to its items', () async {
     final int id = await _save(
       helper,
@@ -162,9 +127,10 @@ void main() {
     );
 
     expect((await helper.getTransactionsByReceiptId(id)).length, 2);
-    await helper.deleteReceipt(id);
+    final db = await helper.database;
+    await db.delete('receipts', where: 'id = ?', whereArgs: <Object>[id]);
     expect(await helper.getTransactionsByReceiptId(id), isEmpty);
-    expect(await helper.getAllReceipts(), isEmpty);
+    expect(await helper.getReceiptsWithTransactions(), isEmpty);
   });
 
   test('seeds exactly the canonical taxonomy', () async {

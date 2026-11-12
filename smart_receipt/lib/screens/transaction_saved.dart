@@ -44,7 +44,6 @@ class TransactionSavedScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
           child: Column(
             children: <Widget>[
-              const AppStatusBar(),
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(

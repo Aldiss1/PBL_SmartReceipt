@@ -15,8 +15,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _notifications = true;
-
   /// Number of user category corrections collected on this device, i.e. new
   /// training data. Null while loading.
   int? _correctionCount;
@@ -146,7 +144,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           child: Column(
           children: <Widget>[
-            const AppStatusBar(),
             const AppTopBar(title: 'Pengaturan'),
             Expanded(
               child: SingleChildScrollView(
@@ -169,13 +166,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           title: 'Mode Gelap',
                           value: themeController.isDark,
                           onChanged: themeController.setDark,
-                        ),
-                        const _Divider(),
-                        _SwitchTile(
-                          icon: Icons.notifications_none,
-                          title: 'Notifikasi',
-                          value: _notifications,
-                          onChanged: (bool v) => setState(() => _notifications = v),
                         ),
                         const _Divider(),
                         const _LinkTile(
@@ -232,17 +222,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const _LinkTile(
                           icon: Icons.help_outline,
                           title: 'Bantuan & Dukungan',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    _SettingsGroup(
-                      children: <Widget>[
-                        _LinkTile(
-                          icon: Icons.logout,
-                          title: 'Keluar',
-                          danger: true,
-                          onTap: () {},
                         ),
                       ],
                     ),
@@ -371,21 +350,18 @@ class _LinkTile extends StatelessWidget {
     required this.icon,
     required this.title,
     this.trailingText,
-    this.danger = false,
     this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String? trailingText;
-  final bool danger;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final Color tint = danger ? AppColors.red : AppColors.iconMuted;
     return InkWell(
-      onTap: onTap ?? () {},
+      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -394,8 +370,8 @@ class _LinkTile extends StatelessWidget {
               icon: icon,
               size: 36,
               iconSize: 18,
-              background: danger ? AppColors.redSoft : AppColors.iconBox,
-              color: tint,
+              background: AppColors.iconBox,
+              color: AppColors.iconMuted,
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -404,7 +380,7 @@ class _LinkTile extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: danger ? AppColors.red : AppColors.textDark,
+                  color: AppColors.textDark,
                 ),
               ),
             ),
@@ -417,7 +393,7 @@ class _LinkTile extends StatelessWidget {
             Icon(
               Icons.chevron_right,
               size: 20,
-              color: danger ? AppColors.red : AppColors.textMuted,
+              color: AppColors.textMuted,
             ),
           ],
         ),

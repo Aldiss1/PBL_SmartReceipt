@@ -21,26 +21,20 @@ class ReceiptProvider with ChangeNotifier {
   List<Category> _categories = <Category>[];
   Map<int, String> _categoryNames = <int, String>{};
   bool _isLoading = false;
-  String? _error;
 
   double _totalThisMonth = 0;
   double _totalLastMonth = 0;
-  double _totalAllTime = 0;
   int _countThisMonth = 0;
-  int _countAllTime = 0;
   Map<String, double> _spendingByCategory = <String, double>{};
   List<MonthlyTotal> _monthlyTotals = const <MonthlyTotal>[];
 
   List<Receipt> get receipts => _receipts;
   List<Category> get categories => _categories;
   bool get isLoading => _isLoading;
-  String? get error => _error;
 
   double get totalThisMonth => _totalThisMonth;
   double get totalLastMonth => _totalLastMonth;
-  double get totalAllTime => _totalAllTime;
   int get countThisMonth => _countThisMonth;
-  int get countAllTime => _countAllTime;
 
   /// Item spending per category for the current month.
   Map<String, double> get spendingByCategory => _spendingByCategory;
@@ -73,7 +67,6 @@ class ReceiptProvider with ChangeNotifier {
 
   Future<void> loadData() async {
     _isLoading = true;
-    _error = null;
     notifyListeners();
 
     try {
@@ -87,8 +80,7 @@ class ReceiptProvider with ChangeNotifier {
       _receipts = loaded;
       _recompute();
     } catch (e) {
-      _error = 'Gagal memuat data: $e';
-      debugPrint(_error);
+      debugPrint('Gagal memuat data: $e');
       _receipts = <Receipt>[];
       _recompute();
     }
@@ -114,16 +106,11 @@ class ReceiptProvider with ChangeNotifier {
       from: lastMonth,
       toExclusive: thisMonth,
     );
-    _totalAllTime = _receipts.fold<double>(
-      0,
-      (double sum, Receipt r) => sum + r.totalAmount,
-    );
     _countThisMonth = SpendingAnalytics.countBetween(
       _receipts,
       from: thisMonth,
       toExclusive: nextMonth,
     );
-    _countAllTime = _receipts.length;
     _spendingByCategory = SpendingAnalytics.byCategory(
       _receipts,
       _categoryNames,
@@ -157,41 +144,5 @@ class ReceiptProvider with ChangeNotifier {
 
     await loadData();
     return id;
-  }
-
-  Future<void> updateReceipt(Receipt receipt) async {
-    await _dbHelper.updateReceipt(receipt);
-    await loadData();
-  }
-
-  Future<void> deleteReceipt(int id) async {
-    await _dbHelper.deleteReceipt(id);
-    await loadData();
-  }
-
-  /// Receipt with its items, preferring the already-loaded copy.
-  Future<Receipt?> getReceiptWithTransactions(int receiptId) async {
-    for (final Receipt receipt in _receipts) {
-      if (receipt.id == receiptId) {
-        return receipt;
-      }
-    }
-
-    final Receipt? receipt = await _dbHelper.getReceiptById(receiptId);
-    if (receipt == null) {
-      return null;
-    }
-    final List<Transaction> transactions =
-        await _dbHelper.getTransactionsByReceiptId(receiptId);
-    return receipt.copyWith(transactions: transactions);
-  }
-
-  Category? getCategoryById(int id) {
-    for (final Category category in _categories) {
-      if (category.id == id) {
-        return category;
-      }
-    }
-    return null;
   }
 }

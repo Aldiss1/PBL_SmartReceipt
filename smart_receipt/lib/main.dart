@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import 'theme/app_colors.dart';
 import 'providers/receipt_provider.dart';
-import 'screens/scan_receipt.dart';
 import 'screens/splash_screen.dart';
 import 'theme/theme_controller.dart';
 
@@ -92,9 +91,6 @@ class _SmartReceiptAppState extends State<SmartReceiptApp>
           darkTheme: _theme(AppPalette.dark, Brightness.dark),
           themeMode: dark ? ThemeMode.dark : ThemeMode.light,
           home: const SplashScreen(),
-          routes: {
-            '/scan': (_) => const ScanReceiptScreen(),
-          },
         ),
       ),
     );

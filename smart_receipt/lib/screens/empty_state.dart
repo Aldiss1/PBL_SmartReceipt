@@ -117,7 +117,6 @@ class EmptyStateScreen extends StatelessWidget {
           ),
           child: Column(
           children: <Widget>[
-            const AppStatusBar(),
             AppTopBar(
               title: 'Riwayat Transaksi',
               onBack: () => Navigator.maybePop(context),

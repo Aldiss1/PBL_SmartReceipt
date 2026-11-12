@@ -45,7 +45,6 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           ),
           child: Column(
           children: <Widget>[
-            const AppStatusBar(),
             AppTopBar(
               title: 'Analisis Pengeluaran',
               subtitle: 'Ringkasan & distribusi',

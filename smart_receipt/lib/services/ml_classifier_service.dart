@@ -13,7 +13,10 @@ import 'text_normalizer.dart';
 ///
 /// Asset: `assets/model_kategori_produk.json` — the model trained on
 /// `ML/Dataset_SmartReceipt_Sintetis.csv` (6.026 rows, 15 categories). Its
-/// export carries no `preprocessing` marker, so it expects raw OCR text; see
+/// export carries the `preprocessing: flutter_id_v1` marker, so
+/// [TfidfNaiveBayesEngine] runs [IndonesianTextPreprocessor] (the on-device
+/// twin of `ML/preprocessing.py`) before tokenizing; older exports without
+/// the marker expect raw OCR text. See
 /// [TfidfNaiveBayesEngine.usesApplicationPreprocessing].
 class MLClassifierService {
   MLClassifierService({TfidfNaiveBayesEngine? engine})

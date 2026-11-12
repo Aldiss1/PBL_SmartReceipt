@@ -186,8 +186,8 @@ class DatabaseHelper implements CorrectionStore {
   /// category the user chose, for a given item name.
   ///
   /// Kept separate from `transactions` so the training signal survives even if
-  /// the receipt is deleted, and so `retraining_service.dart` can export it
-  /// without touching business data.
+  /// the receipt is deleted, and so `correction_training_service.dart` can
+  /// export it without touching business data.
   Future<void> _createCorrectionsTable(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS $_tableCorrections (
@@ -229,12 +229,6 @@ class DatabaseHelper implements CorrectionStore {
     return db.insert(_tableReceipts, receipt.toMap());
   }
 
-  Future<List<Receipt>> getAllReceipts() async {
-    final db = await database;
-    final result = await db.query(_tableReceipts, orderBy: 'created_at DESC');
-    return result.map((map) => Receipt.fromMap(map)).toList();
-  }
-
   /// Every receipt with its item rows attached, newest receipt date first.
   ///
   /// Loads the two tables in two queries and groups in Dart instead of doing
@@ -264,35 +258,6 @@ class DatabaseHelper implements CorrectionStore {
     }).toList();
   }
 
-  Future<Receipt?> getReceiptById(int id) async {
-    final db = await database;
-    final result = await db.query(
-      _tableReceipts,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    return result.isNotEmpty ? Receipt.fromMap(result.first) : null;
-  }
-
-  Future<int> updateReceipt(Receipt receipt) async {
-    final db = await database;
-    return db.update(
-      _tableReceipts,
-      receipt.toMap(),
-      where: 'id = ?',
-      whereArgs: [receipt.id],
-    );
-  }
-
-  Future<int> deleteReceipt(int id) async {
-    final db = await database;
-    return db.delete(
-      _tableReceipts,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
   // TRANSACTION OPERATIONS
   Future<int> insertTransaction(Transaction transaction) async {
     final db = await database;
@@ -309,99 +274,11 @@ class DatabaseHelper implements CorrectionStore {
     return result.map((map) => Transaction.fromMap(map)).toList();
   }
 
-  Future<List<Transaction>> getAllTransactions() async {
-    final db = await database;
-    final result = await db.query(_tableTransactions, orderBy: 'created_at DESC');
-    return result.map((map) => Transaction.fromMap(map)).toList();
-  }
-
-  Future<int> updateTransaction(Transaction transaction) async {
-    final db = await database;
-    return db.update(
-      _tableTransactions,
-      transaction.toMap(),
-      where: 'id = ?',
-      whereArgs: [transaction.id],
-    );
-  }
-
-  Future<int> deleteTransaction(int id) async {
-    final db = await database;
-    return db.delete(
-      _tableTransactions,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
   // CATEGORY OPERATIONS
   Future<List<Category>> getAllCategories() async {
     final db = await database;
     final result = await db.query(_tableCategories, orderBy: 'id ASC');
     return result.map((map) => Category.fromMap(map)).toList();
-  }
-
-  Future<Category?> getCategoryById(int id) async {
-    final db = await database;
-    final result = await db.query(
-      _tableCategories,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    return result.isNotEmpty ? Category.fromMap(result.first) : null;
-  }
-
-  // ANALYTICS
-  //
-  // All totals filter on `transaction_date` (the date printed on the receipt)
-  // and use a half-open range `[from, to)` so the last day of a month is fully
-  // included. Filtering on `created_at` would put a receipt entered late into
-  // the wrong month.
-
-  Future<double> getTotalSpendingThisMonth({DateTime? now}) async {
-    final DateTime reference = now ?? DateTime.now();
-    final DateTime start = DateTime(reference.year, reference.month);
-    final DateTime end = DateTime(reference.year, reference.month + 1);
-    return getTotalSpendingBetween(start, end);
-  }
-
-  Future<double> getTotalSpendingBetween(
-    DateTime from,
-    DateTime toExclusive,
-  ) async {
-    final db = await database;
-    final result = await db.rawQuery('''
-      SELECT SUM(total_amount) as total FROM $_tableReceipts
-      WHERE transaction_date >= ? AND transaction_date < ?
-    ''', <Object>[from.toIso8601String(), toExclusive.toIso8601String()]);
-
-    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
-  }
-
-  /// Spending per category, optionally limited to `[from, toExclusive)`.
-  Future<Map<String, double>> getSpendingByCategory({
-    DateTime? from,
-    DateTime? toExclusive,
-  }) async {
-    final db = await database;
-    final bool ranged = from != null && toExclusive != null;
-    final result = await db.rawQuery('''
-      SELECT c.name, SUM(t.total_price) as total
-      FROM $_tableTransactions t
-      JOIN $_tableCategories c ON t.category_id = c.id
-      JOIN $_tableReceipts r ON t.receipt_id = r.id
-      ${ranged ? 'WHERE r.transaction_date >= ? AND r.transaction_date < ?' : ''}
-      GROUP BY t.category_id
-    ''', ranged
-        ? <Object>[from.toIso8601String(), toExclusive.toIso8601String()]
-        : const <Object>[]);
-
-    final Map<String, double> spending = <String, double>{};
-    for (final Map<String, Object?> row in result) {
-      spending[row['name'] as String] =
-          (row['total'] as num?)?.toDouble() ?? 0.0;
-    }
-    return spending;
   }
 
   Future<void> close() async {
@@ -478,10 +355,5 @@ class DatabaseHelper implements CorrectionStore {
       where: 'id IN ($placeholders)',
       whereArgs: ids.toList(),
     );
-  }
-
-  Future<int> deleteCategoryCorrection(int id) async {
-    final db = await database;
-    return db.delete(_tableCorrections, where: 'id = ?', whereArgs: <Object>[id]);
   }
 }

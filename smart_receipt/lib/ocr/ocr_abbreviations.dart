@@ -154,8 +154,8 @@ class OcrAbbreviationExpander {
   /// Expands abbreviations in [ocrText] and returns the expanded form.
   ///
   /// The original text is preserved as-is when no abbreviation is found.
-  /// Expansion is case-insensitive; the result is returned in upper case to
-  /// match the thermal-print convention.
+  /// Expansion is case-insensitive; matched tokens are replaced with their
+  /// canonical (upper-case) form while unmatched tokens are kept unchanged.
   String expand(String ocrText) {
     if (ocrText.trim().isEmpty) {
       return ocrText;

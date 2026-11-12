@@ -143,7 +143,6 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
         bottom: false,
         child: Column(
           children: <Widget>[
-            const AppStatusBar(),
             AppTopBar(
               title: 'Scan Struk',
               subtitle: 'Ambil foto struk belanja',

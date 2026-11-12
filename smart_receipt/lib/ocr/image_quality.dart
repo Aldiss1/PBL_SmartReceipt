@@ -675,55 +675,6 @@ class ImagePreprocessor {
     }
   }
 
-  /// Applies unsharp mask sharpening to an already-prepared image and writes
-  /// the result to [outputPath].
-  ///
-  /// Used when blur is detected: a Gaussian-blurred copy is subtracted from the
-  /// original (the classic unsharp mask formula) to accentuate edges and make
-  /// faint strokes more distinct for the recognizer.
-  ///
-  ///   sharpened = original + amount × (original − blurred)
-  ///
-  /// The amount is capped so that noise in blank-paper regions is not amplified
-  /// into false strokes, which would confuse ML Kit's line detector.
-  Future<String> prepareSharpened({
-    required String preparedPath,
-    required String outputPath,
-    double amount = 1.2,
-  }) async {
-    final img.Image? decoded = await _decode(preparedPath);
-    if (decoded == null) {
-      return preparedPath;
-    }
-
-    // Blur radius chosen so individual character strokes stay intact but
-    // low-frequency haze (camera motion blur, defocus) is captured.
-    final img.Image blurred = img.gaussianBlur(decoded, radius: 2);
-
-    final img.Image sharpened = img.Image(
-      width: decoded.width,
-      height: decoded.height,
-      numChannels: decoded.numChannels,
-    );
-
-    for (int y = 0; y < decoded.height; y++) {
-      for (int x = 0; x < decoded.width; x++) {
-        final img.Pixel orig = decoded.getPixel(x, y);
-        final img.Pixel blur = blurred.getPixel(x, y);
-        final img.Pixel dst = sharpened.getPixel(x, y);
-
-        dst.r = (orig.r + amount * (orig.r - blur.r)).clamp(0, 255).round();
-        dst.g = (orig.g + amount * (orig.g - blur.g)).clamp(0, 255).round();
-        dst.b = (orig.b + amount * (orig.b - blur.b)).clamp(0, 255).round();
-      }
-    }
-
-    final File out = File(outputPath);
-    out.parent.createSync(recursive: true);
-    await out.writeAsBytes(img.encodeJpg(sharpened, quality: 92));
-    return outputPath;
-  }
-
   /// Corrects perspective distortion caused by photographing a receipt at an
   /// angle (i.e. not straight-on from above).
   ///

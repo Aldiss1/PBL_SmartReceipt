@@ -128,7 +128,6 @@ class _CategoryClassificationScreenState
         bottom: false,
         child: Column(
           children: <Widget>[
-            const AppStatusBar(),
             AppTopBar(
               title: 'Klasifikasi Kategori',
               subtitle: 'TF-IDF + Naive Bayes',

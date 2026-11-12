@@ -23,16 +23,12 @@ class ItemPrediction {
 /// Rule-based fallback classifier used when the exported TF-IDF + Naive Bayes
 /// model cannot be loaded.
 ///
-/// The primary path is [TfidfNaiveBayesEngine]; this lexicon only exists so the
-/// scan flow never dead-ends. Prefer the model whenever it is available, since
-/// its confidence is calibrated while this one is heuristic.
-
-/// On-device Naive Bayes classifier over TF-IDF-like token weights.
-///
-/// This mirrors the "TF-IDF + Naive Bayes" model described by the UI, but runs
-/// locally on the item names produced by OCR instead of returning fixed demo
-/// data. The lexicon is intentionally small and explicit so behaviour is
-/// explainable; unseen tokens fall back to a smoothing prior.
+/// The primary path is [TfidfNaiveBayesEngine]; this weighted keyword lexicon
+/// only exists so the scan flow never dead-ends. Despite the UI's
+/// "TF-IDF + Naive Bayes" label, it is not a Naive Bayes model: it scores the
+/// item name against per-category keyword weights with a smoothing prior and
+/// reports a softmax-style confidence, so prefer the real model whenever it
+/// loads — its confidence is calibrated, this one is heuristic.
 class ReceiptClassifier {
   ReceiptClassifier();
 

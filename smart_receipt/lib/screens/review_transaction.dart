@@ -180,7 +180,6 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
         bottom: false,
         child: Column(
           children: <Widget>[
-            const AppStatusBar(),
             AppTopBar(
               title: 'Review Transaksi',
               subtitle: 'Periksa & koreksi hasil OCR',
@@ -220,12 +219,6 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
                     for (int i = 0; i < _items.length; i++)
                       _ItemCard(item: _items[i], onTap: () => _editCategory(i)),
                     if (_items.isEmpty) const _EmptyItemsNotice(),
-                    const SizedBox(height: 4),
-                    SecondaryButton(
-                      label: 'Tambah Item',
-                      icon: Icons.add,
-                      onPressed: () {},
-                    ),
                     const SizedBox(height: 18),
                     _TotalCard(
                       itemsTotal: _itemsTotal,

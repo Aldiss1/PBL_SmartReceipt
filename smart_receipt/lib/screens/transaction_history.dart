@@ -85,7 +85,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           ),
           child: Column(
             children: <Widget>[
-              const AppStatusBar(),
               AppTopBar(
                 title: 'Riwayat Transaksi',
                 subtitle: '${provider.receipts.length} transaksi tercatat',

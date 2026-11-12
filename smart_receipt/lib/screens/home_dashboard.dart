@@ -46,7 +46,6 @@ class HomeDashboard extends StatelessWidget {
           ),
           child: Column(
           children: [
-            const AppStatusBar(),
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(

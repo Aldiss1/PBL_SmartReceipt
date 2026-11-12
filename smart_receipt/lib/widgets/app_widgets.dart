@@ -3,20 +3,6 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../models/models.dart';
 
-/// iOS-style status bar used across every screen for visual consistency.
-class AppStatusBar extends StatelessWidget {
-  const AppStatusBar({super.key, this.time = ''});
-
-  final String time;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-    );
-  }
-}
-
 /// Screen title bar with optional back button and trailing actions.
 class AppTopBar extends StatelessWidget {
   const AppTopBar({
@@ -115,28 +101,24 @@ class SectionHeader extends StatelessWidget {
     super.key,
     required this.title,
     this.trailing,
-    this.showAccent = true,
   });
 
   final String title;
   final Widget? trailing;
-  final bool showAccent;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
-        if (showAccent) ...<Widget>[
-          Container(
-            width: 6,
-            height: 20,
-            decoration: BoxDecoration(
-              color: AppColors.orange,
-              borderRadius: BorderRadius.circular(3),
-            ),
+        Container(
+          width: 6,
+          height: 20,
+          decoration: BoxDecoration(
+            color: AppColors.orange,
+            borderRadius: BorderRadius.circular(3),
           ),
-          const SizedBox(width: 10),
-        ],
+        ),
+        const SizedBox(width: 10),
         Expanded(
           child: Text(
             title,

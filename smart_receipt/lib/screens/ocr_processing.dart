@@ -141,7 +141,6 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen> {
         bottom: false,
         child: Column(
           children: <Widget>[
-            const AppStatusBar(),
             AppTopBar(
               title: 'Memproses OCR',
               subtitle: _result != null ? 'Selesai' : 'Mohon tunggu sebentar',
@@ -473,7 +472,6 @@ class _FailureView extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: <Widget>[
-            const AppStatusBar(),
             AppTopBar(title: 'OCR Gagal', onBack: onBack),
             Expanded(
               child: Padding(

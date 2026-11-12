@@ -137,7 +137,7 @@ class IndonesianTextPreprocessor {
   /// Must list exactly the `units` array of `text_normalization_id.json` (plus
   /// `x`/`qty`), because `ML/preprocessing.py` builds the same pattern from
   /// that file. A mismatch here means the model sees different tokens in
-  /// training and on-device; `test/preprocessing_parity_test.dart` guards it.
+  /// training and on-device; `test/model_parity_test.dart` guards it.
   static final RegExp _unitNoise = RegExp(
     r'\b(?:x|qty|kg|gr|gram|ons|ml|ltr|liter|cc|pcs|pc|pck|pack|pak|ctn|dus|'
     r'box|botol|bks|bungkus|sachet|sct|lusin|rim|set)\b',

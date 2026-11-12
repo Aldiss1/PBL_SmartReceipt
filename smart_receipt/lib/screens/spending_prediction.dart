@@ -37,7 +37,6 @@ class SpendingPredictionScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: <Widget>[
-            const AppStatusBar(),
             AppTopBar(
               title: 'Prediksi Pengeluaran',
               subtitle: 'Linear Regression',

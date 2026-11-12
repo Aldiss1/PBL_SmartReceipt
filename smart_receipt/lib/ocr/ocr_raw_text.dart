@@ -13,9 +13,24 @@ class OcrRawResult {
 
   bool get isEmpty => lines.isEmpty || fullText.trim().isEmpty;
 
-  /// Average per-line recognition confidence is not exposed by ML Kit, so we
-  /// approximate text quality from the number of usable lines.
+  /// Number of recognised lines.
   int get lineCount => lines.length;
+
+  /// Mean per-line recognition confidence, or null when no line carries one
+  /// (ML Kit reports confidence only on Android; iOS is null). Used as a
+  /// tie-breaker between equally good parse candidates.
+  double? get averageConfidence {
+    double sum = 0;
+    int count = 0;
+    for (final OcrLine line in lines) {
+      final double? confidence = line.confidence;
+      if (confidence != null) {
+        sum += confidence;
+        count++;
+      }
+    }
+    return count == 0 ? null : sum / count;
+  }
 }
 
 /// One recognised line of text and its bounding box in image pixels.
@@ -26,6 +41,7 @@ class OcrLine {
     required this.top,
     required this.right,
     required this.bottom,
+    this.confidence,
   });
 
   final String text;
@@ -33,6 +49,10 @@ class OcrLine {
   final double top;
   final double right;
   final double bottom;
+
+  /// Per-line ML Kit confidence (0.0–1.0). Null on iOS and for lines ML Kit
+  /// does not score.
+  final double? confidence;
 
   double get centerY => (top + bottom) / 2;
 

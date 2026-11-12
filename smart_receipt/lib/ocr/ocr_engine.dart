@@ -74,6 +74,9 @@ class MlKitOcrEngine implements OcrEngine {
             top: line.boundingBox.top,
             right: line.boundingBox.right,
             bottom: line.boundingBox.bottom,
+            // Android only; null on iOS, so downstream must treat it as
+            // "no signal" rather than a score.
+            confidence: line.confidence,
           ),
         );
       }

@@ -63,111 +63,126 @@ class OcrService {
     final Directory dir = await getTemporaryDirectory();
     final String preparedPath =
         '${dir.path}/ocr_prepared_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    // Every intermediate JPEG this scan writes, removed again in `finally` so
+    // repeated scans do not accumulate in the OS temp directory.
+    final List<String> tempFiles = <String>[preparedPath];
 
-    onStage?.call(OcrStage.preprocessing);
-    final ImageQualityReport quality;
     try {
-      quality = await _preprocessor.prepare(
+      onStage?.call(OcrStage.preprocessing);
+      final ImageQualityReport quality;
+      try {
+        quality = await _preprocessor.prepare(
+          sourcePath: sourcePath,
+          outputPath: preparedPath,
+        );
+      } catch (e) {
+        throw OcrFailure(
+          'Gambar tidak dapat diproses.',
+          hint: 'Pastikan file gambar valid lalu coba lagi.',
+        );
+      }
+
+      onStage?.call(OcrStage.recognizing);
+      OcrRawResult raw;
+      ParsedReceipt parsed;
+      try {
+        final OcrRawResult rawFromEngine = await _engine.recognize(quality.preparedPath);
+        raw = correctOcrText(rawFromEngine);
+        parsed = _parser.parse(raw);
+      } on OcrEngineException catch (e) {
+        throw OcrFailure('OCR gagal dijalankan.', hint: e.message);
+      }
+
+      // Gallery photos in particular often fade unevenly or arrive at a different
+      // scale than an in-app capture, which can cost the recognizer most of the
+      // digits. When the first pass looks weak, try up to two alternatives and
+      // keep whichever reading the parser trusts more.
+      if (_isWeak(parsed)) {
+        parsed = await _retryOcr(
+          quality: quality,
+          dir: dir,
+          raw: raw,
+          parsed: parsed,
+          tempFiles: tempFiles,
+          onRaw: (OcrRawResult value) => raw = value,
+        );
+      }
+
+      if (raw.isEmpty) {
+        bool paperFound = true;
+        try {
+          paperFound = await _preprocessor.containsReceiptPaper(quality.preparedPath);
+        } catch (_) {
+          paperFound = true;
+        }
+        if (!paperFound) {
+          throw OcrFailure(
+            'Struk tidak terdeteksi pada foto.',
+            hint: 'Pastikan struk terlihat utuh dan mengisi sebagian besar '
+                'bingkai, lalu hindari latar gelap seperti keyboard.',
+          );
+        }
+        throw OcrFailure(
+          'Tidak ada teks yang terbaca pada struk.',
+          hint: 'Coba foto ulang dengan pencahayaan lebih terang dan '
+              'posisikan struk memenuhi bingkai.',
+        );
+      }
+
+      // Last resort for gallery imports that are stored sideways: ML Kit does not
+      // auto-rotate, so a receipt lying on its side yields a couple of stray
+      // lines. Try a quarter turn and keep the better reading.
+      if (raw.lineCount < 5) {
+        try {
+          final String rotatedPath = '${dir.path}/ocr_rotated_'
+              '${DateTime.now().millisecondsSinceEpoch}.jpg';
+          await _preprocessor.prepareRotated(
+            preparedPath: quality.preparedPath,
+            outputPath: rotatedPath,
+            degrees: 90,
+          );
+          tempFiles.add(rotatedPath);
+          final OcrRawResult rotatedRaw =
+              correctOcrText(await _engine.recognize(rotatedPath));
+          final ParsedReceipt rotatedParsed = _parser.parse(rotatedRaw);
+          if (ReceiptParser.scoreOf(rotatedParsed) >
+              ReceiptParser.scoreOf(parsed)) {
+            raw = rotatedRaw;
+            parsed = rotatedParsed;
+          }
+        } catch (_) {
+          // Keep the original result.
+        }
+      }
+
+      onStage?.call(OcrStage.parsing);
+      onStage?.call(OcrStage.done);
+
+      developer.log(
+        'OCR selesai: ${raw.lineCount} baris, '
+        'store="${parsed.store}", items=${parsed.items.length}, '
+        'total=${parsed.total}, sumber=${parsed.source}, '
+        'brightness=${quality.brightness.toStringAsFixed(0)}, '
+        'blur=${quality.blurScore.toStringAsFixed(1)}, '
+        'rotated=${quality.rotationDegrees}°',
+        name: 'SmartReceipt.OCR',
+      );
+
+      return OcrScanResult(
         sourcePath: sourcePath,
-        outputPath: preparedPath,
-      );
-    } catch (e) {
-      throw OcrFailure(
-        'Gambar tidak dapat diproses.',
-        hint: 'Pastikan file gambar valid lalu coba lagi.',
-      );
-    }
-
-    onStage?.call(OcrStage.recognizing);
-    OcrRawResult raw;
-    ParsedReceipt parsed;
-    try {
-      final OcrRawResult rawFromEngine = await _engine.recognize(quality.preparedPath);
-      raw = correctOcrText(rawFromEngine);
-      parsed = _parser.parse(raw);
-    } on OcrEngineException catch (e) {
-      throw OcrFailure('OCR gagal dijalankan.', hint: e.message);
-    }
-
-    // Gallery photos in particular often fade unevenly or arrive at a different
-    // scale than an in-app capture, which can cost the recognizer most of the
-    // digits. When the first pass looks weak, try up to two alternatives and
-    // keep whichever reading the parser trusts more.
-    if (_isWeak(parsed)) {
-      parsed = await _retryOcr(
         quality: quality,
-        dir: dir,
         raw: raw,
         parsed: parsed,
-        onRaw: (OcrRawResult value) => raw = value,
       );
-    }
-
-    if (raw.isEmpty) {
-      bool paperFound = true;
-      try {
-        paperFound = await _preprocessor.containsReceiptPaper(quality.preparedPath);
-      } catch (_) {
-        paperFound = true;
-      }
-      if (!paperFound) {
-        throw OcrFailure(
-          'Struk tidak terdeteksi pada foto.',
-          hint: 'Pastikan struk terlihat utuh dan mengisi sebagian besar '
-              'bingkai, lalu hindari latar gelap seperti keyboard.',
-        );
-      }
-      throw OcrFailure(
-        'Tidak ada teks yang terbaca pada struk.',
-        hint: 'Coba foto ulang dengan pencahayaan lebih terang dan '
-            'posisikan struk memenuhi bingkai.',
-      );
-    }
-
-    // Last resort for gallery imports that are stored sideways: ML Kit does not
-    // auto-rotate, so a receipt lying on its side yields a couple of stray
-    // lines. Try a quarter turn and keep the better reading.
-    if (raw.lineCount < 5) {
-      try {
-        final String rotatedPath = '${dir.path}/ocr_rotated_'
-            '${DateTime.now().millisecondsSinceEpoch}.jpg';
-        await _preprocessor.prepareRotated(
-          preparedPath: quality.preparedPath,
-          outputPath: rotatedPath,
-          degrees: 90,
-        );
-        final OcrRawResult rotatedRaw =
-            correctOcrText(await _engine.recognize(rotatedPath));
-        final ParsedReceipt rotatedParsed = _parser.parse(rotatedRaw);
-        if (ReceiptParser.scoreOf(rotatedParsed) >
-            ReceiptParser.scoreOf(parsed)) {
-          raw = rotatedRaw;
-          parsed = rotatedParsed;
+    } finally {
+      for (final String path in tempFiles) {
+        try {
+          File(path).deleteSync();
+        } catch (_) {
+          // Missing or already gone — nothing to clean up.
         }
-      } catch (_) {
-        // Keep the original result.
       }
     }
-
-    onStage?.call(OcrStage.parsing);
-    onStage?.call(OcrStage.done);
-
-    developer.log(
-      'OCR selesai: ${raw.lineCount} baris, '
-      'store="${parsed.store}", items=${parsed.items.length}, '
-      'total=${parsed.total}, sumber=${parsed.source}, '
-      'brightness=${quality.brightness.toStringAsFixed(0)}, '
-      'blur=${quality.blurScore.toStringAsFixed(1)}, '
-      'rotated=${quality.rotationDegrees}°',
-      name: 'SmartReceipt.OCR',
-    );
-
-    return OcrScanResult(
-      sourcePath: sourcePath,
-      quality: quality,
-      raw: raw,
-      parsed: parsed,
-    );
   }
 
   Future<void> dispose() => _engine.dispose();
@@ -191,6 +206,7 @@ class OcrService {
     required Directory dir,
     required OcrRawResult raw,
     required ParsedReceipt parsed,
+    required List<String> tempFiles,
     required void Function(OcrRawResult) onRaw,
   }) async {
     final int stamp = DateTime.now().millisecondsSinceEpoch;
@@ -216,6 +232,7 @@ class OcrService {
         preparedPath: quality.preparedPath,
         outputPath: perspPath,
       );
+      tempFiles.add(perspPath);
       if (result == perspPath) {
         await attempt(perspPath);
       }
@@ -262,6 +279,7 @@ class OcrService {
             right: region.right,
             bottom: region.bottom,
           );
+          tempFiles.add(cropPath);
           await attempt(cropPath);
         } catch (_) {
           // Ignore and continue with the other strategies.
@@ -277,6 +295,7 @@ class OcrService {
           preparedPath: quality.preparedPath,
           outputPath: binaryPath,
         );
+        tempFiles.add(binaryPath);
         await attempt(binaryPath);
       } catch (_) {
         // Ignore.

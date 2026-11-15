@@ -10,6 +10,8 @@ import 'package:smart_receipt/models/receipt_model.dart';
 import 'package:smart_receipt/providers/receipt_provider.dart';
 import 'package:smart_receipt/services/receipt_image_store.dart';
 
+import 'support/temp_dir.dart';
+
 Receipt _receipt({
   required String store,
   required DateTime date,
@@ -67,9 +69,7 @@ void main() {
 
   tearDown(() async {
     await helper.close();
-    if (dir.existsSync()) {
-      dir.deleteSync(recursive: true);
-    }
+    await deleteTempDir(dir);
   });
 
   test('starts empty', () {

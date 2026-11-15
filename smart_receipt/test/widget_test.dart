@@ -21,6 +21,7 @@ import 'package:smart_receipt/screens/spending_prediction.dart';
 import 'package:smart_receipt/screens/transaction_detail.dart';
 import 'package:smart_receipt/screens/transaction_history.dart';
 import 'package:smart_receipt/screens/transaction_saved.dart';
+import 'package:smart_receipt/widgets/app_widgets.dart';
 
 /// Builds a deterministic OCR result so downstream screens can render without a
 /// camera or the native OCR engine.
@@ -141,6 +142,51 @@ void main() {
         reason: 'Failed to render ${screen.runtimeType}',
       );
     }
+  });
+
+  testWidgets('review screen adds a manual item', (WidgetTester tester) async {
+    final OcrScanResult scan = _fakeScan();
+    final List<ItemPrediction> predictions =
+        ReceiptClassifier().classifyAll(<String>['Indomie Goreng']);
+
+    // No ReceiptProvider needed: the review screen only touches the provider on
+    // save, and this test never saves. Skipping it keeps the test off the shared
+    // SQLite file other suites use.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReviewTransactionScreen(scan: scan, predictions: predictions),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('1 item'), findsOneWidget);
+
+    final Finder addButton =
+        find.widgetWithText(SecondaryButton, 'Tambah Item');
+    await tester.ensureVisible(addButton);
+    await tester.pumpAndSettle();
+    await tester.tap(addButton);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), 'Aqua 600ml');
+    await tester.enterText(find.byType(TextField).at(1), '4000');
+    await tester.pump();
+
+    // Subtotal preview inside the sheet reacts to name/price/qty.
+    expect(find.text('Rp4.000'), findsOneWidget);
+
+    final Finder submit = find.widgetWithText(PrimaryButton, 'Tambah Item');
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 item'), findsOneWidget);
+    expect(find.text('Aqua 600ml'), findsOneWidget);
+    // Receipt total stays authoritative (opsi A): the items now sum to more than
+    // the printed total, so both numbers remain visible and the gap is shown.
+    expect(find.text('Rp11.000'), findsOneWidget);
+    expect(find.text('Rp7.000'), findsWidgets);
   });
 
   test('Receipt parser extracts items, store and total from OCR text', () {

@@ -42,7 +42,15 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
   late final String _store;
   late final DateTime _date;
   late List<TransactionItem> _items;
-  late final List<ItemPrediction> _predictions;
+
+  /// Model prediction behind each entry in [_items], index-aligned.
+  ///
+  /// Null for items the user added manually (or when the classifier returned
+  /// fewer predictions than there are parsed lines). Keeping the list the same
+  /// length as [_items] is what makes the correction log trustworthy: it is
+  /// indexed by item, not by OCR line, so inserting an item cannot pair a
+  /// category fix with someone else's prediction.
+  late List<ItemPrediction?> _predictions;
 
   /// Total printed on the receipt (`TOTAL : 33,900`).
   ///
@@ -66,16 +74,16 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
     super.initState();
     _store = widget.scan.parsed.store;
     _date = widget.scan.parsed.date ?? DateTime.now();
-    _predictions = widget.predictions;
     _receiptTotal = widget.scan.parsed.total;
 
     final List<ParsedItem> parsedItems = widget.scan.parsed.items;
     _items = <TransactionItem>[];
+    _predictions = <ItemPrediction?>[];
     for (int i = 0; i < parsedItems.length; i++) {
       final ParsedItem p = parsedItems[i];
-      final String category = i < widget.predictions.length
-          ? widget.predictions[i].category
-          : 'Lainnya';
+      final ItemPrediction? prediction =
+          i < widget.predictions.length ? widget.predictions[i] : null;
+      final String category = prediction?.category ?? 'Lainnya';
       _items.add(
         TransactionItem(
           name: p.name,
@@ -84,6 +92,7 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
           category: category,
         ),
       );
+      _predictions.add(prediction);
     }
   }
 
@@ -119,6 +128,41 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
     }
   }
 
+  /// Opens the item editor and appends the result.
+  ///
+  /// The printed receipt total stays untouched on purpose: a hand-added item is
+  /// not on the receipt, so it shows up as a difference in [._totalAdjustment]
+  /// rather than silently rewriting what the paper says.
+  Future<void> _addItem() async {
+    final TransactionItem? item = await showModalBottomSheet<TransactionItem>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) => Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: const _ItemEditorSheet(),
+      ),
+    );
+    if (item == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _items.add(item);
+      // No model prediction backs a manual item.
+      _predictions.add(null);
+    });
+  }
+
+  void _removeItem(int index) {
+    setState(() {
+      _items.removeAt(index);
+      if (index < _predictions.length) {
+        _predictions.removeAt(index);
+      }
+    });
+  }
+
   /// Stores (preprocessed item name -> user-corrected category) so the
   /// classifier can learn from real user feedback.
   Future<void> _recordCorrection(
@@ -150,15 +194,14 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
   ///
   /// The per-tap [_recordCorrection] already covers the common flow; this
   /// catches edits made and then reverted, guaranteeing the training set only
-  /// holds genuine disagreements.
+  /// holds genuine disagreements. Items the user typed in by hand have no
+  /// prediction to disagree with, so their label is stored as-is.
   Future<void> _recordCategoryCorrections() async {
     for (int i = 0; i < _items.length; i++) {
-      if (i >= _predictions.length) {
-        continue;
-      }
-      final ItemPrediction prediction = _predictions[i];
+      final ItemPrediction? prediction =
+          i < _predictions.length ? _predictions[i] : null;
       final TransactionItem item = _items[i];
-      if (item.category == prediction.category) {
+      if (prediction != null && item.category == prediction.category) {
         continue;
       }
       await _corrections.recordCorrection(
@@ -218,13 +261,17 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
                     ),
                     const SizedBox(height: 12),
                     for (int i = 0; i < _items.length; i++)
-                      _ItemCard(item: _items[i], onTap: () => _editCategory(i)),
+                      _ItemCard(
+                        item: _items[i],
+                        onTap: () => _editCategory(i),
+                        onDelete: () => _removeItem(i),
+                      ),
                     if (_items.isEmpty) const _EmptyItemsNotice(),
                     const SizedBox(height: 4),
                     SecondaryButton(
                       label: 'Tambah Item',
                       icon: Icons.add,
-                      onPressed: () {},
+                      onPressed: _addItem,
                     ),
                     const SizedBox(height: 18),
                     _TotalCard(
@@ -467,10 +514,15 @@ class _StoreCard extends StatelessWidget {
 }
 
 class _ItemCard extends StatelessWidget {
-  const _ItemCard({required this.item, required this.onTap});
+  const _ItemCard({
+    required this.item,
+    required this.onTap,
+    required this.onDelete,
+  });
 
   final TransactionItem item;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -529,13 +581,31 @@ class _ItemCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            rupiah(item.subtotal),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textDark,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              Text(
+                rupiah(item.subtotal),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 4),
+              InkWell(
+                onTap: onDelete,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.delete_outline,
+                    size: 16,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -951,6 +1021,412 @@ class _CategorySheet extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Sheet used to add a line item by hand.
+///
+/// Returns the new [TransactionItem], or null when the user backs out.
+class _ItemEditorSheet extends StatefulWidget {
+  const _ItemEditorSheet();
+
+  @override
+  State<_ItemEditorSheet> createState() => _ItemEditorSheetState();
+}
+
+class _ItemEditorSheetState extends State<_ItemEditorSheet> {
+  late final TextEditingController _name;
+  late final TextEditingController _price;
+  late int _qty;
+  late String _category;
+  String? _nameError;
+  String? _priceError;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController();
+    _price = TextEditingController();
+    _qty = 1;
+    _category = 'Lainnya';
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _price.dispose();
+    super.dispose();
+  }
+
+  int get _priceValue => int.tryParse(_price.text) ?? 0;
+
+  int get _subtotal => _qty * _priceValue;
+
+  Future<void> _pickCategory() async {
+    final String? selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) => _CategorySheet(current: _category),
+    );
+    if (selected == null || !mounted) {
+      return;
+    }
+    setState(() => _category = selected);
+  }
+
+  void _submit() {
+    final String name = _name.text.trim();
+    final int price = _priceValue;
+    setState(() {
+      _nameError = name.isEmpty ? 'Nama item wajib diisi' : null;
+      _priceError = price <= 0 ? 'Harga harus lebih dari 0' : null;
+    });
+    if (_nameError != null || _priceError != null) {
+      return;
+    }
+    Navigator.pop(
+      context,
+      TransactionItem(
+        name: name,
+        qty: _qty,
+        price: price,
+        category: _category,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Tambah Item',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Lengkapi nama, jumlah, dan harga item.',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 18),
+              _SheetField(
+                label: 'Nama item',
+                controller: _name,
+                hint: 'Contoh: Indomie Goreng',
+                error: _nameError,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+              ),
+              const SizedBox(height: 14),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        _SheetLabel('Jumlah'),
+                        const SizedBox(height: 8),
+                        _QtyStepper(
+                          value: _qty,
+                          onChanged: (int v) => setState(() => _qty = v),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 3,
+                    child: _SheetField(
+                      label: 'Harga satuan',
+                      controller: _price,
+                      hint: '0',
+                      prefixText: 'Rp ',
+                      error: _priceError,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: <TextInputFormatter>[
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onChanged: (String _) => setState(() {}),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _SheetLabel('Kategori'),
+              const SizedBox(height: 8),
+              Material(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  onTap: _pickCategory,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        CategoryChip(category: _category),
+                        const Spacer(),
+                        Text(
+                          'Ubah',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.orange,
+                          ),
+                        ),
+                        Icon(Icons.expand_more, size: 16, color: AppColors.orange),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.iconBox,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Text(
+                      'Subtotal',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.textLabel,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      rupiah(_subtotal),
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              PrimaryButton(
+                label: 'Tambah Item',
+                icon: Icons.check_circle_outline,
+                onPressed: _submit,
+              ),
+              const SizedBox(height: 6),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Batal',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SheetLabel extends StatelessWidget {
+  const _SheetLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 12.5,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textLabel,
+      ),
+    );
+  }
+}
+
+class _SheetField extends StatelessWidget {
+  const _SheetField({
+    required this.controller,
+    required this.hint,
+    this.label,
+    this.error,
+    this.keyboardType,
+    this.inputFormatters,
+    this.autofocus = false,
+    this.textCapitalization = TextCapitalization.none,
+    this.prefixText,
+    this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String hint;
+  final String? label;
+  final String? error;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final bool autofocus;
+  final TextCapitalization textCapitalization;
+  final String? prefixText;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        if (label != null) ...<Widget>[
+          _SheetLabel(label!),
+          const SizedBox(height: 8),
+        ],
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: error == null ? AppColors.border : AppColors.red,
+              width: 1.2,
+            ),
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            inputFormatters: inputFormatters,
+            autofocus: autofocus,
+            textCapitalization: textCapitalization,
+            onChanged: onChanged,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textDark,
+            ),
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              hintText: hint,
+              hintStyle: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w400,
+                color: AppColors.textMuted,
+              ),
+              prefixText: prefixText,
+              prefixStyle: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textLabel,
+              ),
+              border: InputBorder.none,
+            ),
+          ),
+        ),
+        if (error != null) ...<Widget>[
+          const SizedBox(height: 6),
+          Text(
+            error!,
+            style: TextStyle(fontSize: 11.5, color: AppColors.red),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _QtyStepper extends StatelessWidget {
+  const _QtyStepper({required this.value, required this.onChanged});
+
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border, width: 1.2),
+      ),
+      child: Row(
+        children: <Widget>[
+          _stepButton(
+            icon: Icons.remove,
+            onTap: value > 1 ? () => onChanged(value - 1) : null,
+          ),
+          Expanded(
+            child: Text(
+              '$value',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+              ),
+            ),
+          ),
+          _stepButton(
+            icon: Icons.add,
+            onTap: value < 999 ? () => onChanged(value + 1) : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepButton({required IconData icon, VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 44,
+        height: 48,
+        child: Icon(
+          icon,
+          size: 18,
+          color: onTap == null ? AppColors.textMuted : AppColors.textDark,
+        ),
       ),
     );
   }

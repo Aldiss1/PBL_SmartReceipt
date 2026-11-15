@@ -391,6 +391,8 @@ Lingkaran `greenSoft` 108 px + ikon centang 62 px, judul "Transaksi Tersimpan", 
 - `_FilterChip` — chip horizontal `ListView.separated`; "Semua" + kategori yang benar-benar ada di data.
 - `_HistoryCard` — ikon kategori, toko, tanggal, chip kategori utama + `+n` jika multi-kategori, nominal, jumlah item.
 - Tiga state: loading (`CircularProgressIndicator`), kosong total (`EmptyStateView` "Belum Ada Transaksi"), tidak ada hasil (`EmptyStateView` "Transaksi Tidak Ditemukan" + reset filter).
+- Aksi `CircleIconButton` ekspor (`Icons.ios_share`) di `AppTopBar` menulis CSV dari **hasil filter yang sedang tampil** lalu membuka share sheet sistem (`share_plus`). Ikon disembunyikan saat daftar kosong dan berganti `hourglass_top` selama proses berjalan; kegagalan tulis/share memunculkan SnackBar "Gagal mengekspor transaksi" dan layar tetap bisa dipakai.
+- CSV dibangun `ReceiptExportService` (`lib/services/receipt_export_service.dart`): satu baris per item (kolom `ID Transaksi, Tanggal, Toko, Metode Bayar, Item, Kategori, Qty, Harga Satuan, Subtotal, Total Struk`), nominal bilangan bulat tanpa pemisah ribuan, tanggal `YYYY-MM-DD HH:MM`, BOM UTF-8 + CRLF agar rapi di Excel. Struk tanpa item tetap mendapat satu baris agar totalnya tidak hilang. File ditulis ke direktori sementara dengan nama `transaksi-YYYYMMDD-HHMM.csv`.
 
 ### 7.9 Detail (`transaction_detail.dart`)
 

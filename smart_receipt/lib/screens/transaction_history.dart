@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../theme/app_colors.dart';
 import '../navigation/app_nav.dart';
@@ -12,6 +13,7 @@ import '../models/models.dart';
 import '../models/receipt_model.dart' as db;
 import '../data/receipt_adapter.dart';
 import '../providers/receipt_provider.dart';
+import '../services/receipt_export_service.dart';
 import '../services/receipt_image_store.dart';
 import '../theme/theme_controller.dart';
 import 'transaction_detail.dart';
@@ -21,7 +23,11 @@ import 'transaction_detail.dart';
 /// Reads the receipts saved in SQLite through [ReceiptProvider], so a scan that
 /// was just saved appears here immediately along with its local receipt photo.
 class TransactionHistoryScreen extends StatefulWidget {
-  const TransactionHistoryScreen({super.key});
+  const TransactionHistoryScreen({super.key, this.exporter});
+
+  /// Overrides the CSV writer. Only tests pass this: the real one talks to
+  /// `path_provider`, whose platform channel never answers in a widget test.
+  final ReceiptExportService? exporter;
 
   @override
   State<TransactionHistoryScreen> createState() =>
@@ -30,13 +36,58 @@ class TransactionHistoryScreen extends StatefulWidget {
 
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   final TextEditingController _search = TextEditingController();
+  late final ReceiptExportService _exporter =
+      widget.exporter ?? ReceiptExportService();
   String _query = '';
   String _filter = 'Semua';
+
+  /// Guards against a second tap while the file is being written and shared.
+  bool _exporting = false;
 
   @override
   void dispose() {
     _search.dispose();
     super.dispose();
+  }
+
+  /// Writes the receipts currently on screen to CSV and hands the file to the
+  /// system share sheet.
+  ///
+  /// Exports [_resultsFor] rather than every receipt: the search box and the
+  /// category chip are already the user's own selection, and ignoring them would
+  /// make "export" quietly contradict "export what I see".
+  Future<void> _export(ReceiptProvider provider) async {
+    if (_exporting) {
+      return;
+    }
+    final List<db.Receipt> receipts = _resultsFor(provider);
+    if (receipts.isEmpty) {
+      return;
+    }
+
+    setState(() => _exporting = true);
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    try {
+      final File file = await _exporter.writeCsv(
+        receipts,
+        provider.categoryNameFor,
+      );
+      await SharePlus.instance.share(
+        ShareParams(
+          files: <XFile>[XFile(file.path, mimeType: 'text/csv')],
+          subject: 'Transaksi Smart Receipt',
+          text: '${receipts.length} transaksi dari Smart Receipt.',
+        ),
+      );
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Gagal mengekspor transaksi: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _exporting = false);
+      }
+    }
   }
 
   /// Filter chips: "Semua" plus every category that actually has a receipt.
@@ -94,6 +145,15 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                 title: 'Riwayat Transaksi',
                 subtitle: '${provider.receipts.length} transaksi tercatat',
                 actions: <Widget>[
+                  // Hidden when there is nothing to export: a button that
+                  // silently does nothing is worse than no button.
+                  if (results.isNotEmpty) ...<Widget>[
+                    CircleIconButton(
+                      icon: _exporting ? Icons.hourglass_top : Icons.ios_share,
+                      onTap: () => _export(provider),
+                    ),
+                    const SizedBox(width: 10),
+                  ],
                   CircleIconButton(
                     icon: Icons.refresh,
                     onTap: provider.loadData,

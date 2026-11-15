@@ -34,6 +34,18 @@ String _two(int v) => v.toString().padLeft(2, '0');
 /// e.g. 13 Sep 2026
 String formatDate(DateTime d) => '${d.day} ${_kMonths[d.month - 1]} ${d.year}';
 
+/// e.g. Sep 2026
+String formatMonth(DateTime d) => '${_kMonths[d.month - 1]} ${d.year}';
+
+/// Drops the time of day, so a stamp can be compared per calendar day.
+///
+/// Filtering by date has to work this way: the receipt carries the time it was
+/// printed, while a date picker hands back midnight.
+DateTime dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+/// True when both stamps fall on the same calendar day, whatever their time.
+bool sameDay(DateTime a, DateTime b) => dayOnly(a) == dayOnly(b);
+
 /// e.g. 13 Sep 2026 • 19:14
 String formatDateTime(DateTime d) =>
     '${formatDate(d)} • ${_two(d.hour)}:${_two(d.minute)}';

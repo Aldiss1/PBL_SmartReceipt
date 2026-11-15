@@ -10,6 +10,7 @@ import '../navigation/app_route.dart';
 import '../widgets/app_widgets.dart';
 import 'empty_state.dart';
 import '../models/models.dart';
+import '../models/receipt_filter.dart';
 import '../models/receipt_model.dart' as db;
 import '../data/receipt_adapter.dart';
 import '../providers/receipt_provider.dart';
@@ -17,6 +18,7 @@ import '../services/receipt_export_service.dart';
 import '../services/receipt_image_store.dart';
 import '../theme/theme_controller.dart';
 import 'transaction_detail.dart';
+import 'transaction_filter_sheet.dart';
 
 /// Screen 7 - Transaction History.
 ///
@@ -38,8 +40,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   final TextEditingController _search = TextEditingController();
   late final ReceiptExportService _exporter =
       widget.exporter ?? ReceiptExportService();
-  String _query = '';
-  String _filter = 'Semua';
+
+  /// Every refinement the list currently applies, search text included.
+  ReceiptFilter _filter = const ReceiptFilter();
 
   /// Guards against a second tap while the file is being written and shared.
   bool _exporting = false;
@@ -102,22 +105,29 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     return <String>['Semua', ...sorted];
   }
 
-  /// Receipts matching the current search text and category chip.
-  List<db.Receipt> _resultsFor(ReceiptProvider provider) {
-    final String q = _query.trim().toLowerCase();
-    return provider.receipts.where((db.Receipt receipt) {
-      final bool matchesQuery = q.isEmpty ||
-          receipt.storeName.toLowerCase().contains(q) ||
-          receipt.transactions.any(
-            (db.Transaction item) => item.itemName.toLowerCase().contains(q),
-          );
-      final bool matchesCategory = _filter == 'Semua' ||
-          receipt.transactions.any(
-            (db.Transaction item) =>
-                provider.categoryNameFor(item.categoryId) == _filter,
-          );
-      return matchesQuery && matchesCategory;
-    }).toList();
+  /// Receipts matching the search box, the category chips and the advanced
+  /// filter sheet, in the order the provider returned them.
+  List<db.Receipt> _resultsFor(ReceiptProvider provider) =>
+      _filter.apply(provider.receipts, provider.categoryNameFor);
+
+  /// Store names present in the saved receipts, for the sheet's store pills.
+  List<String> _storesFor(ReceiptProvider provider) {
+    final Set<String> names = <String>{
+      for (final db.Receipt receipt in provider.receipts)
+        if (receipt.storeName.trim().isNotEmpty) receipt.storeName.trim(),
+    };
+    return names.toList()..sort();
+  }
+
+  Future<void> _openFilterSheet(ReceiptProvider provider) async {
+    final ReceiptFilter? next = await showTransactionFilterSheet(
+      context,
+      current: _filter,
+      stores: _storesFor(provider),
+    );
+    if (next != null && mounted) {
+      setState(() => _filter = next);
+    }
   }
 
   @override
@@ -125,6 +135,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     final ReceiptProvider provider = context.watch<ReceiptProvider>();
     final List<String> filters = _filtersFor(provider);
     final List<db.Receipt> results = _resultsFor(provider);
+    final int total = provider.receipts.length;
     ThemeScope.watch(context);
 
     return Scaffold(
@@ -143,7 +154,12 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               const AppStatusBar(),
               AppTopBar(
                 title: 'Riwayat Transaksi',
-                subtitle: '${provider.receipts.length} transaksi tercatat',
+                // Showing "3 dari 12" is the cheapest way to make a filter
+                // visible: the sheet is closed most of the time, and a silently
+                // shortened list looks like lost data.
+                subtitle: results.length == total
+                    ? '$total transaksi tercatat'
+                    : '${results.length} dari $total transaksi',
                 actions: <Widget>[
                   // Hidden when there is nothing to export: a button that
                   // silently does nothing is worse than no button.
@@ -162,11 +178,34 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(22, 4, 22, 0),
-                child: _SearchField(
-                  controller: _search,
-                  onChanged: (String v) => setState(() => _query = v),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: _SearchField(
+                        controller: _search,
+                        onChanged: (String v) => setState(
+                          () => _filter = _filter.copyWith(query: v),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    _FilterButton(
+                      count: _filter.advancedCount,
+                      onTap: () => _openFilterSheet(provider),
+                    ),
+                  ],
                 ),
               ),
+              if (_filter.hasAdvancedFilters) ...<Widget>[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 10, 22, 0),
+                  child: _ActiveFilterBar(
+                    summary: _filter.summary,
+                    onClear: () =>
+                        setState(() => _filter = _filter.clearAdvanced()),
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
               SizedBox(
                 height: 36,
@@ -178,11 +217,12 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       const SizedBox(width: 9),
                   itemBuilder: (BuildContext context, int i) {
                     final String f = filters[i];
-                    final bool active = f == _filter;
-                    return _FilterChip(
+                    return FilterPill(
                       label: f,
-                      active: active,
-                      onTap: () => setState(() => _filter = f),
+                      active: f == _filter.category,
+                      onTap: () => setState(
+                        () => _filter = _filter.copyWith(category: f),
+                      ),
                     );
                   },
                 ),
@@ -216,12 +256,12 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     if (results.isEmpty) {
       return EmptyStateView(
         title: 'Transaksi Tidak Ditemukan',
-        message: 'Coba ubah kata kunci pencarian atau pilih kategori lain.',
+        message: 'Coba ubah kata kunci, pilih kategori lain, atau longgarkan '
+            'filter lanjutan.',
         actionLabel: 'Reset Filter',
         onAction: () => setState(() {
           _search.clear();
-          _query = '';
-          _filter = 'Semua';
+          _filter = const ReceiptFilter();
         }),
       );
     }
@@ -288,39 +328,114 @@ class _SearchField extends StatelessWidget {
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
+/// Square button beside the search box that opens the advanced filter sheet.
+///
+/// [count] badges how many advanced groups are active, so a filter set weeks ago
+/// cannot be forgotten and mistaken for an empty history.
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({required this.count, required this.onTap});
 
-  final String label;
-  final bool active;
+  final int count;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-        decoration: BoxDecoration(
-          color: active ? AppColors.buttonBg : AppColors.card,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: active ? AppColors.buttonBg : AppColors.border,
+    final bool active = count > 0;
+    return Semantics(
+      button: true,
+      label: 'Filter lanjutan',
+      child: Material(
+        color: active ? AppColors.buttonBg : AppColors.card,
+        borderRadius: BorderRadius.circular(15),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(15),
+          child: SizedBox(
+            width: 50,
+            height: 50,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: <Widget>[
+                Center(
+                  child: Icon(
+                    Icons.tune,
+                    size: 20,
+                    color: active ? AppColors.onButton : AppColors.textDark,
+                  ),
+                ),
+                if (active)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      width: 15,
+                      height: 15,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.orange,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.card, width: 1.2),
+                      ),
+                      child: Text(
+                        '$count',
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF3A2A00),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
-            color: active ? AppColors.onButton : AppColors.textLabel,
+      ),
+    );
+  }
+}
+
+/// One-line reminder of the advanced filters plus a shortcut to drop them.
+class _ActiveFilterBar extends StatelessWidget {
+  const _ActiveFilterBar({required this.summary, required this.onClear});
+
+  final String summary;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(Icons.filter_alt_outlined, size: 14, color: AppColors.orange),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              summary,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textLabel,
+              ),
+            ),
           ),
-        ),
+          GestureDetector(
+            onTap: onClear,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: Icon(Icons.close, size: 15, color: AppColors.textMuted),
+            ),
+          ),
+        ],
       ),
     );
   }

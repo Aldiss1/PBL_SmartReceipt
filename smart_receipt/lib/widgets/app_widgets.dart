@@ -558,3 +558,68 @@ class _ScanButton extends StatelessWidget {
     );
   }
 }
+
+/// Small label above a field inside a bottom sheet.
+class SheetLabel extends StatelessWidget {
+  const SheetLabel(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 12.5,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textLabel,
+      ),
+    );
+  }
+}
+
+/// Rounded pill used for chips that select one option out of many.
+///
+/// Same shape in the history filter row and inside the filter sheet, so a
+/// category and a date preset do not look like two different kinds of control.
+class FilterPill extends StatelessWidget {
+  const FilterPill({
+    super.key,
+    required this.label,
+    required this.active,
+    required this.onTap,
+    this.height = 36,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: height,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        decoration: BoxDecoration(
+          color: active ? AppColors.buttonBg : AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: active ? AppColors.buttonBg : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: active ? AppColors.onButton : AppColors.textLabel,
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -46,6 +46,7 @@ lib/
     ├── review_transaction.dart
     ├── transaction_saved.dart
     ├── transaction_history.dart
+    ├── transaction_filter_sheet.dart  # sheet filter lanjutan + kalender rentang
     ├── transaction_detail.dart
     ├── analysis.dart
     ├── spending_prediction.dart
@@ -263,6 +264,8 @@ Konten dapat "mengalir" di belakang nav, bukan dipotong di atasnya. Dipakai oleh
 | `SecondaryButton` | `StatelessWidget` | Tombol outline dengan border `AppColors.border` | Scan, Review, OCR gagal, Saved |
 | `CategoryChip` | `StatelessWidget` | Pil kategori: ikon + nama, warna 14% alpha, mode `dense` | Review, Riwayat, Klasifikasi |
 | `IconBox` | `StatelessWidget` | Kotak ikon bersudut (`size * 0.27`), warna & latar dapat di-override | Review, Riwayat, Detail, Klasifikasi, Settings |
+| `SheetLabel` | `StatelessWidget` | Label kecil di atas field dalam bottom sheet | Review, Filter Riwayat |
+| `FilterPill` | `StatelessWidget` | Pil pilihan tunggal (tinggi 36 default, 32 di dalam sheet); aktif = latar `buttonBg` | Chip kategori & baris filter di Riwayat, sheet filter |
 | `AppBottomNav` | `StatelessWidget` | Bottom nav mengambang + tombol Scan tengah | Beranda, Riwayat, Analisis, Pengaturan, Empty State |
 | `FloatingNavBody` | `StatelessWidget` | `Stack` yang menaruh nav di atas konten full-bleed | Layar bertab |
 | `_NavItem` | privat | Satu slot nav: ikon + label, status aktif | Internal `AppBottomNav` |
@@ -308,7 +311,7 @@ Dipakai di `analysis.dart` (tren 6 bulan) dan `spending_prediction.dart` (aktual
 | 5 | Klasifikasi | `category_classification.dart` | Stateful | Prediksi kategori per item + confidence |
 | 6 | Review | `review_transaction.dart` | Stateful | Koreksi item/kategori lalu simpan |
 | 7 | Tersimpan | `transaction_saved.dart` | Stateless | Konfirmasi sukses |
-| 8 | Riwayat | `transaction_history.dart` | Stateful | Cari + filter + daftar struk |
+| 8 | Riwayat | `transaction_history.dart` | Stateful | Cari + filter lanjutan + ekspor CSV |
 | 9 | Detail | `transaction_detail.dart` | Stateless | Rincian item & total |
 | 10 | Analisis | `analysis.dart` | Stateful | Periode, kategori, evaluasi model, tren |
 | 11 | Prediksi | `spending_prediction.dart` | Stateless | Regresi linear + metrik |
@@ -387,12 +390,28 @@ Lingkaran `greenSoft` 108 px + ikon centang 62 px, judul "Transaksi Tersimpan", 
 
 ### 7.8 Riwayat (`transaction_history.dart`)
 
-- `_SearchField` — `TextField` tanpa border di dalam `Container` radius 15.
-- `_FilterChip` — chip horizontal `ListView.separated`; "Semua" + kategori yang benar-benar ada di data.
+- `_SearchField` — `TextField` tanpa border di dalam `Container` radius 15; mencocokkan nama toko **dan** nama item.
+- `_FilterButton` — kotak 50×50 di samping kolom cari, ikon `tune`, membuka sheet filter lanjutan. Saat filter aktif tombol berubah warna dan menampilkan badge jumlah grup filter (tanggal, nominal, toko).
+- `_ActiveFilterBar` — baris ringkasan satu baris (mis. "1 Nov 2026 – 16 Nov 2026 · ≥ Rp10.000 · Indomaret") plus tombol × untuk membuang filter lanjutan. Muncul hanya bila ada filter lanjutan, karena filter di dalam sheet tidak terlihat saat sheet tertutup.
+- `FilterPill` — chip horizontal `ListView.separated`; "Semua" + kategori yang benar-benar ada di data.
 - `_HistoryCard` — ikon kategori, toko, tanggal, chip kategori utama + `+n` jika multi-kategori, nominal, jumlah item.
-- Tiga state: loading (`CircularProgressIndicator`), kosong total (`EmptyStateView` "Belum Ada Transaksi"), tidak ada hasil (`EmptyStateView` "Transaksi Tidak Ditemukan" + reset filter).
+- Subtitle `AppTopBar` berubah dari "N transaksi tercatat" menjadi "M dari N transaksi" saat filter mempersempit daftar.
+- Tiga state: loading (`CircularProgressIndicator`), kosong total (`EmptyStateView` "Belum Ada Transaksi"), tidak ada hasil (`EmptyStateView` "Transaksi Tidak Ditemukan" + "Reset Filter" yang mengosongkan pencarian, kategori, dan filter lanjutan).
 - Aksi `CircleIconButton` ekspor (`Icons.ios_share`) di `AppTopBar` menulis CSV dari **hasil filter yang sedang tampil** lalu membuka share sheet sistem (`share_plus`). Ikon disembunyikan saat daftar kosong dan berganti `hourglass_top` selama proses berjalan; kegagalan tulis/share memunculkan SnackBar "Gagal mengekspor transaksi" dan layar tetap bisa dipakai.
 - CSV dibangun `ReceiptExportService` (`lib/services/receipt_export_service.dart`): satu baris per item (kolom `ID Transaksi, Tanggal, Toko, Metode Bayar, Item, Kategori, Qty, Harga Satuan, Subtotal, Total Struk`), nominal bilangan bulat tanpa pemisah ribuan, tanggal `YYYY-MM-DD HH:MM`, BOM UTF-8 + CRLF agar rapi di Excel. Struk tanpa item tetap mendapat satu baris agar totalnya tidak hilang. File ditulis ke direktori sementara dengan nama `transaksi-YYYYMMDD-HHMM.csv`.
+
+#### Filter lanjutan (`transaction_filter_sheet.dart`)
+
+Semua penyaringan terjadi di memori atas `ReceiptProvider.receipts`; tidak ada query SQL baru.
+
+- `ReceiptFilter` (`lib/models/receipt_filter.dart`) — objek nilai berisi `query`, `category`, `range`, `minAmount`, `maxAmount`, `store`. Satu-satunya tempat aturan pencocokan (`matches`), dipakai bersama oleh daftar, bar ringkasan, dan ekspor CSV. Rentang tanggal dibandingkan per hari (`dayOnly`), bukan per `DateTime`, supaya struk pada hari terakhir rentang tidak hilang karena jam cetaknya.
+- `showTransactionFilterSheet()` — bottom sheet berisi:
+  1. **Rentang tanggal**: field `Semua tanggal` yang membuka kalender, plus preset cepat "Bulan Ini", "3 Bulan", "Tahun Ini".
+  2. **Nominal**: dua `_MoneyField` (Minimal/Maksimal) dengan prefix "Rp", hanya menerima digit, dan validasi "minimum tidak boleh melebihi maksimum" sebelum diterapkan.
+  3. **Toko**: pil "Semua Toko" + nama toko unik yang ada di data.
+  4. Tombol "Atur Ulang" (muncul bila ada isian), "Terapkan Filter", dan "Batal".
+- `_DateRangeSheet` — kalender bulanan buatan sendiri (Senin–Minggu, navigasi bulan, sorotan rentang, penanda hari ini). Dibuat manual karena `showDateRangePicker` hanya tersedia dalam bahasa Inggris di aplikasi ini: belum ada `flutter_localizations`, dan menambahkannya akan memaksa versi `intl` berbeda dari yang dipin SDK.
+- Filter toko berbeda dari kotak cari: pencarian "Indo" juga menemukan struk berisi Indomie dari toko lain, sedangkan filter toko hanya menampilkan satu toko.
 
 ### 7.9 Detail (`transaction_detail.dart`)
 
@@ -463,10 +482,11 @@ Lingkaran `greenSoft` 108 px + ikon centang 62 px, judul "Transaksi Tersimpan", 
 
 | Widget | Contoh pemakaian |
 | --- | --- |
-| `SingleChildScrollView` | Hampir semua layar (satu kolom) |
+| `SingleChildScrollView` | Hampir semua layar (satu kolom), isi bottom sheet filter |
 | `ListView` | Daftar kategori di bottom sheet |
 | `ListView.builder` | Riwayat transaksi |
 | `ListView.separated` | Filter chip horizontal |
+| `GridView.builder` | Kisi tanggal pada kalender rentang (`shrinkWrap`, `NeverScrollableScrollPhysics`) |
 
 ### Material & input
 
@@ -516,7 +536,7 @@ Lingkaran `greenSoft` 108 px + ikon centang 62 px, judul "Transaksi Tersimpan", 
 ### 9.1 Sumber state
 
 - **Global**: `ReceiptProvider` (data struk + agregat), `themeController` (tema).
-- **Lokal per layar**: `_period`, `_evaluation`, `_query`, `_filter`, `_busy`, `_stage`, `_predictions`, `_view`, `_notifications`, `_correctionCount`.
+- **Lokal per layar**: `_period`, `_evaluation`, `_filter` (objek `ReceiptFilter` di Riwayat, bukan lagi dua field terpisah), `_exporting`, `_busy`, `_stage`, `_predictions`, `_view`, `_notifications`, `_correctionCount`.
 
 ### 9.2 Pola loading
 
@@ -604,9 +624,10 @@ Hal-hal yang perlu diketahui sebelum mengubah UI:
 5. **Dependensi tidak terpakai:** `fl_chart`, `intl`, dan `cupertino_icons` ada di `pubspec.yaml` tetapi tidak diimpor di `lib/`.
 6. **Route `'/scan'`** terdaftar di `main.dart` tetapi tidak pernah dipakai; semua scan lewat `openScan()`.
 7. **Satu transisi tidak konsisten:** OCR → Klasifikasi memakai `MaterialPageRoute`, layar lain memakai `appRoute()`.
-8. **Belum ada golden/screenshot test.** `test/widget_test.dart` memastikan splash berpindah ke Beranda dan layar-layar alur OCR bisa dirender tanpa exception; `test/theme_toggle_test.dart` menguji repaint saat tema berganti. Tidak ada pengujian visual per layar.
+8. **Belum ada golden/screenshot test.** `test/widget_test.dart` memastikan splash berpindah ke Beranda dan layar-layar alur OCR bisa dirender tanpa exception; `test/theme_toggle_test.dart` menguji repaint saat tema berganti. Perilaku ekspor CSV, filter lanjutan, serta edit/hapus transaksi diuji lewat `test/receipt_export_test.dart`, `test/receipt_filter_test.dart`, `test/transaction_filter_test.dart`, dan `test/transaction_detail_test.dart`. Tidak ada pengujian visual per layar.
 9. **Tema dark bukan hasil `ColorScheme`.** `ThemeData` hanya memakai `ColorScheme.fromSeed` untuk komponen Material bawaan (mis. `Switch`); mayoritas warna tetap dari `AppColors`, jadi komponen Material baru bisa tampil berbeda dari desain.
 10. **`Text.rich` pada `_MiniStat`** (Analisis) tidak diberi `maxLines`/`overflow`, berbeda dari `_StatCard` (Beranda) yang sudah memakai `maxLines: 1` + ellipsis. Nominal besar berisiko meluber di kartu statistik Analisis.
+11. **Kalender filter ditulis sendiri.** `_DateRangeSheet` di `transaction_filter_sheet.dart` menggantikan `showDateRangePicker` karena aplikasi belum memakai `flutter_localizations`, sehingga dialog Material tampil dalam bahasa Inggris; menambahkan `flutter_localizations` akan memaksa versi `intl` yang berbeda dari pin SDK. Kalau lokalisasi Material ditambahkan nanti, sheet ini bisa diganti dialog bawaan.
 
 ---
 

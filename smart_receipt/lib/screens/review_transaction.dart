@@ -1500,7 +1500,7 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        _SheetLabel('Jumlah'),
+                        SheetLabel('Jumlah'),
                         const SizedBox(height: 8),
                         _QtyStepper(
                           value: _qty,
@@ -1528,7 +1528,7 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                 ],
               ),
               const SizedBox(height: 14),
-              _SheetLabel('Kategori'),
+              SheetLabel('Kategori'),
               const SizedBox(height: 8),
               Material(
                 color: AppColors.card,
@@ -1614,24 +1614,6 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
   }
 }
 
-class _SheetLabel extends StatelessWidget {
-  const _SheetLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 12.5,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textLabel,
-      ),
-    );
-  }
-}
-
 class _SheetField extends StatelessWidget {
   const _SheetField({
     required this.controller,
@@ -1667,7 +1649,7 @@ class _SheetField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         if (label != null) ...<Widget>[
-          _SheetLabel(label!),
+          SheetLabel(label!),
           const SizedBox(height: 8),
         ],
         Container(

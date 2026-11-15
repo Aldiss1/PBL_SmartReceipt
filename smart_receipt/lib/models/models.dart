@@ -117,11 +117,19 @@ class Transaction {
     required this.store,
     required this.date,
     required this.items,
+    this.receiptId,
     this.paymentMethod = 'Tunai',
     this.imagePath,
   });
 
   final String id;
+
+  /// Primary key of the `receipts` row this came from.
+  ///
+  /// [id] is only the display code (`TRX007`); writes to SQLite need the real
+  /// key. Null for a transaction that is not persisted (preview, tests).
+  final int? receiptId;
+
   final String store;
   final DateTime date;
   final List<TransactionItem> items;

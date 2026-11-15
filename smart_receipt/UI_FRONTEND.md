@@ -395,7 +395,8 @@ Lingkaran `greenSoft` 108 px + ikon centang 62 px, judul "Transaksi Tersimpan", 
 - `_ReceiptHeader` — kartu gradient dengan ikon toko, nama, tanggal, "Total Pembayaran", dan dua `_Badge` (metode bayar, jumlah item).
 - `_ItemRow` — daftar item dengan `IconBox`, nama, `qty × harga • kategori`, subtotal, divider antar-baris.
 - `_SummaryCard` — subtotal, diskon, jumlah kategori, total.
-- Aksi `CircleIconButton` delete/edit masih **no-op** (`onTap: () {}`).
+- Aksi `CircleIconButton` hapus berfungsi: dialog konfirmasi (`AlertDialog`, tombol "Hapus" merah) → `ReceiptProvider.deleteReceipt` → pop + SnackBar. Bila provider gagal, pengguna tetap di layar dan muncul SnackBar error. Tombol hanya tampil saat `transaction.receiptId` terisi.
+- Aksi `CircleIconButton` edit masih **no-op** (`onTap: () {}`).
 
 ### 7.10 Analisis (`analysis.dart`)
 
@@ -595,7 +596,7 @@ Hal-hal yang perlu diketahui sebelum mengubah UI:
 1. **Warna hardcoded di beberapa tempat.** `_RawTextCard` (OCR), `_StoreSummary` dan `_NoItemsCard` (Klasifikasi), serta `_EmptyItemsNotice` (Review) memakai `Colors.white` sehingga tetap putih di dark mode. Beberapa warna lain juga hardcoded: `#3A2A00` (teks di atas oranye), `#C7CBD6` (teks viewfinder), `#8A93A8` (ikon langkah OCR).
 2. **`AppStatusBar` tidak menggambar apa pun.** Kelas ini hanya placeholder; status bar asli ditangani OS. Parameter `time` tidak pernah dipakai.
 3. **Duplikasi widget.** `_CategoryCard`/`_CategoryRow`/`_CategoryBar` ada di Beranda dan Analisis dengan kode hampir identik; `_StatCard` dan `_MiniStat` juga mirip. Belum diekstrak ke `widgets/`.
-4. **Aksi yang belum berfungsi:** delete/edit di Detail Transaksi, "Keluar", "Kategori & Label", "Tentang Aplikasi", "Bantuan & Dukungan", dan switch Notifikasi (hanya state lokal).
+4. **Aksi yang belum berfungsi:** edit di Detail Transaksi, "Keluar", "Kategori & Label", "Tentang Aplikasi", "Bantuan & Dukungan", dan switch Notifikasi (hanya state lokal).
 5. **Dependensi tidak terpakai:** `fl_chart`, `intl`, dan `cupertino_icons` ada di `pubspec.yaml` tetapi tidak diimpor di `lib/`.
 6. **Route `'/scan'`** terdaftar di `main.dart` tetapi tidak pernah dipakai; semua scan lewat `openScan()`.
 7. **Satu transisi tidak konsisten:** OCR → Klasifikasi memakai `MaterialPageRoute`, layar lain memakai `appRoute()`.

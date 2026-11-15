@@ -13,6 +13,7 @@ ui.Transaction toUiTransaction(
 ) {
   return ui.Transaction(
     id: _displayId(receipt),
+    receiptId: receipt.id,
     store: receipt.storeName,
     date: receipt.transactionDate,
     paymentMethod: receipt.paymentMethod ?? 'Tunai',

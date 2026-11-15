@@ -39,7 +39,13 @@ class ReviewTransactionScreen extends StatefulWidget {
 }
 
 class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
-  late final String _store;
+  /// Store name, prefilled from OCR and editable by the user.
+  ///
+  /// The parser often lifts the store from a logo or a partially read header,
+  /// so a wrong or empty name is common; the value saved to SQLite is whatever
+  /// ends up here.
+  late String _store;
+
   late final DateTime _date;
   late List<TransactionItem> _items;
 
@@ -104,6 +110,23 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
   /// Zero when everything lines up; non-zero when the receipt applied a
   /// discount/fee we did not model, or when the parser missed/misread a line.
   int get _totalAdjustment => _receiptTotal - _itemsTotal;
+
+  Future<void> _editStore() async {
+    final String? name = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) => Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: _StoreEditorSheet(initial: _store),
+      ),
+    );
+    if (name == null || !mounted || name == _store) {
+      return;
+    }
+    setState(() => _store = name);
+  }
 
   Future<void> _editCategory(int index) async {
     final String current = _items[index].category;
@@ -235,7 +258,7 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    _StoreCard(store: _store, date: _date),
+                    _StoreCard(store: _store, date: _date, onEdit: _editStore),
                     if (widget.scan.parsed.warnings.isNotEmpty) ...<Widget>[
                       const SizedBox(height: 12),
                       _ParseWarnings(warnings: widget.scan.parsed.warnings),
@@ -469,45 +492,56 @@ class _ReceiptPhotoSection extends StatelessWidget {
 }
 
 class _StoreCard extends StatelessWidget {
-  const _StoreCard({required this.store, required this.date});
+  const _StoreCard({
+    required this.store,
+    required this.date,
+    required this.onEdit,
+  });
 
   final String store;
   final DateTime date;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
+    return Material(
+      color: AppColors.card,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onEdit,
         borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: <Widget>[
-          const IconBox(icon: Icons.storefront_outlined),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  store,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: <Widget>[
+              const IconBox(icon: Icons.storefront_outlined),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      store,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      formatDateTime(date),
+                      style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  formatDateTime(date),
-                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-                ),
-              ],
-            ),
+              ),
+              Icon(Icons.edit_outlined, size: 19, color: AppColors.amber),
+            ],
           ),
-          Icon(Icons.edit_outlined, size: 19, color: AppColors.amber),
-        ],
+        ),
       ),
     );
   }
@@ -1026,6 +1060,122 @@ class _CategorySheet extends StatelessWidget {
   }
 }
 
+/// Sheet used to rename the store pulled from OCR.
+///
+/// Returns the trimmed name, or null when the user backs out.
+class _StoreEditorSheet extends StatefulWidget {
+  const _StoreEditorSheet({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_StoreEditorSheet> createState() => _StoreEditorSheetState();
+}
+
+class _StoreEditorSheetState extends State<_StoreEditorSheet> {
+  late final TextEditingController _name;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController(text: widget.initial)
+      ..selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: widget.initial.length,
+      );
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final String name = _name.text.trim();
+    if (name.isEmpty) {
+      setState(() => _error = 'Nama toko wajib diisi');
+      return;
+    }
+    Navigator.pop(context, name);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Edit Nama Toko',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Perbaiki nama toko bila hasil OCR keliru.',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 18),
+              _SheetField(
+                controller: _name,
+                hint: 'Contoh: Indomaret',
+                error: _error,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submit(),
+              ),
+              const SizedBox(height: 18),
+              PrimaryButton(
+                label: 'Simpan Nama Toko',
+                icon: Icons.check_circle_outline,
+                onPressed: _submit,
+              ),
+              const SizedBox(height: 6),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Batal',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Sheet used to add a line item by hand.
 ///
 /// Returns the new [TransactionItem], or null when the user backs out.
@@ -1297,6 +1447,8 @@ class _SheetField extends StatelessWidget {
     this.inputFormatters,
     this.autofocus = false,
     this.textCapitalization = TextCapitalization.none,
+    this.textInputAction,
+    this.onSubmitted,
     this.prefixText,
     this.onChanged,
   });
@@ -1309,6 +1461,8 @@ class _SheetField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final bool autofocus;
   final TextCapitalization textCapitalization;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
   final String? prefixText;
   final ValueChanged<String>? onChanged;
 
@@ -1336,6 +1490,8 @@ class _SheetField extends StatelessWidget {
             inputFormatters: inputFormatters,
             autofocus: autofocus,
             textCapitalization: textCapitalization,
+            textInputAction: textInputAction,
+            onSubmitted: onSubmitted,
             onChanged: onChanged,
             style: TextStyle(
               fontSize: 14,

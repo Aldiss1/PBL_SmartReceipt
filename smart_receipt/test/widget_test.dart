@@ -189,6 +189,68 @@ void main() {
     expect(find.text('Rp7.000'), findsWidgets);
   });
 
+  testWidgets('review screen renames the store', (WidgetTester tester) async {
+    final OcrScanResult scan = _fakeScan();
+    final List<ItemPrediction> predictions =
+        ReceiptClassifier().classifyAll(<String>['Indomie Goreng']);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReviewTransactionScreen(scan: scan, predictions: predictions),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Indomaret'), findsOneWidget);
+
+    await tester.tap(find.text('Indomaret'));
+    await tester.pumpAndSettle();
+
+    final Finder field = find.byType(TextField);
+    await tester.enterText(field, 'Alfamart');
+    await tester.pump();
+
+    final Finder submit =
+        find.widgetWithText(PrimaryButton, 'Simpan Nama Toko');
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alfamart'), findsOneWidget);
+    expect(find.text('Indomaret'), findsNothing);
+  });
+
+  testWidgets('store editor rejects an empty name', (WidgetTester tester) async {
+    final OcrScanResult scan = _fakeScan();
+    final List<ItemPrediction> predictions =
+        ReceiptClassifier().classifyAll(<String>['Indomie Goreng']);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReviewTransactionScreen(scan: scan, predictions: predictions),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Indomaret'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '   ');
+    await tester.pump();
+
+    final Finder submit =
+        find.widgetWithText(PrimaryButton, 'Simpan Nama Toko');
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    // Sheet stays open with an inline error; the card keeps the old name.
+    expect(find.text('Nama toko wajib diisi'), findsOneWidget);
+    expect(find.text('Indomaret'), findsOneWidget);
+  });
+
   test('Receipt parser extracts items, store and total from OCR text', () {
     const OcrRawResult raw = OcrRawResult(
       fullText: 'INDOMARET\n13/09/2026 19:14\n'

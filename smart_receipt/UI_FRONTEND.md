@@ -369,12 +369,12 @@ Data berasal dari `ReceiptProvider` (`recentReceipts(3)`, `totalThisMonth`, `mon
 
 - `_StoreCard` — toko, tanggal, ikon edit; mengetuk kartu membuka `_StoreEditorSheet`.
 - `_ParseWarnings` — daftar peringatan parser dengan latar `amberSoft`.
-- `_ItemCard` — ikon kategori, nama, `qty × harga`, `CategoryChip` yang bisa diketuk (membuka bottom sheet), nominal subtotal, dan ikon hapus item.
+- `_ItemCard` — ikon kategori, nama + ikon pensil, `qty × harga`, `CategoryChip` (ketuk = ubah kategori), nominal subtotal, dan ikon hapus. Mengetuk kartu membuka `_ItemEditorSheet` dalam mode edit.
 - `_TotalCard` — subtotal item, "Diskon & biaya lain" (selisih total struk vs item), divider, total struk.
 - `_OcrTextViewer` — `ExpansionTile` dengan tiga mode (`Teks`, `Koordinat`, `Baris parser`), `_ModeChip`, `SelectableText` monospace, dan `IconButton` salin ke clipboard + SnackBar.
 - `_CategorySheet` — `showModalBottomSheet` berisi handle, judul, dan `ListTile` untuk 9 kategori.
 - `_StoreEditorSheet` — bottom sheet "Edit Nama Toko" dengan satu `_SheetField` (teks terpilih otomatis), validasi nama tidak boleh kosong, dan tombol simpan. Nilai balik `String?`.
-- `_ItemEditorSheet` — bottom sheet "Tambah Item": `_SheetField` nama & harga, `_QtyStepper`, pemilih kategori (membuka `_CategorySheet`), preview subtotal. Nilai balik `TransactionItem?`.
+- `_ItemEditorSheet` — bottom sheet "Tambah Item" / "Edit Item": `_SheetField` nama & harga, `_QtyStepper`, pemilih kategori (membuka `_CategorySheet`), preview subtotal. Nilai balik `TransactionItem?`.
 - `_EmptyItemsNotice` — bila tidak ada item terbaca.
 
 Item yang ditambahkan manual tidak mengubah total struk: total cetak tetap otoritatif, selisihnya muncul di baris "Diskon & biaya lain".

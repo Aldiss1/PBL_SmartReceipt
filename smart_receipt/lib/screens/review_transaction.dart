@@ -177,6 +177,33 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
     });
   }
 
+  /// Opens the item editor prefilled with [index] and applies the result.
+  ///
+  /// A category change made here is recorded exactly like a chip tap, so fixing
+  /// qty and category in one go still produces training data. The same
+  /// [._totalAdjustment] rule applies: the printed total is never rewritten.
+  Future<void> _editItem(int index) async {
+    final TransactionItem old = _items[index];
+    final TransactionItem? updated =
+        await showModalBottomSheet<TransactionItem>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) => Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: _ItemEditorSheet(initial: old),
+      ),
+    );
+    if (updated == null || !mounted) {
+      return;
+    }
+    setState(() => _items[index] = updated);
+    if (updated.category != old.category) {
+      _recordCorrection(index, old, updated.category);
+    }
+  }
+
   void _removeItem(int index) {
     setState(() {
       _items.removeAt(index);
@@ -286,7 +313,8 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
                     for (int i = 0; i < _items.length; i++)
                       _ItemCard(
                         item: _items[i],
-                        onTap: () => _editCategory(i),
+                        onEdit: () => _editItem(i),
+                        onCategoryTap: () => _editCategory(i),
                         onDelete: () => _removeItem(i),
                       ),
                     if (_items.isEmpty) const _EmptyItemsNotice(),
@@ -550,98 +578,122 @@ class _StoreCard extends StatelessWidget {
 class _ItemCard extends StatelessWidget {
   const _ItemCard({
     required this.item,
-    required this.onTap,
+    required this.onEdit,
+    required this.onCategoryTap,
     required this.onDelete,
   });
 
   final TransactionItem item;
-  final VoidCallback onTap;
+
+  /// Tapping the card opens the item editor (name, qty, price, category).
+  final VoidCallback onEdit;
+
+  /// Tapping the category chip opens only the category picker.
+  final VoidCallback onCategoryTap;
+
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final Category c = categoryByName(item.category);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          IconBox(
-            icon: c.icon,
-            size: 40,
-            iconSize: 20,
-            background: c.color.withValues(alpha: 0.14),
-            color: c.color,
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
+        child: InkWell(
+          onTap: onEdit,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  item.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
-                  ),
+                IconBox(
+                  icon: c.icon,
+                  size: 40,
+                  iconSize: 20,
+                  background: c.color.withValues(alpha: 0.14),
+                  color: c.color,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${item.qty} × ${rupiah(item.price)}',
-                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-                ),
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: onTap,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      CategoryChip(category: item.category, dense: true),
-                      const SizedBox(width: 6),
-                      Icon(Icons.edit, size: 13, color: AppColors.amber),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.edit_outlined,
+                            size: 14,
+                            color: AppColors.amber,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${item.qty} × ${rupiah(item.price)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: onCategoryTap,
+                        borderRadius: BorderRadius.circular(8),
+                        child: CategoryChip(
+                          category: item.category,
+                          dense: true,
+                        ),
+                      ),
                     ],
                   ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: <Widget>[
+                    Text(
+                      rupiah(item.subtotal),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    InkWell(
+                      onTap: onDelete,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.delete_outline,
+                          size: 16,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[
-              Text(
-                rupiah(item.subtotal),
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
-                ),
-              ),
-              const SizedBox(height: 4),
-              InkWell(
-                onTap: onDelete,
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Icon(
-                    Icons.delete_outline,
-                    size: 16,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1176,11 +1228,15 @@ class _StoreEditorSheetState extends State<_StoreEditorSheet> {
   }
 }
 
-/// Sheet used to add a line item by hand.
+/// Sheet used to add or edit a line item.
 ///
-/// Returns the new [TransactionItem], or null when the user backs out.
+/// Returns the resulting [TransactionItem], or null when the user backs out.
+/// Passing [initial] switches the sheet into edit mode: the fields are
+/// prefilled and the button reads "Simpan Perubahan".
 class _ItemEditorSheet extends StatefulWidget {
-  const _ItemEditorSheet();
+  const _ItemEditorSheet({this.initial});
+
+  final TransactionItem? initial;
 
   @override
   State<_ItemEditorSheet> createState() => _ItemEditorSheetState();
@@ -1194,13 +1250,18 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
   String? _nameError;
   String? _priceError;
 
+  bool get _isEditing => widget.initial != null;
+
   @override
   void initState() {
     super.initState();
-    _name = TextEditingController();
-    _price = TextEditingController();
-    _qty = 1;
-    _category = 'Lainnya';
+    final TransactionItem? initial = widget.initial;
+    _name = TextEditingController(text: initial?.name ?? '');
+    _price = TextEditingController(
+      text: initial == null ? '' : '${initial.price}',
+    );
+    _qty = initial?.qty ?? 1;
+    _category = initial?.category ?? 'Lainnya';
   }
 
   @override
@@ -1275,7 +1336,7 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Tambah Item',
+                _isEditing ? 'Edit Item' : 'Tambah Item',
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
@@ -1284,7 +1345,9 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Lengkapi nama, jumlah, dan harga item.',
+                _isEditing
+                    ? 'Perbaiki nama, jumlah, atau harga item.'
+                    : 'Lengkapi nama, jumlah, dan harga item.',
                 style: TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
               const SizedBox(height: 18),
@@ -1395,7 +1458,7 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
               ),
               const SizedBox(height: 18),
               PrimaryButton(
-                label: 'Tambah Item',
+                label: _isEditing ? 'Simpan Perubahan' : 'Tambah Item',
                 icon: Icons.check_circle_outline,
                 onPressed: _submit,
               ),

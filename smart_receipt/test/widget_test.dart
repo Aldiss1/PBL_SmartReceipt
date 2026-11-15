@@ -251,6 +251,78 @@ void main() {
     expect(find.text('Indomaret'), findsOneWidget);
   });
 
+  testWidgets('review screen edits an item qty and price', (
+    WidgetTester tester,
+  ) async {
+    final OcrScanResult scan = _fakeScan();
+    final List<ItemPrediction> predictions =
+        ReceiptClassifier().classifyAll(<String>['Indomie Goreng']);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReviewTransactionScreen(scan: scan, predictions: predictions),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('2 × Rp3.500'), findsOneWidget);
+
+    // Tapping the card opens the editor prefilled with the current values.
+    await tester.tap(find.text('Indomie Goreng'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit Item'), findsOneWidget);
+    expect(find.text('3500'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).at(1), '4000');
+    await tester.pump();
+
+    // Bump qty 2 -> 3 on the stepper.
+    await tester.tap(find.byIcon(Icons.add).last);
+    await tester.pumpAndSettle();
+    expect(find.text('Rp12.000'), findsWidgets);
+
+    final Finder submit =
+        find.widgetWithText(PrimaryButton, 'Simpan Perubahan');
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(find.text('3 × Rp4.000'), findsOneWidget);
+    // Card subtotal and the "Subtotal item" row in the totals card.
+    expect(find.text('Rp12.000'), findsNWidgets(2));
+    // Printed total still wins (opsi A), now below the item sum.
+    expect(find.text('-Rp5.000'), findsOneWidget);
+  });
+
+  testWidgets('cancelling the item editor keeps the original values', (
+    WidgetTester tester,
+  ) async {
+    final OcrScanResult scan = _fakeScan();
+    final List<ItemPrediction> predictions =
+        ReceiptClassifier().classifyAll(<String>['Indomie Goreng']);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReviewTransactionScreen(scan: scan, predictions: predictions),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Indomie Goreng'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(1), '9999');
+    await tester.pump();
+
+    await tester.tap(find.text('Batal'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 × Rp3.500'), findsOneWidget);
+    expect(find.text('Rp7.000'), findsWidgets);
+  });
+
   test('Receipt parser extracts items, store and total from OCR text', () {
     const OcrRawResult raw = OcrRawResult(
       fullText: 'INDOMARET\n13/09/2026 19:14\n'

@@ -24,15 +24,39 @@ import 'transaction_saved.dart';
 ///
 /// Prefills the editable items with the names/prices/qty recovered by OCR and
 /// the categories predicted by the classifier.
+///
+/// The same screen also edits an already-saved receipt via
+/// [ReviewTransactionScreen.edit]; sharing it means a correction made from the
+/// detail screen behaves exactly like one made right after a scan.
 class ReviewTransactionScreen extends StatefulWidget {
   const ReviewTransactionScreen({
     super.key,
     required this.scan,
     required this.predictions,
-  });
+  })  : receipt = null,
+        categoryName = null;
 
-  final OcrScanResult scan;
+  /// Opens the screen on a persisted receipt instead of a fresh scan.
+  ///
+  /// [categoryName] resolves a `categoryId` to its display name; it comes from
+  /// [ReceiptProvider] so the names match the rest of the app.
+  const ReviewTransactionScreen.edit({
+    super.key,
+    required this.receipt,
+    required this.categoryName,
+  })  : scan = null,
+        predictions = const <ItemPrediction>[];
+
+  final OcrScanResult? scan;
   final List<ItemPrediction> predictions;
+
+  /// Receipt being edited; null when reviewing a new scan.
+  final db.Receipt? receipt;
+
+  /// Maps a stored `categoryId` to a category name. Only used in edit mode.
+  final String Function(int categoryId)? categoryName;
+
+  bool get isEditing => receipt != null;
 
   @override
   State<ReviewTransactionScreen> createState() => _ReviewTransactionScreenState();
@@ -78,11 +102,41 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
   @override
   void initState() {
     super.initState();
-    _store = widget.scan.parsed.store;
-    _date = widget.scan.parsed.date ?? DateTime.now();
-    _receiptTotal = widget.scan.parsed.total;
+    final db.Receipt? existing = widget.receipt;
+    if (existing != null) {
+      _initFromReceipt(existing);
+      return;
+    }
+    _initFromScan(widget.scan!);
+  }
 
-    final List<ParsedItem> parsedItems = widget.scan.parsed.items;
+  /// Loads an already-saved receipt for editing.
+  ///
+  /// Every item gets a null prediction: the model output that produced the
+  /// stored category was never saved, so there is nothing to compare against and
+  /// nothing to log as a correction.
+  void _initFromReceipt(db.Receipt receipt) {
+    _store = receipt.storeName;
+    _date = receipt.transactionDate;
+    _receiptTotal = receipt.totalAmount.round();
+    _items = <TransactionItem>[
+      for (final db.Transaction item in receipt.transactions)
+        TransactionItem(
+          name: item.itemName,
+          qty: item.quantity,
+          price: item.unitPrice.round(),
+          category: widget.categoryName?.call(item.categoryId) ?? 'Lainnya',
+        ),
+    ];
+    _predictions = List<ItemPrediction?>.filled(_items.length, null);
+  }
+
+  void _initFromScan(OcrScanResult scan) {
+    _store = scan.parsed.store;
+    _date = scan.parsed.date ?? DateTime.now();
+    _receiptTotal = scan.parsed.total;
+
+    final List<ParsedItem> parsedItems = scan.parsed.items;
     _items = <TransactionItem>[];
     _predictions = <ItemPrediction?>[];
     for (int i = 0; i < parsedItems.length; i++) {
@@ -147,7 +201,11 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
         );
       });
       // Record the correction as training data (best-effort, never blocks UI).
-      _recordCorrection(index, old, selected);
+      // Editing a saved receipt has no model prediction behind it, so there is
+      // no disagreement to learn from.
+      if (!widget.isEditing) {
+        _recordCorrection(index, old, selected);
+      }
     }
   }
 
@@ -199,7 +257,7 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
       return;
     }
     setState(() => _items[index] = updated);
-    if (updated.category != old.category) {
+    if (updated.category != old.category && !widget.isEditing) {
       _recordCorrection(index, old, updated.category);
     }
   }
@@ -275,8 +333,10 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
           children: <Widget>[
             const AppStatusBar(),
             AppTopBar(
-              title: 'Review Transaksi',
-              subtitle: 'Periksa & koreksi hasil OCR',
+              title: widget.isEditing ? 'Edit Transaksi' : 'Review Transaksi',
+              subtitle: widget.isEditing
+                  ? 'Perbaiki data transaksi tersimpan'
+                  : 'Periksa & koreksi hasil OCR',
               onBack: () => Navigator.maybePop(context),
             ),
             Expanded(
@@ -286,13 +346,15 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     _StoreCard(store: _store, date: _date, onEdit: _editStore),
-                    if (widget.scan.parsed.warnings.isNotEmpty) ...<Widget>[
+                    if (widget.scan != null &&
+                        widget.scan!.parsed.warnings.isNotEmpty) ...<Widget>[
                       const SizedBox(height: 12),
-                      _ParseWarnings(warnings: widget.scan.parsed.warnings),
+                      _ParseWarnings(warnings: widget.scan!.parsed.warnings),
                     ],
                     const SizedBox(height: 18),
                     _ReceiptPhotoSection(
-                      imagePath: widget.scan.sourcePath,
+                      imagePath:
+                          widget.scan?.sourcePath ?? widget.receipt?.imagePath,
                       expanded: _photoExpanded,
                       onToggle: () =>
                           setState(() => _photoExpanded = !_photoExpanded),
@@ -331,7 +393,11 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
                       adjustment: _totalAdjustment,
                     ),
                     const SizedBox(height: 14),
-                    _OcrTextViewer(raw: widget.scan.raw, parsed: widget.scan.parsed),
+                    if (widget.scan != null)
+                      _OcrTextViewer(
+                        raw: widget.scan!.raw,
+                        parsed: widget.scan!.parsed,
+                      ),
                   ],
                 ),
               ),
@@ -339,7 +405,9 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(22, 8, 22, 22),
               child: PrimaryButton(
-                label: 'Simpan Transaksi',
+                label: widget.isEditing
+                    ? 'Simpan Perubahan'
+                    : 'Simpan Transaksi',
                 icon: Icons.check_circle_outline,
                 onPressed: _save,
               ),
@@ -351,6 +419,11 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
   }
 
   Future<void> _save() async {
+    if (widget.isEditing) {
+      await _saveEdits();
+      return;
+    }
+
     final ReceiptProvider provider =
         Provider.of<ReceiptProvider>(context, listen: false);
 
@@ -358,7 +431,7 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
     // by a row: iOS purges temp files, which would leave the history preview
     // pointing at nothing.
     final String? storedImagePath =
-        await ReceiptImageStore().persist(widget.scan.sourcePath);
+        await ReceiptImageStore().persist(widget.scan!.sourcePath);
 
     final db.Receipt receipt = db.Receipt(
       storeName: _store,
@@ -366,9 +439,9 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
       totalAmount: _receiptTotal.toDouble(),
       taxAmount: 0,
       subtotal: _itemsTotal.toDouble(),
-      paymentMethod: widget.scan.parsed.paymentMethod,
+      paymentMethod: widget.scan!.parsed.paymentMethod,
       imagePath: storedImagePath,
-      ocrText: widget.scan.raw.fullText,
+      ocrText: widget.scan!.raw.fullText,
       status: 'saved',
       createdAt: DateTime.now(),
       transactions: <db.Transaction>[
@@ -405,10 +478,69 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
           store: _store,
           date: _date,
           items: _items,
-          paymentMethod: widget.scan.parsed.paymentMethod,
+          paymentMethod: widget.scan!.parsed.paymentMethod,
         ),
       ),
     );
+  }
+
+  /// Writes the edits back over the stored receipt and pops with `true`.
+  ///
+  /// Everything the capture produced (photo, OCR text, payment method, created
+  /// date) is carried over untouched: this screen edits the transaction, not the
+  /// evidence behind it. Popping with `true` is what tells the detail screen to
+  /// reload its copy.
+  Future<void> _saveEdits() async {
+    final db.Receipt existing = widget.receipt!;
+    final ReceiptProvider provider =
+        Provider.of<ReceiptProvider>(context, listen: false);
+
+    final db.Receipt updated = db.Receipt(
+      id: existing.id,
+      storeName: _store,
+      storeAddress: existing.storeAddress,
+      transactionDate: _date,
+      totalAmount: _receiptTotal.toDouble(),
+      taxAmount: existing.taxAmount,
+      subtotal: _itemsTotal.toDouble(),
+      paymentMethod: existing.paymentMethod,
+      receiptNumber: existing.receiptNumber,
+      imagePath: existing.imagePath,
+      ocrText: existing.ocrText,
+      status: existing.status,
+      notes: existing.notes,
+      createdAt: existing.createdAt,
+      transactions: <db.Transaction>[
+        for (final TransactionItem i in _items)
+          db.Transaction(
+            receiptId: existing.id ?? 0,
+            categoryId: _categoryIdFor(i.category),
+            itemName: i.name,
+            quantity: i.qty,
+            unitPrice: i.price.toDouble(),
+            totalPrice: i.subtotal.toDouble(),
+            discount: 0,
+            createdAt: DateTime.now(),
+          ),
+      ],
+    );
+
+    try {
+      await provider.updateReceiptWithItems(updated);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyimpan perubahan: $error')),
+      );
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+    Navigator.pop(context, true);
   }
 
   /// Maps a UI category name to its canonical SQLite category id.

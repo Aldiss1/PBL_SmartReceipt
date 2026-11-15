@@ -184,6 +184,38 @@ class ReceiptProvider with ChangeNotifier {
     await loadData();
   }
 
+  /// Saves an edited receipt together with its line items.
+  ///
+  /// Item rows carry their own primary keys, and the edit screen can add and
+  /// remove them, so the cheapest correct write is to replace the whole set
+  /// inside one go rather than diffing rows that the UI never tracked.
+  Future<void> updateReceiptWithItems(Receipt receipt) async {
+    final int? id = receipt.id;
+    if (id == null) {
+      throw ArgumentError('updateReceiptWithItems needs a persisted receipt');
+    }
+
+    await _dbHelper.updateReceipt(receipt);
+    await _dbHelper.deleteTransactionsByReceiptId(id);
+    for (final Transaction transaction in receipt.transactions) {
+      await _dbHelper.insertTransaction(
+        Transaction(
+          receiptId: id,
+          categoryId: transaction.categoryId,
+          itemName: transaction.itemName,
+          quantity: transaction.quantity,
+          unitPrice: transaction.unitPrice,
+          totalPrice: transaction.totalPrice,
+          discount: transaction.discount,
+          notes: transaction.notes,
+          createdAt: transaction.createdAt,
+        ),
+      );
+    }
+
+    await loadData();
+  }
+
   Future<void> deleteReceipt(int id) async {
     final Receipt? existing = await _dbHelper.getReceiptById(id);
     await _dbHelper.deleteReceipt(id);

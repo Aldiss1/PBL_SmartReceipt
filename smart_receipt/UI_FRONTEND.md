@@ -367,6 +367,8 @@ Data berasal dari `ReceiptProvider` (`recentReceipts(3)`, `totalThisMonth`, `mon
 
 ### 7.6 Review (`review_transaction.dart`)
 
+Dua mode: `ReviewTransactionScreen(...)` untuk hasil scan baru, dan `ReviewTransactionScreen.edit(...)` untuk transaksi tersimpan (dibuka dari Detail). Mode edit menyembunyikan peringatan parser dan `_OcrTextViewer`, memakai foto struk tersimpan, dan menyimpan lewat `ReceiptProvider.updateReceiptWithItems` (header di-update, seluruh item diganti).
+
 - `_StoreCard` — toko, tanggal, ikon edit; mengetuk kartu membuka `_StoreEditorSheet`.
 - `_ParseWarnings` — daftar peringatan parser dengan latar `amberSoft`.
 - `_ItemCard` — ikon kategori, nama + ikon pensil, `qty × harga`, `CategoryChip` (ketuk = ubah kategori), nominal subtotal, dan ikon hapus. Mengetuk kartu membuka `_ItemEditorSheet` dalam mode edit.
@@ -395,8 +397,8 @@ Lingkaran `greenSoft` 108 px + ikon centang 62 px, judul "Transaksi Tersimpan", 
 - `_ReceiptHeader` — kartu gradient dengan ikon toko, nama, tanggal, "Total Pembayaran", dan dua `_Badge` (metode bayar, jumlah item).
 - `_ItemRow` — daftar item dengan `IconBox`, nama, `qty × harga • kategori`, subtotal, divider antar-baris.
 - `_SummaryCard` — subtotal, diskon, jumlah kategori, total.
-- Aksi `CircleIconButton` hapus berfungsi: dialog konfirmasi (`AlertDialog`, tombol "Hapus" merah) → `ReceiptProvider.deleteReceipt` → pop + SnackBar. Bila provider gagal, pengguna tetap di layar dan muncul SnackBar error. Tombol hanya tampil saat `transaction.receiptId` terisi.
-- Aksi `CircleIconButton` edit masih **no-op** (`onTap: () {}`).
+- Aksi `CircleIconButton` hapus berfungsi: dialog konfirmasi (`AlertDialog`, tombol "Hapus" merah) → `ReceiptProvider.deleteReceipt` → pop + SnackBar. Bila provider gagal, pengguna tetap di layar dan muncul SnackBar error.
+- Aksi `CircleIconButton` edit membuka `ReviewTransactionScreen.edit` (layar Review dipakai ulang dalam mode edit), lalu memuat ulang receipt dari provider dan memperbarui layar. Kedua tombol hanya tampil saat `transaction.receiptId` terisi.
 
 ### 7.10 Analisis (`analysis.dart`)
 
@@ -596,7 +598,7 @@ Hal-hal yang perlu diketahui sebelum mengubah UI:
 1. **Warna hardcoded di beberapa tempat.** `_RawTextCard` (OCR), `_StoreSummary` dan `_NoItemsCard` (Klasifikasi), serta `_EmptyItemsNotice` (Review) memakai `Colors.white` sehingga tetap putih di dark mode. Beberapa warna lain juga hardcoded: `#3A2A00` (teks di atas oranye), `#C7CBD6` (teks viewfinder), `#8A93A8` (ikon langkah OCR).
 2. **`AppStatusBar` tidak menggambar apa pun.** Kelas ini hanya placeholder; status bar asli ditangani OS. Parameter `time` tidak pernah dipakai.
 3. **Duplikasi widget.** `_CategoryCard`/`_CategoryRow`/`_CategoryBar` ada di Beranda dan Analisis dengan kode hampir identik; `_StatCard` dan `_MiniStat` juga mirip. Belum diekstrak ke `widgets/`.
-4. **Aksi yang belum berfungsi:** edit di Detail Transaksi, "Keluar", "Kategori & Label", "Tentang Aplikasi", "Bantuan & Dukungan", dan switch Notifikasi (hanya state lokal).
+4. **Aksi yang belum berfungsi:** "Keluar", "Kategori & Label", "Tentang Aplikasi", "Bantuan & Dukungan", dan switch Notifikasi (hanya state lokal).
 5. **Dependensi tidak terpakai:** `fl_chart`, `intl`, dan `cupertino_icons` ada di `pubspec.yaml` tetapi tidak diimpor di `lib/`.
 6. **Route `'/scan'`** terdaftar di `main.dart` tetapi tidak pernah dipakai; semua scan lewat `openScan()`.
 7. **Satu transisi tidak konsisten:** OCR → Klasifikasi memakai `MaterialPageRoute`, layar lain memakai `appRoute()`.

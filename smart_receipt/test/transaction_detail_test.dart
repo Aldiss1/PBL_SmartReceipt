@@ -9,6 +9,7 @@ import 'package:smart_receipt/models/receipt_model.dart' as db;
 import 'package:smart_receipt/providers/receipt_provider.dart';
 import 'package:smart_receipt/screens/transaction_detail.dart';
 import 'package:smart_receipt/services/receipt_image_store.dart';
+import 'package:smart_receipt/widgets/app_widgets.dart';
 
 /// In-memory stand-in for [DatabaseHelper].
 ///
@@ -58,6 +59,19 @@ class _InMemoryDatabaseHelper extends DatabaseHelper {
 
   @override
   Future<db.Receipt?> getReceiptById(int id) async => _receipts[id];
+
+  @override
+  Future<int> updateReceipt(db.Receipt receipt) async {
+    final int? id = receipt.id;
+    if (id == null || !_receipts.containsKey(id)) {
+      return 0;
+    }
+    _receipts[id] = receipt;
+    return 1;
+  }
+
+  @override
+  Future<int> deleteTransactionsByReceiptId(int receiptId) async => 1;
 
   @override
   Future<int> deleteReceipt(int id) async {
@@ -186,5 +200,40 @@ void main() {
     expect(find.text('Detail Transaksi'), findsOneWidget);
     expect(provider.receipts.length, 1);
     expect(await helper.getReceiptsWithTransactions(), hasLength(1));
+  });
+
+  testWidgets('editing from detail saves and refreshes the screen', (
+    WidgetTester tester,
+  ) async {
+    await provider.addReceipt(_receipt('Indomaret'));
+
+    final Transaction transaction = toUiTransaction(
+      provider.receipts.single,
+      provider.categoryNameFor,
+    );
+
+    await _openDetail(tester, provider, transaction);
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pumpAndSettle();
+
+    // The shared review screen opens in edit mode, prefilled from SQLite.
+    expect(find.text('Edit Transaksi'), findsOneWidget);
+    expect(find.text('Indomie Goreng'), findsOneWidget);
+    expect(find.text('2 × Rp3.500'), findsOneWidget);
+
+    await tester.tap(find.text('Indomaret').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Indomaret Sudirman');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(PrimaryButton, 'Simpan Nama Toko'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(PrimaryButton, 'Simpan Perubahan'));
+    await tester.pumpAndSettle();
+
+    // Detail screen reloaded from the provider with the edited store name.
+    expect(find.text('Detail Transaksi'), findsOneWidget);
+    expect(find.text('Indomaret Sudirman'), findsWidgets);
+    expect(provider.receipts.single.storeName, 'Indomaret Sudirman');
   });
 }

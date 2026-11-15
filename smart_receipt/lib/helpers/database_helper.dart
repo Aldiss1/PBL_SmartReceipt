@@ -334,6 +334,16 @@ class DatabaseHelper implements CorrectionStore {
     );
   }
 
+  /// Removes every item of a receipt, used when its line items are replaced.
+  Future<int> deleteTransactionsByReceiptId(int receiptId) async {
+    final db = await database;
+    return db.delete(
+      _tableTransactions,
+      where: 'receipt_id = ?',
+      whereArgs: [receiptId],
+    );
+  }
+
   // CATEGORY OPERATIONS
   Future<List<Category>> getAllCategories() async {
     final db = await database;

@@ -1575,4 +1575,114 @@ void main() {
       expect(p.warnings, isEmpty);
     });
   });
+
+  group('an Indomaret receipt whose table heading is split across lines', () {
+    /// Exact boxes ML Kit returned for an Indomaret receipt (Medan, 06/09/2023)
+    /// in which the table heading comes back as two separate lines — `TOTAL`
+    /// (right column) *above* `ITEM` (left column) — and every amount sits a
+    /// line above its label: prices above the product names, `91.800` above the
+    /// `TOTAL` label, `82.703` above `DPP`, `9.097` above `PPN 11%`.
+    ///
+    /// Before the fix the bare `TOTAL` heading line was read as the start of
+    /// the totals block, so every product was cut off and the header line
+    /// `STORE NO. 0010 021 8376971` came back as the only "item".
+    ParsedReceipt parseMedanIndomaret() {
+      const List<List<Object>> boxes = <List<Object>>[
+        // [top, bottom, left, right, text]
+        <Object>[63, 115, 267, 589, 'INDOMARET'],
+        <Object>[131, 159, 283, 578, 'SERBA ADA SERBA MUDAH'],
+        <Object>[163, 200, 170, 694, 'JL. PANGERAN ANTASARI 5, KEL. TANJUNG'],
+        <Object>[197, 228, 249, 617, 'KEC. MEDAN SELAYANG, MEDAN'],
+        <Object>[234, 271, 230, 637, 'STORE NO.  0010 021 8376971'],
+        <Object>[311, 339, 656, 816, '06/09/2023'],
+        <Object>[330, 355, 157, 283, '  16116691'],
+        <Object>[337, 358, 56, 133, 'NO :'],
+        <Object>[353, 376, 691, 816, '11:50:31'],
+        <Object>[371, 398, 58, 304, 'KSR : N. KUSUMA'],
+        <Object>[433, 451, 754, 823, 'TOTAL'],
+        <Object>[458, 475, 62, 117, 'ITEM'],
+        <Object>[473, 498, 728, 822, '  16.000'],
+        <Object>[489, 520, 62, 390, 'ROTI TAWAR SARI ROTI'],
+        <Object>[514, 536, 730, 822, '  11.000'],
+        <Object>[532, 560, 63, 292, 'BATAGOR FROZEN'],
+        <Object>[555, 576, 748, 823, '  3.200'],
+        <Object>[572, 600, 64, 344, 'NISSIN MIE GORENG'],
+        <Object>[595, 617, 732, 825, '  14.500'],
+        <Object>[610, 643, 66, 345, 'TELUR AYAM 1/2 KG'],
+        <Object>[635, 658, 734, 827, '  17.500'],
+        <Object>[650, 681, 68, 379, 'SARI ROTI TAWAR 12s'],
+        <Object>[676, 698, 735, 828, '  19.800'],
+        <Object>[689, 722, 68, 427, 'MINYAK GORENG SANIA IL'],
+        <Object>[714, 739, 754, 830, '  9.800'],
+        <Object>[734, 761, 70, 298, 'YAKULT PACK SS'],
+        <Object>[795, 820, 739, 834, '  91.800'],
+        <Object>[820, 841, 73, 153, 'TOTAL'],
+        <Object>[877, 901, 741, 835, '  82.703'],
+        <Object>[905, 923, 77, 124, 'DPP'],
+        <Object>[919, 939, 761, 836, '  9.097'],
+        <Object>[940, 963, 78, 189, 'PPN 11%'],
+        <Object>[997, 1021, 746, 840, '  91.800'],
+        <Object>[1016, 1045, 79, 291, 'DEBIT MANDIRI'],
+        <Object>[1089, 1123, 237, 688, 'TERIMA KASIH ATAS KUNJUNGAN ANDA'],
+        <Object>[1125, 1153, 295, 632, 'BARANG YANG SUDAH DIBELI'],
+        <Object>[1154, 1186, 275, 654, 'TIDAK DAPAT DITUKAR KEMBALI'],
+        <Object>[1299, 1325, 344, 595, '  016116691738639222'],
+      ];
+      return ReceiptParser().parse(OcrRawResult(
+        lines: <OcrLine>[
+          for (final List<Object> b in boxes)
+            OcrLine(
+              text: b[4] as String,
+              left: (b[2] as int).toDouble(),
+              top: (b[0] as int).toDouble(),
+              right: (b[3] as int).toDouble(),
+              bottom: (b[1] as int).toDouble(),
+            ),
+        ],
+        fullText: boxes.map((List<Object> b) => b[4] as String).join('\n'),
+      ));
+    }
+
+    test('keeps every product instead of cutting the list at the heading', () {
+      final ParsedReceipt p = parseMedanIndomaret();
+
+      expect(p.items.length, 7);
+      expect(
+        p.items.map((ParsedItem i) => i.name).toList(),
+        <String>[
+          'ROTI TAWAR SARI ROTI',
+          'BATAGOR FROZEN',
+          'NISSIN MIE GORENG',
+          'TELUR AYAM 1/2 KG',
+          'SARI ROTI TAWAR 12s',
+          'MINYAK GORENG SANIA IL',
+          'YAKULT PACK SS',
+        ],
+      );
+      expect(
+        p.items.map((ParsedItem i) => i.lineTotal).toList(),
+        <int>[16000, 11000, 3200, 14500, 17500, 19800, 9800],
+      );
+    });
+
+    test('does not turn the STORE NO header line into a product', () {
+      final ParsedReceipt p = parseMedanIndomaret();
+
+      expect(
+        p.items.map((ParsedItem i) => i.name).toList(),
+        isNot(contains('STORE NO')),
+      );
+    });
+
+    test('reads the printed total and the PPN, not the amounts above them', () {
+      final ParsedReceipt p = parseMedanIndomaret();
+
+      expect(p.total, 91800);
+      expect(p.totalFromReceipt, isTrue);
+      expect(p.itemsTotal, 91800);
+      expect(p.taxTotal, 9097);
+      expect(p.store, 'Indomaret');
+      expect(p.paymentMethod, 'Debit');
+    });
+  });
 }

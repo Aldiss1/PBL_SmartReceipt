@@ -420,7 +420,12 @@ class ReceiptParser {
     }
     final int gap =
         (p.total + p.discountTotal - p.taxTotal - p.itemsTotal).abs();
-    return gap <= 100;
+    if (gap <= 100) {
+      return true;
+    }
+    // The total already includes the tax (the receipt prints the pre-tax
+    // `DPP` below it): the items explaining the total outright still counts.
+    return (p.total + p.discountTotal - p.itemsTotal).abs() <= 100;
   }
 
   /// Ranks a parse result. The printed total is the strongest evidence that the
@@ -431,13 +436,24 @@ class ReceiptParser {
     if (p.totalFromReceipt) {
       score += 20;
       // A taxed receipt prints the total after the tax was added, so the tax
-      // has to come back out before the items can be compared with it.
+      // has to come back out before the items can be compared with it. On a
+      // tax-inclusive receipt (the pre-tax `DPP` is printed below the total)
+      // the items explain the total outright instead.
       final int gap =
           (p.total + p.discountTotal - p.taxTotal - p.itemsTotal).abs();
-      if (gap <= 1) {
+      final int gapInclusive =
+          (p.total + p.discountTotal - p.itemsTotal).abs();
+      if (gap <= 1 || gapInclusive <= 1) {
         score += 100;
-      } else if (gap <= 100) {
+      } else if (gap <= 100 || gapInclusive <= 100) {
         score += 10;
+      }
+      // A printed total smaller than the tax line is impossible under either
+      // model: it means the summary amounts were paired with the wrong
+      // labels (the pre-tax `DPP` read as the total, the total read as the
+      // PPN), so the candidate must lose to one that pairs them sanely.
+      if (p.taxTotal > p.total) {
+        score -= 100;
       }
     } else if ((p.taxTotal > 0 || p.discountTotal > 0) &&
         p.itemsTotal + p.taxTotal - p.discountTotal == p.total) {
@@ -476,7 +492,7 @@ class ReceiptParser {
     // postcode in the address ends up looking like a price.
     int itemStart = 0;
     for (int i = 0; i < itemCutoff; i++) {
-      if (_isColumnHeader(rows[i].text)) {
+      if (_isColumnHeader(rows[i].text) || _isTotalHeading(rows, i)) {
         itemStart = i;
         break;
       }
@@ -486,7 +502,7 @@ class ReceiptParser {
     for (int i = itemStart; i < itemCutoff; i++) {
       // The heading words themselves sit on the same lines as the first
       // products, so they are skipped rather than read as products.
-      if (_isColumnHeader(rows[i].text)) {
+      if (_isColumnHeader(rows[i].text) || _isTotalHeading(rows, i)) {
         continue;
       }
       final _ItemDraft? draft = _readItem(rows[i], i);
@@ -555,12 +571,16 @@ class ReceiptParser {
     if (items.isEmpty) {
       warnings.add('Tidak ada item yang terbaca dari struk.');
     } else if (printedTotal != null) {
-      // Tax is not an item, so it must not count as a discrepancy.
+      // Tax is not an item, so it must not count as a discrepancy. On a
+      // tax-inclusive receipt the items explain the total outright, so that
+      // reading is checked as well.
       final int gap = total + discounts - tax - itemsTotal;
-      if (gap.abs() > 1) {
+      final int gapInclusive = total + discounts - itemsTotal;
+      final int discrepancy = math.min(gap.abs(), gapInclusive.abs());
+      if (discrepancy > 1) {
         warnings.add(
           'Total struk dan jumlah item berbeda '
-          '${gap.abs()} rupiah. Periksa harga item.',
+          '$discrepancy rupiah. Periksa harga item.',
         );
       }
     }
@@ -1160,13 +1180,22 @@ class ReceiptParser {
   ///
   /// A summary row carries a label (`SUBTOTAL`, `PPN`, `TOTAL`, `TUNAI`, …) but
   /// no amount of its own, because OCR emitted the amount on a different line.
+  /// A label that already carries its amount (`TOTAL 91.800`) is just as
+  /// conclusive, so it is accepted too — otherwise the block would only be
+  /// found at a later bare label (a footer line) and the rows in between
+  /// (`DPP 82.703`) would be read as products.
   int _firstSummaryIndex(List<_Row> rows) {
     for (int i = 0; i < rows.length; i++) {
       final _Row row = _withoutPercentages(rows[i]);
-      if (_splitRow(row).numbers.isNotEmpty) {
+      if (_isBareSummaryLabel(row.text) &&
+          !_isColumnHeader(row.text) &&
+          !_isTotalHeading(rows, i)) {
+        return i;
+      }
+      if (_splitRow(row).numbers.isEmpty) {
         continue;
       }
-      if (_isBareSummaryLabel(row.text) && !_isColumnHeader(row.text)) {
+      if (_isSummaryLabelWithAmount(row)) {
         return i;
       }
     }
@@ -1306,6 +1335,52 @@ class ReceiptParser {
       r'deskripsi|harga|hrg|harga\s+satuan|jumlah|jlh|total\s+harga)\s*$',
       caseSensitive: false,
     ).hasMatch(text);
+  }
+
+  /// Whether the row at [i] is the `TOTAL` half of a split table heading.
+  ///
+  /// ML Kit returns the two heading words as separate lines, and on a skewed
+  /// photo they even land on separate rows — `TOTAL` (right column) above
+  /// `ITEM` (left column). Read as a summary label, the heading cuts the item
+  /// list before the first product, and the shop header (`STORE NO. 0010
+  /// 021 8376971`) becomes the only "item". The real total label is never
+  /// adjacent to a heading row: its neighbours are amounts.
+  bool _isTotalHeading(List<_Row> rows, int i) {
+    if (!RegExp(r'^\s*total\s*$', caseSensitive: false)
+        .hasMatch(rows[i].text)) {
+      return false;
+    }
+    if (_splitRow(_withoutPercentages(rows[i])).numbers.isNotEmpty) {
+      return false;
+    }
+    return (i > 0 && _isColumnHeader(rows[i - 1].text)) ||
+        (i + 1 < rows.length && _isColumnHeader(rows[i + 1].text));
+  }
+
+  /// Whether [row] is a summary label carrying its own amount, e.g.
+  /// `TOTAL 91.800` or `PPN 11% 9.097`.
+  ///
+  /// Checked on the label part only, and strictly: every word must be a label
+  /// word, so a shop named `TOTAL MART 12345` is never mistaken for the start
+  /// of the totals block.
+  bool _isSummaryLabelWithAmount(_Row row) {
+    final _RowParts parts = _splitRow(_withoutPercentages(row));
+    if (parts.numbers.isEmpty || parts.name.isEmpty) {
+      return false;
+    }
+    if (_subtotalWords.hasMatch(parts.name) ||
+        _conclusiveTaxWords.hasMatch(parts.name)) {
+      return true;
+    }
+    final List<String> tokens = parts.name
+        .toLowerCase()
+        .split(RegExp(r'[^a-z]+'))
+        .where((String t) => t.length >= 3)
+        .toList();
+    if (tokens.isEmpty) {
+      return false;
+    }
+    return tokens.every(_isLabelToken);
   }
 
   /// Summary and footer words that OCR frequently mangles. Thermal printing

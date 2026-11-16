@@ -8,6 +8,8 @@ import 'package:smart_receipt/helpers/database_helper.dart';
 import 'package:smart_receipt/models/categories.dart';
 import 'package:smart_receipt/models/receipt_model.dart';
 
+import 'support/temp_dir.dart';
+
 Receipt _receipt({
   required String store,
   required DateTime date,
@@ -83,9 +85,7 @@ void main() {
 
   tearDown(() async {
     await helper.close();
-    if (dir.existsSync()) {
-      dir.deleteSync(recursive: true);
-    }
+    await deleteTempDir(dir);
   });
 
   test('creates and seeds the schema', () async {

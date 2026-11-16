@@ -160,8 +160,12 @@ class Receipt {
   }
 
   /// Returns a copy with the given fields replaced, e.g. to attach the
-  /// transaction rows loaded separately from the database.
-  Receipt copyWith({List<Transaction>? transactions}) {
+  /// transaction rows loaded separately from the database or a persisted
+  /// local image path.
+  Receipt copyWith({
+    List<Transaction>? transactions,
+    String? imagePath,
+  }) {
     return Receipt(
       id: id,
       storeName: storeName,
@@ -172,7 +176,7 @@ class Receipt {
       subtotal: subtotal,
       paymentMethod: paymentMethod,
       receiptNumber: receiptNumber,
-      imagePath: imagePath,
+      imagePath: imagePath ?? this.imagePath,
       ocrText: ocrText,
       status: status,
       notes: notes,

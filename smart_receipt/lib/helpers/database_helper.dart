@@ -258,6 +258,35 @@ class DatabaseHelper implements CorrectionStore {
     }).toList();
   }
 
+  Future<Receipt?> getReceiptById(int id) async {
+    final db = await database;
+    final result = await db.query(
+      _tableReceipts,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    return result.isNotEmpty ? Receipt.fromMap(result.first) : null;
+  }
+
+  Future<int> updateReceipt(Receipt receipt) async {
+    final db = await database;
+    return db.update(
+      _tableReceipts,
+      receipt.toMap(),
+      where: 'id = ?',
+      whereArgs: [receipt.id],
+    );
+  }
+
+  Future<int> deleteReceipt(int id) async {
+    final db = await database;
+    return db.delete(
+      _tableReceipts,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   // TRANSACTION OPERATIONS
   Future<int> insertTransaction(Transaction transaction) async {
     final db = await database;
@@ -272,6 +301,41 @@ class DatabaseHelper implements CorrectionStore {
       whereArgs: [receiptId],
     );
     return result.map((map) => Transaction.fromMap(map)).toList();
+  }
+
+  Future<List<Transaction>> getAllTransactions() async {
+    final db = await database;
+    final result = await db.query(_tableTransactions, orderBy: 'created_at DESC');
+    return result.map((map) => Transaction.fromMap(map)).toList();
+  }
+
+  Future<int> updateTransaction(Transaction transaction) async {
+    final db = await database;
+    return db.update(
+      _tableTransactions,
+      transaction.toMap(),
+      where: 'id = ?',
+      whereArgs: [transaction.id],
+    );
+  }
+
+  Future<int> deleteTransaction(int id) async {
+    final db = await database;
+    return db.delete(
+      _tableTransactions,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  /// Removes every item of a receipt, used when its line items are replaced.
+  Future<int> deleteTransactionsByReceiptId(int receiptId) async {
+    final db = await database;
+    return db.delete(
+      _tableTransactions,
+      where: 'receipt_id = ?',
+      whereArgs: [receiptId],
+    );
   }
 
   // CATEGORY OPERATIONS

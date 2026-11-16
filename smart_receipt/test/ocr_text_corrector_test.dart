@@ -2,12 +2,19 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:smart_receipt/ocr/ocr_raw_text.dart';
 import 'package:smart_receipt/ocr/ocr_text_corrector.dart';
+import 'package:smart_receipt/ocr/receipt_parser.dart';
 
 OcrRawResult _raw(List<String> lines) {
   return OcrRawResult(
     lines: <OcrLine>[
-      for (final String t in lines)
-        OcrLine(text: t, left: 0, top: 0, right: 100, bottom: 10),
+      for (int i = 0; i < lines.length; i++)
+        OcrLine(
+          text: lines[i],
+          left: 0,
+          top: i * 22.0,
+          right: 100,
+          bottom: i * 22.0 + 18,
+        ),
     ],
     fullText: lines.join('\n'),
   );
@@ -84,6 +91,12 @@ void main() {
         final String result = _fix('AQUA  10,000');
         expect(result, contains('10.000'));
       });
+
+      test('attached quantity multiplier 1x / Ix is preserved as 1 x, never Ix', () {
+        expect(_fix('1x 2.000'), '1 x 2.000');
+        expect(_fix('Ix 9.000'), '1 x 9.000');
+        expect(_fix('lx 8.000'), '1 x 8.000');
+      });
     });
 
     // -----------------------------------------------------------------------
@@ -147,6 +160,61 @@ void main() {
         // A price-only line like `3.5OO` on its own.
         final String result = _fix('3.5OO');
         expect(result, contains('3.500'));
+      });
+
+      test('Alfamart 2-line receipt with 1x does not emit Ix noise items', () {
+        final OcrRawResult raw = _raw(<String>[
+          'Alfamart Jogja',
+          'Jl. Kenangan',
+          'Jogja',
+          '08897482739',
+          '18.7.2024 08:49 #281',
+          'Cimory',
+          '1x 2.000',
+          '2.000',
+          'Cimory hazelnut',
+          '1x 9.000',
+          '9.000',
+          'Frestea madu',
+          '1x 8.000',
+          '8.000',
+          'Ice cream aice',
+          '1x 5.000',
+          '5.000',
+          'Kanzler',
+          '1x 10.000',
+          '10.000',
+          'Le Minerale',
+          '1x 4.000',
+          '4.000',
+          'Total Rp38.000',
+          'Tunai Rp38.000',
+          'Lunas',
+          'Barang yang sudah dibeli tidak b',
+          'isa dikembalikan lagi',
+          'Kasir : Sinta',
+          'Terima kasih',
+        ]);
+
+        final OcrRawResult corrected = correctOcrText(raw);
+        final ParsedReceipt parsed = ReceiptParser().parse(corrected);
+
+        expect(
+          parsed.items.map((ParsedItem i) => i.name).toList(),
+          <String>[
+            'Cimory',
+            'Cimory hazelnut',
+            'Frestea madu',
+            'Ice cream aice',
+            'Kanzler',
+            'Le Minerale',
+          ],
+        );
+        expect(
+          parsed.items.map((ParsedItem i) => i.price).toList(),
+          <int>[2000, 9000, 8000, 5000, 10000, 4000],
+        );
+        expect(parsed.total, 38000);
       });
     });
 

@@ -52,19 +52,21 @@ class SpendingAnalytics {
     return count;
   }
 
-  /// Spending per category name inside `[from, toExclusive)`.
+  /// Spending per category name, optionally restricted to `[from, toExclusive)`.
   ///
   /// Item-level totals are used (not the receipt header) so the breakdown adds
   /// up to the item sum even when a receipt also carries tax or rounding.
   static Map<String, double> byCategory(
     List<Receipt> receipts,
     Map<int, String> categoryNames, {
-    required DateTime from,
-    required DateTime toExclusive,
+    DateTime? from,
+    DateTime? toExclusive,
   }) {
     final Map<String, double> spending = <String, double>{};
     for (final Receipt receipt in receipts) {
-      if (!inRange(receipt.transactionDate, from, toExclusive)) {
+      if (from != null &&
+          toExclusive != null &&
+          !inRange(receipt.transactionDate, from, toExclusive)) {
         continue;
       }
       for (final Transaction item in receipt.transactions) {

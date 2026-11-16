@@ -21,6 +21,7 @@ import 'package:smart_receipt/screens/spending_prediction.dart';
 import 'package:smart_receipt/screens/transaction_detail.dart';
 import 'package:smart_receipt/screens/transaction_history.dart';
 import 'package:smart_receipt/screens/transaction_saved.dart';
+import 'package:smart_receipt/widgets/app_widgets.dart';
 
 /// Builds a deterministic OCR result so downstream screens can render without a
 /// camera or the native OCR engine.
@@ -141,6 +142,185 @@ void main() {
         reason: 'Failed to render ${screen.runtimeType}',
       );
     }
+  });
+
+  testWidgets('review screen adds a manual item', (WidgetTester tester) async {
+    final OcrScanResult scan = _fakeScan();
+    final List<ItemPrediction> predictions =
+        ReceiptClassifier().classifyAll(<String>['Indomie Goreng']);
+
+    // No ReceiptProvider needed: the review screen only touches the provider on
+    // save, and this test never saves. Skipping it keeps the test off the shared
+    // SQLite file other suites use.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReviewTransactionScreen(scan: scan, predictions: predictions),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('1 item'), findsOneWidget);
+
+    final Finder addButton =
+        find.widgetWithText(SecondaryButton, 'Tambah Item');
+    await tester.ensureVisible(addButton);
+    await tester.pumpAndSettle();
+    await tester.tap(addButton);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), 'Aqua 600ml');
+    await tester.enterText(find.byType(TextField).at(1), '4000');
+    await tester.pump();
+
+    // Subtotal preview inside the sheet reacts to name/price/qty.
+    expect(find.text('Rp4.000'), findsOneWidget);
+
+    final Finder submit = find.widgetWithText(PrimaryButton, 'Tambah Item');
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 item'), findsOneWidget);
+    expect(find.text('Aqua 600ml'), findsOneWidget);
+    // Receipt total stays authoritative (opsi A): the items now sum to more than
+    // the printed total, so both numbers remain visible and the gap is shown.
+    expect(find.text('Rp11.000'), findsOneWidget);
+    expect(find.text('Rp7.000'), findsWidgets);
+  });
+
+  testWidgets('review screen renames the store', (WidgetTester tester) async {
+    final OcrScanResult scan = _fakeScan();
+    final List<ItemPrediction> predictions =
+        ReceiptClassifier().classifyAll(<String>['Indomie Goreng']);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReviewTransactionScreen(scan: scan, predictions: predictions),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Indomaret'), findsOneWidget);
+
+    await tester.tap(find.text('Indomaret'));
+    await tester.pumpAndSettle();
+
+    final Finder field = find.byType(TextField);
+    await tester.enterText(field, 'Alfamart');
+    await tester.pump();
+
+    final Finder submit =
+        find.widgetWithText(PrimaryButton, 'Simpan Nama Toko');
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alfamart'), findsOneWidget);
+    expect(find.text('Indomaret'), findsNothing);
+  });
+
+  testWidgets('store editor rejects an empty name', (WidgetTester tester) async {
+    final OcrScanResult scan = _fakeScan();
+    final List<ItemPrediction> predictions =
+        ReceiptClassifier().classifyAll(<String>['Indomie Goreng']);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReviewTransactionScreen(scan: scan, predictions: predictions),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Indomaret'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '   ');
+    await tester.pump();
+
+    final Finder submit =
+        find.widgetWithText(PrimaryButton, 'Simpan Nama Toko');
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    // Sheet stays open with an inline error; the card keeps the old name.
+    expect(find.text('Nama toko wajib diisi'), findsOneWidget);
+    expect(find.text('Indomaret'), findsOneWidget);
+  });
+
+  testWidgets('review screen edits an item qty and price', (
+    WidgetTester tester,
+  ) async {
+    final OcrScanResult scan = _fakeScan();
+    final List<ItemPrediction> predictions =
+        ReceiptClassifier().classifyAll(<String>['Indomie Goreng']);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReviewTransactionScreen(scan: scan, predictions: predictions),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('2 × Rp3.500'), findsOneWidget);
+
+    // Tapping the card opens the editor prefilled with the current values.
+    await tester.tap(find.text('Indomie Goreng'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit Item'), findsOneWidget);
+    expect(find.text('3500'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).at(1), '4000');
+    await tester.pump();
+
+    // Bump qty 2 -> 3 on the stepper.
+    await tester.tap(find.byIcon(Icons.add).last);
+    await tester.pumpAndSettle();
+    expect(find.text('Rp12.000'), findsWidgets);
+
+    final Finder submit =
+        find.widgetWithText(PrimaryButton, 'Simpan Perubahan');
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(find.text('3 × Rp4.000'), findsOneWidget);
+    // Card subtotal and the "Subtotal item" row in the totals card.
+    expect(find.text('Rp12.000'), findsNWidgets(2));
+    // Printed total still wins (opsi A), now below the item sum.
+    expect(find.text('-Rp5.000'), findsOneWidget);
+  });
+
+  testWidgets('cancelling the item editor keeps the original values', (
+    WidgetTester tester,
+  ) async {
+    final OcrScanResult scan = _fakeScan();
+    final List<ItemPrediction> predictions =
+        ReceiptClassifier().classifyAll(<String>['Indomie Goreng']);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReviewTransactionScreen(scan: scan, predictions: predictions),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Indomie Goreng'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(1), '9999');
+    await tester.pump();
+
+    await tester.tap(find.text('Batal'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 × Rp3.500'), findsOneWidget);
+    expect(find.text('Rp7.000'), findsWidgets);
   });
 
   test('Receipt parser extracts items, store and total from OCR text', () {

@@ -3,19 +3,187 @@ import 'package:provider/provider.dart';
 
 import '../theme/app_colors.dart';
 import '../navigation/app_nav.dart';
+import '../navigation/app_route.dart';
 import '../widgets/app_widgets.dart';
 import '../models/models.dart';
 import '../models/receipt_model.dart' as db;
+import '../data/receipt_adapter.dart';
 import '../providers/receipt_provider.dart';
 import '../theme/theme_controller.dart';
+import 'transaction_detail.dart';
 
-class HomeDashboard extends StatelessWidget {
+class HomeDashboard extends StatefulWidget {
   const HomeDashboard({super.key});
+
+  @override
+  State<HomeDashboard> createState() => _HomeDashboardState();
+}
+
+class _HomeDashboardState extends State<HomeDashboard> {
+  static const List<String> _months = <String>[
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ];
+
+  /// `null` = otomatis (Bulan Ini bila ada data bulan ini atau masih kosong,
+  /// atau Semua Waktu bila ada struk tersimpan di bulan lain);
+  /// `DateTime(0)` = Semua Waktu; `DateTime(year, month)` = bulan tertentu.
+  DateTime? _selectedPeriod;
+
+  bool _isAllTime(ReceiptProvider provider) {
+    if (_selectedPeriod == null) {
+      return provider.countThisMonth == 0 && provider.receipts.isNotEmpty;
+    }
+    return _selectedPeriod!.year == 0;
+  }
+
+  DateTime _effectiveMonth() {
+    if (_selectedPeriod != null && _selectedPeriod!.year != 0) {
+      return _selectedPeriod!;
+    }
+    final DateTime now = DateTime.now();
+    return DateTime(now.year, now.month);
+  }
+
+  Future<void> _pickPeriod(ReceiptProvider provider) async {
+    final DateTime now = DateTime.now();
+    final DateTime currentMonth = DateTime(now.year, now.month);
+    final List<DateTime> months = provider.availableMonths;
+
+    final DateTime? chosen = await showModalBottomSheet<DateTime>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext ctx) {
+        final bool allTimeActive = _isAllTime(provider);
+        final DateTime activeMonth = _effectiveMonth();
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+          decoration: BoxDecoration(
+            color: AppColors.bg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Pilih Periode Ringkasan',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const IconBox(icon: Icons.all_inclusive),
+                title: Text(
+                  'Semua Waktu',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                subtitle: Text(
+                  '${provider.countAllTime} struk • ${rupiah(provider.totalAllTime.round())}',
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                ),
+                trailing: allTimeActive
+                    ? Icon(Icons.check_circle, color: AppColors.green)
+                    : null,
+                onTap: () => Navigator.pop(ctx, DateTime(0)),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const IconBox(icon: Icons.today_outlined),
+                title: Text(
+                  'Bulan Ini (${_months[currentMonth.month - 1]} ${currentMonth.year})',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                subtitle: Text(
+                  '${provider.countThisMonth} struk • ${rupiah(provider.totalThisMonth.round())}',
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                ),
+                trailing: !allTimeActive &&
+                        activeMonth.year == currentMonth.year &&
+                        activeMonth.month == currentMonth.month
+                    ? Icon(Icons.check_circle, color: AppColors.green)
+                    : null,
+                onTap: () => Navigator.pop(ctx, currentMonth),
+              ),
+              for (final DateTime m in months)
+                if (!(m.year == currentMonth.year &&
+                    m.month == currentMonth.month))
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const IconBox(icon: Icons.calendar_month_outlined),
+                    title: Text(
+                      '${_months[m.month - 1]} ${m.year}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${provider.countForMonth(m)} struk • ${rupiah(provider.totalForMonth(m).round())}',
+                      style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    ),
+                    trailing: !allTimeActive &&
+                            activeMonth.year == m.year &&
+                            activeMonth.month == m.month
+                        ? Icon(Icons.check_circle, color: AppColors.green)
+                        : null,
+                    onTap: () => Navigator.pop(ctx, m),
+                  ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (chosen != null && mounted) {
+      setState(() => _selectedPeriod = chosen);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     ThemeScope.watch(context);
     final ReceiptProvider provider = context.watch<ReceiptProvider>();
+    final bool allTime = _isAllTime(provider);
+    final DateTime activeMonth = _effectiveMonth();
+    final DateTime now = DateTime.now();
+    final bool isCurrentMonth = !allTime &&
+        activeMonth.year == now.year &&
+        activeMonth.month == now.month;
+
+    final double displayTotal = allTime
+        ? provider.totalAllTime
+        : provider.totalForMonth(activeMonth);
+    final int displayCount = allTime
+        ? provider.countAllTime
+        : provider.countForMonth(activeMonth);
+    final Map<String, double> displayCategories = allTime
+        ? provider.spendingByCategoryAllTime()
+        : provider.spendingByCategoryForMonth(activeMonth);
+    final double averagePerReceipt =
+        displayCount == 0 ? 0 : displayTotal / displayCount;
+
     final List<_TransactionData> recent = <_TransactionData>[
       for (final db.Receipt receipt in provider.recentReceipts(3))
         _TransactionData(
@@ -30,6 +198,14 @@ class HomeDashboard extends StatelessWidget {
               : provider.categoryNameFor(receipt.transactions.first.categoryId),
           datetime: formatDateTime(receipt.transactionDate),
           amount: '-${rupiah(receipt.totalAmount.round())}',
+          onTap: () => Navigator.push(
+            context,
+            appRoute(
+              TransactionDetailScreen(
+                transaction: toUiTransaction(receipt, provider.categoryNameFor),
+              ),
+            ),
+          ),
         ),
     ];
 
@@ -59,19 +235,43 @@ class HomeDashboard extends StatelessWidget {
                   children: [
                     const _Header(),
                     const SizedBox(height: 20),
-                    const _GreetingSection(),
+                    _GreetingSection(
+                      topLabel: allTime ? 'Semua' : _months[activeMonth.month - 1],
+                      bottomLabel: allTime ? 'Waktu' : '${activeMonth.year}',
+                      onTapPeriod: () => _pickPeriod(provider),
+                    ),
                     const SizedBox(height: 18),
                     _MonthlySpendCard(
-                      total: provider.totalThisMonth,
-                      change: provider.monthOverMonthChange,
+                      title: allTime
+                          ? 'Total Pengeluaran'
+                          : (isCurrentMonth
+                              ? 'Pengeluaran Bulan Ini'
+                              : 'Pengeluaran ${_months[activeMonth.month - 1]} ${activeMonth.year}'),
+                      total: displayTotal,
+                      change: isCurrentMonth ? provider.monthOverMonthChange : null,
+                      allTimeCount: allTime ? displayCount : null,
                     ),
                     const SizedBox(height: 14),
                     _StatsRow(
-                      receiptCount: provider.countThisMonth,
-                      averagePerDay: provider.averagePerDayThisMonth,
+                      receiptLabel: allTime ? 'Total Struk' : 'Struk Bulan Ini',
+                      receiptCount: displayCount,
+                      avgLabel: allTime ? 'Rata-rata / Struk' : 'Rata-rata / Hari',
+                      averageValue: isCurrentMonth
+                          ? provider.averagePerDayThisMonth
+                          : averagePerReceipt,
+                      avgSubtitle: allTime
+                          ? 'Basis $displayCount struk tersimpan'
+                          : (isCurrentMonth
+                              ? 'Basis ${now.day} hari berjalan'
+                              : 'Basis $displayCount struk bulan ini'),
                     ),
                     const SizedBox(height: 14),
-                    _CategoryCard(data: _categoryData(provider)),
+                    _CategoryCard(
+                      data: _categoryDataFromMap(displayCategories),
+                      emptyMessage: allTime
+                          ? 'Belum ada pengeluaran tersimpan.'
+                          : 'Belum ada pengeluaran pada periode ini.',
+                    ),
                     const SizedBox(height: 18),
                     const _RecentTransactionsHeader(),
                     const SizedBox(height: 10),
@@ -93,13 +293,12 @@ class HomeDashboard extends StatelessWidget {
   }
 }
 
-/// Turns the current month's category totals into rows for the breakdown card,
+/// Turns a category totals map into rows for the breakdown card,
 /// largest first, keeping at most four.
-List<_CategoryData> _categoryData(ReceiptProvider provider) {
-  final List<MapEntry<String, double>> entries =
-      provider.spendingByCategory.entries.toList()
-        ..sort((MapEntry<String, double> a, MapEntry<String, double> b) =>
-            b.value.compareTo(a.value));
+List<_CategoryData> _categoryDataFromMap(Map<String, double> source) {
+  final List<MapEntry<String, double>> entries = source.entries.toList()
+    ..sort((MapEntry<String, double> a, MapEntry<String, double> b) =>
+        b.value.compareTo(a.value));
 
   final double total = entries.fold<double>(
     0,
@@ -160,7 +359,15 @@ class _Header extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _GreetingSection extends StatelessWidget {
-  const _GreetingSection();
+  const _GreetingSection({
+    required this.topLabel,
+    required this.bottomLabel,
+    required this.onTapPeriod,
+  });
+
+  final String topLabel;
+  final String bottomLabel;
+  final VoidCallback onTapPeriod;
 
   @override
   Widget build(BuildContext context) {
@@ -198,59 +405,69 @@ class _GreetingSection extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        const _DateChip(),
+        _DateChip(
+          topLabel: topLabel,
+          bottomLabel: bottomLabel,
+          onTap: onTapPeriod,
+        ),
       ],
     );
   }
 }
 
 class _DateChip extends StatelessWidget {
-  const _DateChip();
+  const _DateChip({
+    required this.topLabel,
+    required this.bottomLabel,
+    required this.onTap,
+  });
+
+  final String topLabel;
+  final String bottomLabel;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final DateTime now = DateTime.now();
-    const List<String> months = <String>[
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
-    ];
-    return Container(
-      padding: const EdgeInsets.fromLTRB(11, 6, 9, 6),
-      decoration: BoxDecoration(
-        color: AppColors.lavender,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.calendar_month, size: 18, color: AppColors.amber),
-          SizedBox(width: 7),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                months[now.month - 1],
-                style: TextStyle(
-                  fontSize: 11.5,
-                  height: 1.15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textDark,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(11, 6, 9, 6),
+        decoration: BoxDecoration(
+          color: AppColors.lavender,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.calendar_month, size: 18, color: AppColors.amber),
+            SizedBox(width: 7),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  topLabel,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark,
+                  ),
                 ),
-              ),
-              Text(
-                '${now.year}',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  height: 1.15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textDark,
+                Text(
+                  bottomLabel,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(width: 4),
-          Icon(Icons.keyboard_arrow_down, size: 18, color: AppColors.textDark),
-        ],
+              ],
+            ),
+            SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_down, size: 18, color: AppColors.textDark),
+          ],
+        ),
       ),
     );
   }
@@ -261,12 +478,19 @@ class _DateChip extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _MonthlySpendCard extends StatelessWidget {
-  const _MonthlySpendCard({required this.total, required this.change});
+  const _MonthlySpendCard({
+    required this.title,
+    required this.total,
+    required this.change,
+    this.allTimeCount,
+  });
 
+  final String title;
   final double total;
 
   /// Fractional change versus last month; null when last month was empty.
   final double? change;
+  final int? allTimeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -310,7 +534,7 @@ class _MonthlySpendCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Pengeluaran Bulan Ini',
+                  title,
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,
@@ -328,7 +552,7 @@ class _MonthlySpendCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                _GrowthBadge(change: change),
+                _GrowthBadge(change: change, allTimeCount: allTimeCount),
               ],
             ),
           ),
@@ -339,16 +563,19 @@ class _MonthlySpendCard extends StatelessWidget {
 }
 
 class _GrowthBadge extends StatelessWidget {
-  const _GrowthBadge({required this.change});
+  const _GrowthBadge({required this.change, this.allTimeCount});
 
   final double? change;
+  final int? allTimeCount;
 
   @override
   Widget build(BuildContext context) {
     final double? change = this.change;
     final bool up = (change ?? 0) >= 0;
     final String label;
-    if (change == null) {
+    if (allTimeCount != null) {
+      label = 'Akumulasi dari $allTimeCount struk tersimpan';
+    } else if (change == null) {
       label = 'Belum ada data bulan lalu';
     } else {
       label = '${(change.abs() * 100).toStringAsFixed(0)}% '
@@ -376,9 +603,11 @@ class _GrowthBadge extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Icon(
-            change == null
-                ? Icons.remove
-                : (up ? Icons.trending_up : Icons.trending_down),
+            allTimeCount != null
+                ? Icons.receipt_long_outlined
+                : (change == null
+                    ? Icons.remove
+                    : (up ? Icons.trending_up : Icons.trending_down)),
             size: 15,
             color: AppColors.spendBannerAccent,
           ),
@@ -404,10 +633,19 @@ class _GrowthBadge extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _StatsRow extends StatelessWidget {
-  const _StatsRow({required this.receiptCount, required this.averagePerDay});
+  const _StatsRow({
+    required this.receiptLabel,
+    required this.receiptCount,
+    required this.avgLabel,
+    required this.averageValue,
+    required this.avgSubtitle,
+  });
 
+  final String receiptLabel;
   final int receiptCount;
-  final double averagePerDay;
+  final String avgLabel;
+  final double averageValue;
+  final String avgSubtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -416,11 +654,11 @@ class _StatsRow extends StatelessWidget {
         Expanded(
           child: _StatCard(
             icon: Icons.receipt_long,
-            label: 'Struk Bulan Ini',
+            label: receiptLabel,
             value: '$receiptCount',
             suffix: 'struk',
             subtitle: receiptCount == 0
-                ? 'Belum ada struk bulan ini'
+                ? 'Belum ada struk periode ini'
                 : 'Tersimpan di perangkat',
             subtitleColor:
                 receiptCount == 0 ? AppColors.textMuted : AppColors.green,
@@ -432,9 +670,9 @@ class _StatsRow extends StatelessWidget {
         Expanded(
           child: _StatCard(
             icon: Icons.show_chart,
-            label: 'Rata-rata / Hari',
-            value: rupiah(averagePerDay.round()),
-            subtitle: 'Basis ${DateTime.now().day} hari berjalan',
+            label: avgLabel,
+            value: rupiah(averageValue.round()),
+            subtitle: avgSubtitle,
             subtitleColor: AppColors.textMuted,
             subtitleWeight: FontWeight.w400,
           ),
@@ -554,9 +792,10 @@ class _CategoryData {
 }
 
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.data});
+  const _CategoryCard({required this.data, required this.emptyMessage});
 
   final List<_CategoryData> data;
+  final String emptyMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -605,7 +844,7 @@ class _CategoryCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 18),
               child: Text(
-                'Belum ada pengeluaran bulan ini.',
+                emptyMessage,
                 style: TextStyle(fontSize: 12.5, color: AppColors.textMuted),
               ),
             )
@@ -731,6 +970,7 @@ class _TransactionData {
     required this.category,
     required this.datetime,
     required this.amount,
+    required this.onTap,
   });
 
   final IconData icon;
@@ -738,6 +978,7 @@ class _TransactionData {
   final String category;
   final String datetime;
   final String amount;
+  final VoidCallback onTap;
 }
 
 class _NoTransactionsHint extends StatelessWidget {
@@ -820,104 +1061,110 @@ class _TransactionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
+      child: Material(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.iconBox,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(t.icon, size: 22, color: AppColors.iconMuted),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: InkWell(
+          onTap: t.onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        t.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.iconBox,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(t.icon, size: 22, color: AppColors.iconMuted),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              t.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.lavender,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              t.category,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.chipText,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        t.datetime,
                         style: TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textDark,
+                          fontSize: 12,
+                          color: AppColors.textMuted,
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      t.amount,
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.lavender,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        t.category,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.chipText,
+                    const SizedBox(height: 3),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle, size: 13, color: AppColors.green),
+                        const SizedBox(width: 3),
+                        Text(
+                          'Valid',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.green,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  t.datetime,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                t.amount,
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.check_circle, size: 13, color: AppColors.green),
-                  const SizedBox(width: 3),
-                  Text(
-                    'Valid',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.green,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1011,8 +1258,3 @@ class _ScanPromoCard extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Bottom navigation is provided by AppBottomNav (see app_widgets.dart).
-// ---------------------------------------------------------------------------
-

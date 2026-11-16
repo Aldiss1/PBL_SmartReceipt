@@ -1,21 +1,167 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../navigation/app_route.dart';
 import '../theme/app_colors.dart';
 import '../navigation/app_nav.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/receipt_photo_preview.dart';
+import '../data/receipt_adapter.dart';
 import '../models/models.dart';
+import '../models/receipt_model.dart' as db;
+import '../providers/receipt_provider.dart';
 import '../services/receipt_image_store.dart';
 import '../theme/theme_controller.dart';
+import 'review_transaction.dart';
 
 /// Screen 8 - Transaction Detail.
-class TransactionDetailScreen extends StatelessWidget {
+class TransactionDetailScreen extends StatefulWidget {
   const TransactionDetailScreen({super.key, required this.transaction});
 
   final Transaction transaction;
 
   @override
+  State<TransactionDetailScreen> createState() =>
+      _TransactionDetailScreenState();
+}
+
+class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
+  /// Kept in state so the screen can show the edited values after the review
+  /// screen returns; the constructor argument is only the entry point.
+  late Transaction _transaction = widget.transaction;
+
+  /// Opens the shared review screen in edit mode, then reloads this receipt.
+  ///
+  /// The stored row is re-read from the provider instead of patching the local
+  /// copy: the edit screen can add and remove items, so the totals have to come
+  /// from one place.
+  Future<void> _edit() async {
+    final int? receiptId = _transaction.receiptId;
+    if (receiptId == null) {
+      return;
+    }
+
+    final ReceiptProvider provider = context.read<ReceiptProvider>();
+    final db.Receipt? receipt =
+        await provider.getReceiptWithTransactions(receiptId);
+    if (!mounted) {
+      return;
+    }
+    if (receipt == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Transaksi tidak ditemukan.')),
+      );
+      return;
+    }
+
+    final bool? saved = await Navigator.push<bool>(
+      context,
+      appRoute(
+        ReviewTransactionScreen.edit(
+          receipt: receipt,
+          categoryName: provider.categoryNameFor,
+        ),
+      ),
+    );
+    if (saved != true || !mounted) {
+      return;
+    }
+
+    final db.Receipt? refreshed =
+        await provider.getReceiptWithTransactions(receiptId);
+    if (!mounted) {
+      return;
+    }
+    if (refreshed != null) {
+      setState(() {
+        _transaction = toUiTransaction(refreshed, provider.categoryNameFor);
+      });
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Perubahan transaksi disimpan.')),
+    );
+  }
+
+  /// Deletes the receipt, its items and its stored photo, then leaves the
+  /// screen.
+  ///
+  /// Nothing here is recoverable, so the confirmation dialog names the store and
+  /// amount: the two details that tell the user they picked the right row.
+  Future<void> _delete() async {
+    final int? receiptId = _transaction.receiptId;
+    if (receiptId == null) {
+      return;
+    }
+
+    final bool confirmed = await _confirmDelete() ?? false;
+    if (!confirmed || !mounted) {
+      return;
+    }
+
+    final ReceiptProvider provider = context.read<ReceiptProvider>();
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final NavigatorState navigator = Navigator.of(context);
+
+    try {
+      await provider.deleteReceipt(receiptId);
+    } catch (error) {
+      // A failed delete must leave the user on the screen with the receipt
+      // still listed, not on a stale detail page.
+      messenger.showSnackBar(
+        SnackBar(content: Text('Gagal menghapus transaksi: $error')),
+      );
+      return;
+    }
+
+    navigator.pop();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Transaksi ${_transaction.store} dihapus.'),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Future<bool?> _confirmDelete() {
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: Text(
+          'Hapus transaksi?',
+          style: TextStyle(color: AppColors.textDark),
+        ),
+        content: Text(
+          '${_transaction.store} • ${rupiah(_transaction.total)} akan dihapus '
+          'beserta item dan foto struknya. Tindakan ini tidak bisa dibatalkan.',
+          style: TextStyle(color: AppColors.textLabel, height: 1.45),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(
+              'Batal',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              'Hapus',
+              style: TextStyle(
+                color: AppColors.red,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final Transaction transaction = _transaction;
     ThemeScope.watch(context);
     return Scaffold(
       key: ValueKey<AppPalette>(AppColors.palette),
@@ -28,6 +174,19 @@ class TransactionDetailScreen extends StatelessWidget {
               title: 'Detail Transaksi',
               subtitle: transaction.id,
               onBack: () => Navigator.maybePop(context),
+              actions: <Widget>[
+                if (transaction.receiptId != null) ...<Widget>[
+                  CircleIconButton(
+                    icon: Icons.delete_outline,
+                    onTap: _delete,
+                  ),
+                  const SizedBox(width: 10),
+                  CircleIconButton(
+                    icon: Icons.edit_outlined,
+                    onTap: _edit,
+                  ),
+                ],
+              ],
             ),
             Expanded(
               child: SingleChildScrollView(

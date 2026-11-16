@@ -24,25 +24,63 @@ import 'transaction_saved.dart';
 ///
 /// Prefills the editable items with the names/prices/qty recovered by OCR and
 /// the categories predicted by the classifier.
+///
+/// The same screen also edits an already-saved receipt via
+/// [ReviewTransactionScreen.edit]; sharing it means a correction made from the
+/// detail screen behaves exactly like one made right after a scan.
 class ReviewTransactionScreen extends StatefulWidget {
   const ReviewTransactionScreen({
     super.key,
     required this.scan,
     required this.predictions,
-  });
+  })  : receipt = null,
+        categoryName = null;
 
-  final OcrScanResult scan;
+  /// Opens the screen on a persisted receipt instead of a fresh scan.
+  ///
+  /// [categoryName] resolves a `categoryId` to its display name; it comes from
+  /// [ReceiptProvider] so the names match the rest of the app.
+  const ReviewTransactionScreen.edit({
+    super.key,
+    required this.receipt,
+    required this.categoryName,
+  })  : scan = null,
+        predictions = const <ItemPrediction>[];
+
+  final OcrScanResult? scan;
   final List<ItemPrediction> predictions;
+
+  /// Receipt being edited; null when reviewing a new scan.
+  final db.Receipt? receipt;
+
+  /// Maps a stored `categoryId` to a category name. Only used in edit mode.
+  final String Function(int categoryId)? categoryName;
+
+  bool get isEditing => receipt != null;
 
   @override
   State<ReviewTransactionScreen> createState() => _ReviewTransactionScreenState();
 }
 
 class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
-  late final String _store;
+  /// Store name, prefilled from OCR and editable by the user.
+  ///
+  /// The parser often lifts the store from a logo or a partially read header,
+  /// so a wrong or empty name is common; the value saved to SQLite is whatever
+  /// ends up here.
+  late String _store;
+
   late final DateTime _date;
   late List<TransactionItem> _items;
-  late final List<ItemPrediction> _predictions;
+
+  /// Model prediction behind each entry in [_items], index-aligned.
+  ///
+  /// Null for items the user added manually (or when the classifier returned
+  /// fewer predictions than there are parsed lines). Keeping the list the same
+  /// length as [_items] is what makes the correction log trustworthy: it is
+  /// indexed by item, not by OCR line, so inserting an item cannot pair a
+  /// category fix with someone else's prediction.
+  late List<ItemPrediction?> _predictions;
 
   /// Total printed on the receipt (`TOTAL : 33,900`).
   ///
@@ -64,18 +102,48 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
   @override
   void initState() {
     super.initState();
-    _store = widget.scan.parsed.store;
-    _date = widget.scan.parsed.date ?? DateTime.now();
-    _predictions = widget.predictions;
-    _receiptTotal = widget.scan.parsed.total;
+    final db.Receipt? existing = widget.receipt;
+    if (existing != null) {
+      _initFromReceipt(existing);
+      return;
+    }
+    _initFromScan(widget.scan!);
+  }
 
-    final List<ParsedItem> parsedItems = widget.scan.parsed.items;
+  /// Loads an already-saved receipt for editing.
+  ///
+  /// Every item gets a null prediction: the model output that produced the
+  /// stored category was never saved, so there is nothing to compare against and
+  /// nothing to log as a correction.
+  void _initFromReceipt(db.Receipt receipt) {
+    _store = receipt.storeName;
+    _date = receipt.transactionDate;
+    _receiptTotal = receipt.totalAmount.round();
+    _items = <TransactionItem>[
+      for (final db.Transaction item in receipt.transactions)
+        TransactionItem(
+          name: item.itemName,
+          qty: item.quantity,
+          price: item.unitPrice.round(),
+          category: widget.categoryName?.call(item.categoryId) ?? 'Lainnya',
+        ),
+    ];
+    _predictions = List<ItemPrediction?>.filled(_items.length, null);
+  }
+
+  void _initFromScan(OcrScanResult scan) {
+    _store = scan.parsed.store;
+    _date = scan.parsed.date ?? DateTime.now();
+    _receiptTotal = scan.parsed.total;
+
+    final List<ParsedItem> parsedItems = scan.parsed.items;
     _items = <TransactionItem>[];
+    _predictions = <ItemPrediction?>[];
     for (int i = 0; i < parsedItems.length; i++) {
       final ParsedItem p = parsedItems[i];
-      final String category = i < widget.predictions.length
-          ? widget.predictions[i].category
-          : 'Lainnya';
+      final ItemPrediction? prediction =
+          i < widget.predictions.length ? widget.predictions[i] : null;
+      final String category = prediction?.category ?? 'Lainnya';
       _items.add(
         TransactionItem(
           name: p.name,
@@ -84,6 +152,7 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
           category: category,
         ),
       );
+      _predictions.add(prediction);
     }
   }
 
@@ -95,6 +164,23 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
   /// Zero when everything lines up; non-zero when the receipt applied a
   /// discount/fee we did not model, or when the parser missed/misread a line.
   int get _totalAdjustment => _receiptTotal - _itemsTotal;
+
+  Future<void> _editStore() async {
+    final String? name = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) => Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: _StoreEditorSheet(initial: _store),
+      ),
+    );
+    if (name == null || !mounted || name == _store) {
+      return;
+    }
+    setState(() => _store = name);
+  }
 
   Future<void> _editCategory(int index) async {
     final String current = _items[index].category;
@@ -115,8 +201,74 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
         );
       });
       // Record the correction as training data (best-effort, never blocks UI).
-      _recordCorrection(index, old, selected);
+      // Editing a saved receipt has no model prediction behind it, so there is
+      // no disagreement to learn from.
+      if (!widget.isEditing) {
+        _recordCorrection(index, old, selected);
+      }
     }
+  }
+
+  /// Opens the item editor and appends the result.
+  ///
+  /// The printed receipt total stays untouched on purpose: a hand-added item is
+  /// not on the receipt, so it shows up as a difference in [._totalAdjustment]
+  /// rather than silently rewriting what the paper says.
+  Future<void> _addItem() async {
+    final TransactionItem? item = await showModalBottomSheet<TransactionItem>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) => Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: const _ItemEditorSheet(),
+      ),
+    );
+    if (item == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _items.add(item);
+      // No model prediction backs a manual item.
+      _predictions.add(null);
+    });
+  }
+
+  /// Opens the item editor prefilled with [index] and applies the result.
+  ///
+  /// A category change made here is recorded exactly like a chip tap, so fixing
+  /// qty and category in one go still produces training data. The same
+  /// [._totalAdjustment] rule applies: the printed total is never rewritten.
+  Future<void> _editItem(int index) async {
+    final TransactionItem old = _items[index];
+    final TransactionItem? updated =
+        await showModalBottomSheet<TransactionItem>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) => Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: _ItemEditorSheet(initial: old),
+      ),
+    );
+    if (updated == null || !mounted) {
+      return;
+    }
+    setState(() => _items[index] = updated);
+    if (updated.category != old.category && !widget.isEditing) {
+      _recordCorrection(index, old, updated.category);
+    }
+  }
+
+  void _removeItem(int index) {
+    setState(() {
+      _items.removeAt(index);
+      if (index < _predictions.length) {
+        _predictions.removeAt(index);
+      }
+    });
   }
 
   /// Stores (preprocessed item name -> user-corrected category) so the
@@ -150,15 +302,14 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
   ///
   /// The per-tap [_recordCorrection] already covers the common flow; this
   /// catches edits made and then reverted, guaranteeing the training set only
-  /// holds genuine disagreements.
+  /// holds genuine disagreements. Items the user typed in by hand have no
+  /// prediction to disagree with, so their label is stored as-is.
   Future<void> _recordCategoryCorrections() async {
     for (int i = 0; i < _items.length; i++) {
-      if (i >= _predictions.length) {
-        continue;
-      }
-      final ItemPrediction prediction = _predictions[i];
+      final ItemPrediction? prediction =
+          i < _predictions.length ? _predictions[i] : null;
       final TransactionItem item = _items[i];
-      if (item.category == prediction.category) {
+      if (prediction != null && item.category == prediction.category) {
         continue;
       }
       await _corrections.recordCorrection(
@@ -181,8 +332,10 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
         child: Column(
           children: <Widget>[
             AppTopBar(
-              title: 'Review Transaksi',
-              subtitle: 'Periksa & koreksi hasil OCR',
+              title: widget.isEditing ? 'Edit Transaksi' : 'Review Transaksi',
+              subtitle: widget.isEditing
+                  ? 'Perbaiki data transaksi tersimpan'
+                  : 'Periksa & koreksi hasil OCR',
               onBack: () => Navigator.maybePop(context),
             ),
             Expanded(
@@ -191,14 +344,16 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    _StoreCard(store: _store, date: _date),
-                    if (widget.scan.parsed.warnings.isNotEmpty) ...<Widget>[
+                    _StoreCard(store: _store, date: _date, onEdit: _editStore),
+                    if (widget.scan != null &&
+                        widget.scan!.parsed.warnings.isNotEmpty) ...<Widget>[
                       const SizedBox(height: 12),
-                      _ParseWarnings(warnings: widget.scan.parsed.warnings),
+                      _ParseWarnings(warnings: widget.scan!.parsed.warnings),
                     ],
                     const SizedBox(height: 18),
                     _ReceiptPhotoSection(
-                      imagePath: widget.scan.sourcePath,
+                      imagePath:
+                          widget.scan?.sourcePath ?? widget.receipt?.imagePath,
                       expanded: _photoExpanded,
                       onToggle: () =>
                           setState(() => _photoExpanded = !_photoExpanded),
@@ -217,8 +372,19 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
                     ),
                     const SizedBox(height: 12),
                     for (int i = 0; i < _items.length; i++)
-                      _ItemCard(item: _items[i], onTap: () => _editCategory(i)),
+                      _ItemCard(
+                        item: _items[i],
+                        onEdit: () => _editItem(i),
+                        onCategoryTap: () => _editCategory(i),
+                        onDelete: () => _removeItem(i),
+                      ),
                     if (_items.isEmpty) const _EmptyItemsNotice(),
+                    const SizedBox(height: 4),
+                    SecondaryButton(
+                      label: 'Tambah Item',
+                      icon: Icons.add,
+                      onPressed: _addItem,
+                    ),
                     const SizedBox(height: 18),
                     _TotalCard(
                       itemsTotal: _itemsTotal,
@@ -226,7 +392,11 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
                       adjustment: _totalAdjustment,
                     ),
                     const SizedBox(height: 14),
-                    _OcrTextViewer(raw: widget.scan.raw, parsed: widget.scan.parsed),
+                    if (widget.scan != null)
+                      _OcrTextViewer(
+                        raw: widget.scan!.raw,
+                        parsed: widget.scan!.parsed,
+                      ),
                   ],
                 ),
               ),
@@ -234,7 +404,9 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(22, 8, 22, 22),
               child: PrimaryButton(
-                label: 'Simpan Transaksi',
+                label: widget.isEditing
+                    ? 'Simpan Perubahan'
+                    : 'Simpan Transaksi',
                 icon: Icons.check_circle_outline,
                 onPressed: _save,
               ),
@@ -246,6 +418,11 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
   }
 
   Future<void> _save() async {
+    if (widget.isEditing) {
+      await _saveEdits();
+      return;
+    }
+
     final ReceiptProvider provider =
         Provider.of<ReceiptProvider>(context, listen: false);
 
@@ -253,17 +430,17 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
     // by a row: iOS purges temp files, which would leave the history preview
     // pointing at nothing.
     final String? storedImagePath =
-        await ReceiptImageStore().persist(widget.scan.sourcePath);
+        await ReceiptImageStore().persist(widget.scan!.sourcePath);
 
     final db.Receipt receipt = db.Receipt(
       storeName: _store,
       transactionDate: _date,
       totalAmount: _receiptTotal.toDouble(),
-      taxAmount: widget.scan.parsed.taxTotal.toDouble(),
+      taxAmount: widget.scan!.parsed.taxTotal.toDouble(),
       subtotal: _itemsTotal.toDouble(),
-      paymentMethod: widget.scan.parsed.paymentMethod,
+      paymentMethod: widget.scan!.parsed.paymentMethod,
       imagePath: storedImagePath,
-      ocrText: widget.scan.raw.fullText,
+      ocrText: widget.scan!.raw.fullText,
       status: 'saved',
       createdAt: DateTime.now(),
       transactions: <db.Transaction>[
@@ -300,11 +477,70 @@ class _ReviewTransactionScreenState extends State<ReviewTransactionScreen> {
           store: _store,
           date: _date,
           items: _items,
-          total: widget.scan.parsed.total,
-          paymentMethod: widget.scan.parsed.paymentMethod,
+          total: widget.scan!.parsed.total,
+          paymentMethod: widget.scan!.parsed.paymentMethod,
         ),
       ),
     );
+  }
+
+  /// Writes the edits back over the stored receipt and pops with `true`.
+  ///
+  /// Everything the capture produced (photo, OCR text, payment method, created
+  /// date) is carried over untouched: this screen edits the transaction, not the
+  /// evidence behind it. Popping with `true` is what tells the detail screen to
+  /// reload its copy.
+  Future<void> _saveEdits() async {
+    final db.Receipt existing = widget.receipt!;
+    final ReceiptProvider provider =
+        Provider.of<ReceiptProvider>(context, listen: false);
+
+    final db.Receipt updated = db.Receipt(
+      id: existing.id,
+      storeName: _store,
+      storeAddress: existing.storeAddress,
+      transactionDate: _date,
+      totalAmount: _receiptTotal.toDouble(),
+      taxAmount: existing.taxAmount,
+      subtotal: _itemsTotal.toDouble(),
+      paymentMethod: existing.paymentMethod,
+      receiptNumber: existing.receiptNumber,
+      imagePath: existing.imagePath,
+      ocrText: existing.ocrText,
+      status: existing.status,
+      notes: existing.notes,
+      createdAt: existing.createdAt,
+      transactions: <db.Transaction>[
+        for (final TransactionItem i in _items)
+          db.Transaction(
+            receiptId: existing.id ?? 0,
+            categoryId: _categoryIdFor(i.category),
+            itemName: i.name,
+            quantity: i.qty,
+            unitPrice: i.price.toDouble(),
+            totalPrice: i.subtotal.toDouble(),
+            discount: 0,
+            createdAt: DateTime.now(),
+          ),
+      ],
+    );
+
+    try {
+      await provider.updateReceiptWithItems(updated);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyimpan perubahan: $error')),
+      );
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+    Navigator.pop(context, true);
   }
 
   /// Maps a UI category name to its canonical SQLite category id.
@@ -416,122 +652,180 @@ class _ReceiptPhotoSection extends StatelessWidget {
 }
 
 class _StoreCard extends StatelessWidget {
-  const _StoreCard({required this.store, required this.date});
+  const _StoreCard({
+    required this.store,
+    required this.date,
+    required this.onEdit,
+  });
 
   final String store;
   final DateTime date;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
+    return Material(
+      color: AppColors.card,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onEdit,
         borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: <Widget>[
-          const IconBox(icon: Icons.storefront_outlined),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  store,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: <Widget>[
+              const IconBox(icon: Icons.storefront_outlined),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      store,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      formatDateTime(date),
+                      style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  formatDateTime(date),
-                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-                ),
-              ],
-            ),
+              ),
+              Icon(Icons.edit_outlined, size: 19, color: AppColors.amber),
+            ],
           ),
-          Icon(Icons.edit_outlined, size: 19, color: AppColors.amber),
-        ],
+        ),
       ),
     );
   }
 }
 
 class _ItemCard extends StatelessWidget {
-  const _ItemCard({required this.item, required this.onTap});
+  const _ItemCard({
+    required this.item,
+    required this.onEdit,
+    required this.onCategoryTap,
+    required this.onDelete,
+  });
 
   final TransactionItem item;
-  final VoidCallback onTap;
+
+  /// Tapping the card opens the item editor (name, qty, price, category).
+  final VoidCallback onEdit;
+
+  /// Tapping the category chip opens only the category picker.
+  final VoidCallback onCategoryTap;
+
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final Category c = categoryByName(item.category);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          IconBox(
-            icon: c.icon,
-            size: 40,
-            iconSize: 20,
-            background: c.color.withValues(alpha: 0.14),
-            color: c.color,
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
+        child: InkWell(
+          onTap: onEdit,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  item.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
-                  ),
+                IconBox(
+                  icon: c.icon,
+                  size: 40,
+                  iconSize: 20,
+                  background: c.color.withValues(alpha: 0.14),
+                  color: c.color,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${item.qty} × ${rupiah(item.price)}',
-                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-                ),
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: onTap,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      CategoryChip(category: item.category, dense: true),
-                      const SizedBox(width: 6),
-                      Icon(Icons.edit, size: 13, color: AppColors.amber),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.edit_outlined,
+                            size: 14,
+                            color: AppColors.amber,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${item.qty} × ${rupiah(item.price)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: onCategoryTap,
+                        borderRadius: BorderRadius.circular(8),
+                        child: CategoryChip(
+                          category: item.category,
+                          dense: true,
+                        ),
+                      ),
                     ],
                   ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: <Widget>[
+                    Text(
+                      rupiah(item.subtotal),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    InkWell(
+                      onTap: onDelete,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.delete_outline,
+                          size: 16,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          Text(
-            rupiah(item.subtotal),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textDark,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -945,6 +1239,527 @@ class _CategorySheet extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Sheet used to rename the store pulled from OCR.
+///
+/// Returns the trimmed name, or null when the user backs out.
+class _StoreEditorSheet extends StatefulWidget {
+  const _StoreEditorSheet({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_StoreEditorSheet> createState() => _StoreEditorSheetState();
+}
+
+class _StoreEditorSheetState extends State<_StoreEditorSheet> {
+  late final TextEditingController _name;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController(text: widget.initial)
+      ..selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: widget.initial.length,
+      );
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final String name = _name.text.trim();
+    if (name.isEmpty) {
+      setState(() => _error = 'Nama toko wajib diisi');
+      return;
+    }
+    Navigator.pop(context, name);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Edit Nama Toko',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Perbaiki nama toko bila hasil OCR keliru.',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 18),
+              _SheetField(
+                controller: _name,
+                hint: 'Contoh: Indomaret',
+                error: _error,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submit(),
+              ),
+              const SizedBox(height: 18),
+              PrimaryButton(
+                label: 'Simpan Nama Toko',
+                icon: Icons.check_circle_outline,
+                onPressed: _submit,
+              ),
+              const SizedBox(height: 6),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Batal',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Sheet used to add or edit a line item.
+///
+/// Returns the resulting [TransactionItem], or null when the user backs out.
+/// Passing [initial] switches the sheet into edit mode: the fields are
+/// prefilled and the button reads "Simpan Perubahan".
+class _ItemEditorSheet extends StatefulWidget {
+  const _ItemEditorSheet({this.initial});
+
+  final TransactionItem? initial;
+
+  @override
+  State<_ItemEditorSheet> createState() => _ItemEditorSheetState();
+}
+
+class _ItemEditorSheetState extends State<_ItemEditorSheet> {
+  late final TextEditingController _name;
+  late final TextEditingController _price;
+  late int _qty;
+  late String _category;
+  String? _nameError;
+  String? _priceError;
+
+  bool get _isEditing => widget.initial != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final TransactionItem? initial = widget.initial;
+    _name = TextEditingController(text: initial?.name ?? '');
+    _price = TextEditingController(
+      text: initial == null ? '' : '${initial.price}',
+    );
+    _qty = initial?.qty ?? 1;
+    _category = initial?.category ?? 'Lainnya';
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _price.dispose();
+    super.dispose();
+  }
+
+  int get _priceValue => int.tryParse(_price.text) ?? 0;
+
+  int get _subtotal => _qty * _priceValue;
+
+  Future<void> _pickCategory() async {
+    final String? selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) => _CategorySheet(current: _category),
+    );
+    if (selected == null || !mounted) {
+      return;
+    }
+    setState(() => _category = selected);
+  }
+
+  void _submit() {
+    final String name = _name.text.trim();
+    final int price = _priceValue;
+    setState(() {
+      _nameError = name.isEmpty ? 'Nama item wajib diisi' : null;
+      _priceError = price <= 0 ? 'Harga harus lebih dari 0' : null;
+    });
+    if (_nameError != null || _priceError != null) {
+      return;
+    }
+    Navigator.pop(
+      context,
+      TransactionItem(
+        name: name,
+        qty: _qty,
+        price: price,
+        category: _category,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _isEditing ? 'Edit Item' : 'Tambah Item',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _isEditing
+                    ? 'Perbaiki nama, jumlah, atau harga item.'
+                    : 'Lengkapi nama, jumlah, dan harga item.',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 18),
+              _SheetField(
+                label: 'Nama item',
+                controller: _name,
+                hint: 'Contoh: Indomie Goreng',
+                error: _nameError,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+              ),
+              const SizedBox(height: 14),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        SheetLabel('Jumlah'),
+                        const SizedBox(height: 8),
+                        _QtyStepper(
+                          value: _qty,
+                          onChanged: (int v) => setState(() => _qty = v),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 3,
+                    child: _SheetField(
+                      label: 'Harga satuan',
+                      controller: _price,
+                      hint: '0',
+                      prefixText: 'Rp ',
+                      error: _priceError,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: <TextInputFormatter>[
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onChanged: (String _) => setState(() {}),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              SheetLabel('Kategori'),
+              const SizedBox(height: 8),
+              Material(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  onTap: _pickCategory,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        CategoryChip(category: _category),
+                        const Spacer(),
+                        Text(
+                          'Ubah',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.orange,
+                          ),
+                        ),
+                        Icon(Icons.expand_more, size: 16, color: AppColors.orange),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.iconBox,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Text(
+                      'Subtotal',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.textLabel,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      rupiah(_subtotal),
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              PrimaryButton(
+                label: _isEditing ? 'Simpan Perubahan' : 'Tambah Item',
+                icon: Icons.check_circle_outline,
+                onPressed: _submit,
+              ),
+              const SizedBox(height: 6),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Batal',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SheetField extends StatelessWidget {
+  const _SheetField({
+    required this.controller,
+    required this.hint,
+    this.label,
+    this.error,
+    this.keyboardType,
+    this.inputFormatters,
+    this.autofocus = false,
+    this.textCapitalization = TextCapitalization.none,
+    this.textInputAction,
+    this.onSubmitted,
+    this.prefixText,
+    this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String hint;
+  final String? label;
+  final String? error;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final bool autofocus;
+  final TextCapitalization textCapitalization;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+  final String? prefixText;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        if (label != null) ...<Widget>[
+          SheetLabel(label!),
+          const SizedBox(height: 8),
+        ],
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: error == null ? AppColors.border : AppColors.red,
+              width: 1.2,
+            ),
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            inputFormatters: inputFormatters,
+            autofocus: autofocus,
+            textCapitalization: textCapitalization,
+            textInputAction: textInputAction,
+            onSubmitted: onSubmitted,
+            onChanged: onChanged,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textDark,
+            ),
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              hintText: hint,
+              hintStyle: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w400,
+                color: AppColors.textMuted,
+              ),
+              prefixText: prefixText,
+              prefixStyle: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textLabel,
+              ),
+              border: InputBorder.none,
+            ),
+          ),
+        ),
+        if (error != null) ...<Widget>[
+          const SizedBox(height: 6),
+          Text(
+            error!,
+            style: TextStyle(fontSize: 11.5, color: AppColors.red),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _QtyStepper extends StatelessWidget {
+  const _QtyStepper({required this.value, required this.onChanged});
+
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border, width: 1.2),
+      ),
+      child: Row(
+        children: <Widget>[
+          _stepButton(
+            icon: Icons.remove,
+            onTap: value > 1 ? () => onChanged(value - 1) : null,
+          ),
+          Expanded(
+            child: Text(
+              '$value',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+              ),
+            ),
+          ),
+          _stepButton(
+            icon: Icons.add,
+            onTap: value < 999 ? () => onChanged(value + 1) : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepButton({required IconData icon, VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 44,
+        height: 48,
+        child: Icon(
+          icon,
+          size: 18,
+          color: onTap == null ? AppColors.textMuted : AppColors.textDark,
+        ),
       ),
     );
   }

@@ -8,6 +8,10 @@
 //     like digits are replaced by the digit they resemble — `O`→`0`, `l`→`1`,
 //     `I`→`1`, `S`→`5`, `B`→`8`, `Z`→`2`, `G`→`6`.
 //
+//   - In **quantity multiplier tokens** (`1x`, `2x`, `Ix`, `lx`): OCR misreads
+//     of `1x` as `Ix` or `lx` are restored to `1 x` so they are never mistaken
+//     for a short product name.
+//
 //   - In **product-name positions** (left-side text): digits that look like
 //     letters are replaced by the letter they resemble — `0`→`O`, `1`→`I`,
 //     `5`→`S`, `8`→`B` — but only when the surrounding characters are letters,
@@ -74,6 +78,9 @@ String _correctLine(String line) {
   if (numbers.isEmpty) {
     return name.trimRight();
   }
+  if (name.trim().isEmpty) {
+    return numbers.trim();
+  }
   return '$name  ${numbers.trim()}'.trimRight();
 }
 
@@ -123,12 +130,29 @@ class _KeywordFix {
 // Line splitting
 // ---------------------------------------------------------------------------
 
+/// Matches attached quantity+multiplier tokens such as `1x`, `2x`, `10x`,
+/// `x1`, `@8.500`, and OCR misreads like `Ix`, `lx`, `lX`, `IX`.
+final RegExp _qtyMultiplierSuffix =
+    RegExp(r'^([0-9IlOoSsBbZzGg]{1,3})[xX*]$');
+final RegExp _qtyMultiplierPrefix =
+    RegExp(r'^[xX*]([0-9IlOoSsBbZzGg]{1,3})$');
+final RegExp _attachedUnitPrice =
+    RegExp(r'^@([0-9IlOoSsBbZzGg.,]+)$');
+
+bool _isQuantityMultiplier(String token) {
+  final String t = token.trim();
+  return _qtyMultiplierSuffix.hasMatch(t) ||
+      _qtyMultiplierPrefix.hasMatch(t) ||
+      _attachedUnitPrice.hasMatch(t);
+}
+
 /// Splits a receipt line into its left (name/label) part and its right
 /// (numeric) part.
 ///
 /// Strategy: scan tokens from the RIGHT. While the rightmost token looks like
-/// a printed amount or a multiplier (`x`, `@`), it belongs to the numeric
-/// block. Everything to the left is the name.
+/// a printed amount, a multiplier (`x`, `@`), or an attached quantity
+/// multiplier (`1x`, `Ix`, `lx`, `@2.000`), it belongs to the numeric block.
+/// Everything to the left is the name.
 _LineParts _splitLine(String line) {
   final List<String> tokens = line.split(RegExp(r'\s+'));
   if (tokens.isEmpty) {
@@ -138,7 +162,9 @@ _LineParts _splitLine(String line) {
   int cut = tokens.length;
   while (cut > 0) {
     final String tok = tokens[cut - 1];
-    if (_looksLikeAmount(tok) || _isMultiplier(tok)) {
+    if (_looksLikeAmount(tok) ||
+        _isMultiplier(tok) ||
+        _isQuantityMultiplier(tok)) {
       cut--;
     } else {
       break;
@@ -215,6 +241,10 @@ String _fixNamePart(String name) {
   if (name.isEmpty) {
     return name;
   }
+  // Never turn a standalone `1x` / `2x` token into `Ix` / `Zx`.
+  if (_isQuantityMultiplier(name.trim())) {
+    return _fixAmountPart(name);
+  }
   final StringBuffer buf = StringBuffer();
   for (int i = 0; i < name.length; i++) {
     final String ch = name[i];
@@ -226,6 +256,14 @@ String _fixNamePart(String name) {
           i < name.length - 1 && RegExp(r'[A-Za-z]').hasMatch(name[i + 1]);
       final bool atStart = i == 0;
       final bool atEnd = i == name.length - 1;
+      // Do not turn `1x` at the start of a string into `Ix`.
+      if (atStart &&
+          i + 1 < name.length &&
+          (name[i + 1] == 'x' || name[i + 1] == 'X') &&
+          (i + 2 == name.length || name[i + 2] == ' ')) {
+        buf.write(ch);
+        continue;
+      }
       // Require both sides to be letters unless at the very start or end of
       // the string (where one side cannot exist).
       final bool shouldFix = (prevLetter && nextLetter) ||
@@ -257,7 +295,8 @@ const Map<String, String> _digitToLetter = <String, String>{
 // ---------------------------------------------------------------------------
 
 /// In an amount token, any letter that looks like a digit is replaced by that
-/// digit.  For example `1O.OOO` → `10.000`, `l5.000` → `15.000`.
+/// digit.  For example `1O.OOO` → `10.000`, `l5.000` → `15.000`, and attached
+/// quantity multipliers like `1x` or `Ix` become `1 x`.
 String _fixAmountPart(String numbers) {
   if (numbers.isEmpty) {
     return numbers;
@@ -270,9 +309,35 @@ String _fixAmountPart(String numbers) {
       fixed.add(token);
       continue;
     }
+    final RegExpMatch? suffixMatch = _qtyMultiplierSuffix.firstMatch(token);
+    if (suffixMatch != null) {
+      final String qtyDigits = _lettersToDigits(suffixMatch.group(1)!);
+      fixed.add('$qtyDigits x');
+      continue;
+    }
+    final RegExpMatch? prefixMatch = _qtyMultiplierPrefix.firstMatch(token);
+    if (prefixMatch != null) {
+      final String qtyDigits = _lettersToDigits(prefixMatch.group(1)!);
+      fixed.add('$qtyDigits x');
+      continue;
+    }
+    final RegExpMatch? atMatch = _attachedUnitPrice.firstMatch(token);
+    if (atMatch != null) {
+      fixed.add('@ ${_fixAmountToken(atMatch.group(1)!)}');
+      continue;
+    }
     fixed.add(_fixAmountToken(token));
   }
   return fixed.isEmpty ? '' : fixed.join(' ');
+}
+
+String _lettersToDigits(String input) {
+  final StringBuffer buf = StringBuffer();
+  for (int i = 0; i < input.length; i++) {
+    final String ch = input[i];
+    buf.write(_letterToDigit[ch] ?? ch);
+  }
+  return buf.toString();
 }
 
 String _fixAmountToken(String token) {
@@ -288,22 +353,7 @@ String _fixAmountToken(String token) {
     return token;
   }
 
-  final StringBuffer buf = StringBuffer();
-  for (int i = 0; i < inner.length; i++) {
-    final String ch = inner[i];
-    final String? fix = _letterToDigit[ch];
-    if (fix != null) {
-      buf.write(fix);
-    } else {
-      buf.write(ch);
-    }
-  }
-
-  String result = buf.toString();
-  // Normalise comma-decimal to dot-thousands so the parser sees `10.000`
-  // not `10,000` (both are used in Indonesian receipts but the parser
-  // handles both; unifying here keeps the corrector output consistent).
-  result = _normalizeThousandsSep(result);
+  final String result = _normalizeThousandsSep(_lettersToDigits(inner));
 
   if (hasRp) {
     return 'Rp $result';

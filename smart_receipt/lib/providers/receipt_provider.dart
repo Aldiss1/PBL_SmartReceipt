@@ -72,6 +72,48 @@ class ReceiptProvider with ChangeNotifier {
   List<Receipt> recentReceipts([int count = 3]) =>
       _receipts.take(count).toList();
 
+  /// Distinct calendar months present in [_receipts], newest first.
+  List<DateTime> get availableMonths {
+    final Set<DateTime> seen = <DateTime>{};
+    for (final Receipt r in _receipts) {
+      seen.add(SpendingAnalytics.monthStart(r.transactionDate));
+    }
+    final List<DateTime> months = seen.toList()
+      ..sort((DateTime a, DateTime b) => b.compareTo(a));
+    return months;
+  }
+
+  double totalForMonth(DateTime month) {
+    final DateTime start = SpendingAnalytics.monthStart(month);
+    return SpendingAnalytics.totalBetween(
+      _receipts,
+      from: start,
+      toExclusive: SpendingAnalytics.addMonths(start, 1),
+    );
+  }
+
+  int countForMonth(DateTime month) {
+    final DateTime start = SpendingAnalytics.monthStart(month);
+    return SpendingAnalytics.countBetween(
+      _receipts,
+      from: start,
+      toExclusive: SpendingAnalytics.addMonths(start, 1),
+    );
+  }
+
+  Map<String, double> spendingByCategoryForMonth(DateTime month) {
+    final DateTime start = SpendingAnalytics.monthStart(month);
+    return SpendingAnalytics.byCategory(
+      _receipts,
+      _categoryNames,
+      from: start,
+      toExclusive: SpendingAnalytics.addMonths(start, 1),
+    );
+  }
+
+  Map<String, double> spendingByCategoryAllTime() =>
+      SpendingAnalytics.byCategory(_receipts, _categoryNames);
+
   String categoryNameFor(int id) => _categoryNames[id] ?? 'Lainnya';
 
   // ---------------------------------------------------------------- loading

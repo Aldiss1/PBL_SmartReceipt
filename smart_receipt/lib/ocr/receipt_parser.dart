@@ -213,14 +213,14 @@ class ReceiptParser {
     r'ovo|dana|shopeepay|linkaja|ppn|pajak|tax|diskon|discount|potongan|hemat|'
     r'voucher|poin|point|saldo|sisa|bayar|pembayaran|total|subtotal|'
     r'sub\s*total|jumlah|tagihan|grand\s*total|terima\s*kasih|terimakasih|'
-    r'npwp|harga\s*jual|anda\s*hemat|'
+    r'npwp|harga\s*jual|anda\s*hemat|lunas|dikembalikan|dibeli|'
     r'kasir|npk|struk|nota|invoice|kwitansi|tanggal|jam|waktu|telp|tel|'
     r'fax|phone|jl\.?|jalan|persero|layanan|konsumen|call|sms|email|www)\b',
     caseSensitive: false,
   );
 
   /// Bare numbers / phone numbers that should never be a store name.
-  static final RegExp _nonStoreLine = RegExp(r'^[\d\s\-+().,:]+$');
+  static final RegExp _nonStoreLine = RegExp(r'^[\d\s\-+().,:#]+$');
 
   /// Merchant names printed as text somewhere on the receipt. The logo is an
   /// image, so OCR reads it as noise; the name almost always appears in a
@@ -266,6 +266,16 @@ class ReceiptParser {
   static final RegExp _amountShape =
       RegExp(r'^(?:\d{1,3}(?:[.,]\d{3})+|\d{1,7})$');
 
+  /// Attached quantity-multiplier tokens such as `1x`, `2x`, `10x`, `Ix`, `lx`.
+  static final RegExp _attachedQtySuffix =
+      RegExp(r'^([0-9]{1,3}|[Il])[xX*]$');
+  static final RegExp _attachedQtyPrefix =
+      RegExp(r'^[xX*]([0-9]{1,3}|[Il])$');
+  static final RegExp _attachedQtyAndPrice =
+      RegExp(r'^([0-9]{1,3}|[Il])[xX*](\d[\d.,]*)$');
+  static final RegExp _attachedAtPrice =
+      RegExp(r'^@(\d[\d.,]*)$');
+
   /// Returns the integer value of [raw] if it is a printed amount, else `null`.
   ///
   /// Both `,` and `.` are accepted as thousands separators, matching how
@@ -274,6 +284,10 @@ class ReceiptParser {
   int? amountValue(String raw) {
     String t = raw.trim();
     if (t.isEmpty) {
+      return null;
+    }
+    // Ignore order/queue numbers like `#281`.
+    if (t.startsWith('#')) {
       return null;
     }
     // Drop trailing punctuation left behind by OCR, e.g. "7.000,".
@@ -307,6 +321,16 @@ class ReceiptParser {
   static bool _isMultiplier(String token) {
     final String t = token.toLowerCase();
     return t == 'x' || t == '*' || t == '@';
+  }
+
+  /// Strips multiplier glyphs (`x`, `*`, `@`) and attached quantity-multiplier
+  /// tokens (`1x`, `2x`, `Ix`, `lx`) so rows like `1x 2.000` are recognized as
+  /// purely numeric.
+  static String _stripMultiplierTokens(String text) {
+    return text
+        .replaceAll(RegExp(r'\b(?:[0-9]{1,3}|[Il])[xX*]\b'), '')
+        .replaceAll(RegExp(r'\b[xX*](?:[0-9]{1,3}|[Il])\b'), '')
+        .replaceAll(RegExp(r'[xX*@]'), '');
   }
 
   // ---------------------------------------------------------------------------
@@ -528,8 +552,7 @@ class ReceiptParser {
           _Cell(text: line.text, left: line.left, right: line.right),
         ]),
       );
-      final String withoutMultipliers =
-          line.text.replaceAll(RegExp(r'[xX*@]'), '');
+      final String withoutMultipliers = _stripMultiplierTokens(line.text);
       return parts.numbers.isNotEmpty && !_hasLetters(withoutMultipliers);
     }
 
@@ -556,7 +579,9 @@ class ReceiptParser {
       OcrLine? best;
       double bestDistance = double.infinity;
       for (final OcrLine anchor in anchors) {
-        if (number.left <= anchor.left + 1) {
+        // Allow numbers that sit to the right OR slightly indented below a
+        // product name (such as `  1x 2.000` under `Cimory`).
+        if (number.left <= anchor.left - 10) {
           continue;
         }
         final double distance = (number.centerY - anchor.centerY).abs();
@@ -592,69 +617,86 @@ class ReceiptParser {
 
   /// Stitches rows that belong together but were emitted as separate lines.
   ///
-  /// Two shapes are handled:
+  /// Handles three common receipt layouts:
   ///
+  /// 1. Numbers printed above the product name (Indomaret column-split):
   /// ```
   /// 18,000          <- line total
   /// 4 4500          <- qty + unit
-  /// S/ROTI KRIM...  <- name          (name below the numbers)
-  /// ```
-  ///
-  /// and
-  ///
-  /// ```
   /// S/ROTI KRIM...  <- name
-  /// 4 4500          <- qty + unit
-  /// 18,000          <- line total    (numbers below the name)
   /// ```
+  ///
+  /// 2. Numbers printed below the product name (Alfamart / POS 2-line):
+  /// ```
+  /// Cimory          <- name
+  /// 1x 2.000        <- qty + unit
+  /// 2.000           <- line total
+  /// ```
+  ///
+  /// 3. Hybrid geometry row where the right-hand line total grouped with the
+  ///    product name (`Cimory 2.000`), while `1x 2.000` is on the line right
+  ///    below it.
   List<_Row> _mergeStackedCells(List<_Row> rows) {
     final int n = rows.length;
-    final List<bool> isName = List<bool>.filled(n, false);
+    final List<_RowParts> rowParts = <_RowParts>[
+      for (int i = 0; i < n; i++) _splitRow(rows[i]),
+    ];
+    final List<bool> isPureName = List<bool>.filled(n, false);
+    final List<bool> isPartialName = List<bool>.filled(n, false);
     final List<bool> isNumbers = List<bool>.filled(n, false);
 
     for (int i = 0; i < n; i++) {
-      final _RowParts parts = _splitRow(rows[i]);
-      // `2 x 3.500` is a numbers-only row even though it contains the letter
-      // `x`; strip the multiplier glyphs before looking for real letters.
-      isNumbers[i] = parts.numbers.isNotEmpty &&
-          !_hasLetters(rows[i].text.replaceAll(RegExp(r'[xX*@]'), ''));
-      isName[i] = parts.numbers.isEmpty &&
-          _hasLetters(rows[i].text) &&
+      final _RowParts parts = rowParts[i];
+      final String withoutMultipliers = _stripMultiplierTokens(rows[i].text);
+      isNumbers[i] =
+          parts.numbers.isNotEmpty && !_hasLetters(withoutMultipliers);
+
+      final bool validName = _hasLetters(parts.name) &&
           !_noiseWords.hasMatch(rows[i].text) &&
-          _looksLikeProductName(rows[i].text);
+          !_dateCandidate.hasMatch(rows[i].text) &&
+          _looksLikeProductName(parts.name);
+
+      isPureName[i] = parts.numbers.isEmpty && validName;
+      // A product row that already got 1 number (the right-column line total)
+      // from geometry clustering, but still has its `1x 2.000` multiplier row
+      // on the line immediately below/above.
+      isPartialName[i] =
+          parts.numbers.length == 1 && !parts.hasMultiplier && validName;
     }
 
-    // Decide which numeric rows belong to which product name before emitting
-    // anything, so a numeric row is never consumed by the wrong item.
     final List<int> owner = List<int>.filled(n, -1);
     for (int i = 0; i < n; i++) {
-      if (!isName[i]) {
-        continue;
-      }
-
-      // Numbers printed above the name belong to it only when the previous
-      // item has not already claimed them. This handles both column orders:
-      //   numbers / name  (Indomaret)   -> claim above
-      //   name / numbers  (most others) -> claim below
-      final List<int> before = <int>[];
-      for (int j = i - 1; j >= 0 && j >= i - 2; j--) {
-        if (!isNumbers[j] || owner[j] != -1) {
-          break;
+      if (isPureName[i]) {
+        final List<int> before = <int>[];
+        for (int j = i - 1; j >= 0 && j >= i - 2; j--) {
+          if (!isNumbers[j] || owner[j] != -1) {
+            break;
+          }
+          before.insert(0, j);
         }
-        before.insert(0, j);
-      }
-      if (before.isNotEmpty) {
-        for (final int j in before) {
+        if (before.isNotEmpty) {
+          for (final int j in before) {
+            owner[j] = i;
+          }
+          continue;
+        }
+
+        for (int j = i + 1; j < n && j <= i + 2; j++) {
+          if (!isNumbers[j] || owner[j] != -1) {
+            break;
+          }
           owner[j] = i;
         }
-        continue;
-      }
-
-      for (int j = i + 1; j < n && j <= i + 2; j++) {
-        if (!isNumbers[j] || owner[j] != -1) {
-          break;
+      } else if (isPartialName[i]) {
+        // A row that already has a product name + right-column total (`Cimory 2.000`)
+        // claims an immediately following multiplier row (`1x 2.000`).
+        final int next = i + 1;
+        if (next < n &&
+            isNumbers[next] &&
+            owner[next] == -1 &&
+            rowParts[next].hasMultiplier) {
+          owner[next] = i;
         }
-        owner[j] = i;
       }
     }
 
@@ -663,17 +705,20 @@ class ReceiptParser {
       if (owner[i] != -1) {
         continue; // claimed by a product name
       }
-      if (isName[i]) {
+      if (isPureName[i] || isPartialName[i]) {
         final List<int> claimed = <int>[
           for (int j = 0; j < n; j++)
             if (owner[j] == i) j,
         ];
         if (claimed.isNotEmpty) {
-          // Keep the product name first: `_splitRow` reads the trailing
-          // numbers, so numbers printed above the name move after it.
-          final StringBuffer text = StringBuffer(rows[i].text);
+          // Put the product name first, then any claimed multiplier/unit rows,
+          // then any trailing line total already on row `i`.
+          final StringBuffer text = StringBuffer(rowParts[i].name);
           for (final int j in claimed) {
             text.write(' ${rows[j].text}');
+          }
+          for (final int existingNum in rowParts[i].numbers) {
+            text.write(' $existingNum');
           }
           out.add(_Row(<_Cell>[
             _Cell(text: text.toString().trim(), left: 0, right: 0),
@@ -689,6 +734,50 @@ class ReceiptParser {
   // ---------------------------------------------------------------------------
   // Stage 2 — split a row into name tokens and trailing numbers
   // ---------------------------------------------------------------------------
+
+  /// Splits attached quantity-multiplier tokens (`1x`, `2x`, `Ix`, `lx`,
+  /// `1x2.000`, `@2.000`) into separate tokens before amount parsing.
+  List<String> _expandMultiplierTokens(List<String> rawTokens) {
+    final List<String> out = <String>[];
+    for (final String token in rawTokens) {
+      final RegExpMatch? mSuffix = _attachedQtySuffix.firstMatch(token);
+      if (mSuffix != null) {
+        final String rawQty = mSuffix.group(1)!;
+        final String qty =
+            (rawQty == 'I' || rawQty == 'l') ? '1' : rawQty;
+        out.add(qty);
+        out.add('x');
+        continue;
+      }
+      final RegExpMatch? mPrefix = _attachedQtyPrefix.firstMatch(token);
+      if (mPrefix != null) {
+        final String rawQty = mPrefix.group(1)!;
+        final String qty =
+            (rawQty == 'I' || rawQty == 'l') ? '1' : rawQty;
+        out.add(qty);
+        out.add('x');
+        continue;
+      }
+      final RegExpMatch? mBoth = _attachedQtyAndPrice.firstMatch(token);
+      if (mBoth != null) {
+        final String rawQty = mBoth.group(1)!;
+        final String qty =
+            (rawQty == 'I' || rawQty == 'l') ? '1' : rawQty;
+        out.add(qty);
+        out.add('x');
+        out.add(mBoth.group(2)!);
+        continue;
+      }
+      final RegExpMatch? mAt = _attachedAtPrice.firstMatch(token);
+      if (mAt != null) {
+        out.add('@');
+        out.add(mAt.group(1)!);
+        continue;
+      }
+      out.add(token);
+    }
+    return out;
+  }
 
   /// Repairs amounts that ML Kit split at the thousands separator.
   ///
@@ -747,10 +836,12 @@ class ReceiptParser {
 
   _RowParts _splitRow(_Row row) {
     final List<String> tokens = _joinSplitAmounts(
-      row.text
-          .split(RegExp(r'\s+'))
-          .where((String t) => t.isNotEmpty)
-          .toList(),
+      _expandMultiplierTokens(
+        row.text
+            .split(RegExp(r'\s+'))
+            .where((String t) => t.isNotEmpty)
+            .toList(),
+      ),
     );
 
     // Scan from the right for the trailing numeric block.
@@ -844,6 +935,9 @@ class ReceiptParser {
       return null;
     }
     if (_noiseWords.hasMatch(parts.name) || _totalWords.hasMatch(parts.name)) {
+      return null;
+    }
+    if (_dateCandidate.hasMatch(parts.name)) {
       return null;
     }
     if (!_looksLikeProductName(parts.name)) {
@@ -1198,6 +1292,14 @@ class ReceiptParser {
     if (t.isEmpty) {
       return false;
     }
+    // Reject bare quantity-multiplier or unit fragments like `Ix`, `lx`, `1x`,
+    // `pcs`, `pc`, `qty`.
+    if (RegExp(
+      r'^(?:[0-9IlOo]{1,3}[xX*]|[xX*][0-9IlOo]{1,3}|pcs?|qty)$',
+      caseSensitive: false,
+    ).hasMatch(t)) {
+      return false;
+    }
     final int letters = t.replaceAll(RegExp(r'[^A-Za-z]'), '').length;
     if (letters < 2) {
       return false;
@@ -1306,15 +1408,17 @@ class ReceiptParser {
         month = int.parse(m.group(3)!);
       }
 
-      // Dotted dates are common (`14.09.16`), but a dotted number is also how
-      // amounts are written, so only accept shapes that cannot be an amount.
+      // Dotted dates are common (`14.09.16`, `18.7.2024`), but a dotted number
+      // is also how amounts are written (`10.000`), so reject 3-digit middle
+      // groups that look like thousands separators.
       if (sep == '.') {
         final bool isDmy = m.group(1)!.length <= 2 &&
-            m.group(3)!.length == 2 &&
-            (m.group(4)!.length == 2 || m.group(4)!.length == 4);
+            m.group(3)!.length <= 2 &&
+            (m.group(4)!.length == 2 || m.group(4)!.length == 4) &&
+            !(m.group(3)!.length == 3 || m.group(4)!.length == 3);
         final bool isYmd = m.group(1)!.length == 4 &&
-            m.group(3)!.length == 2 &&
-            m.group(4)!.length == 2;
+            m.group(3)!.length <= 2 &&
+            m.group(4)!.length <= 2;
         if (!isDmy && !isYmd) {
           continue;
         }

@@ -505,11 +505,13 @@ class _HistoryCard extends StatelessWidget {
                           TextStyle(fontSize: 11.5, color: AppColors.textMuted),
                     ),
                     const SizedBox(height: 7),
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: <Widget>[
                         CategoryChip(category: primary, dense: true),
-                        if (distinct > 1) ...<Widget>[
-                          const SizedBox(width: 6),
+                        if (distinct > 1)
                           Text(
                             '+${distinct - 1}',
                             style: TextStyle(
@@ -518,9 +520,7 @@ class _HistoryCard extends StatelessWidget {
                               color: AppColors.textMuted,
                             ),
                           ),
-                        ],
-                        if (hasPhoto) ...<Widget>[
-                          const SizedBox(width: 6),
+                        if (hasPhoto)
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 7,
@@ -550,7 +550,6 @@ class _HistoryCard extends StatelessWidget {
                               ],
                             ),
                           ),
-                        ],
                       ],
                     ),
                   ],

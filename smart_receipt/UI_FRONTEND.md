@@ -446,6 +446,7 @@ Semua penyaringan terjadi di memori atas `ReceiptProvider.receipts`; tidak ada q
 - Switch "Mode Gelap" terhubung langsung ke `themeController`; switch "Notifikasi" hanya state lokal.
 - Baris "Kelola Dataset" dan "Latih Ulang Model" menampilkan jumlah koreksi nyata dari `CorrectionTrainingService` dan membuka bottom sheet informasi (`_showInfoSheet`).
 - Baris "Keluar" bergaya danger (merah) dan belum punya aksi.
+- Tidak ada baris "Mata Uang" maupun "Bahasa": aplikasi memformat semua nominal sebagai Rupiah dan seluruh teksnya berbahasa Indonesia, jadi kedua baris itu dulu hanya tampak aktif tanpa melakukan apa pun dan sudah dihapus.
 
 ### 7.13 Empty State (`empty_state.dart`)
 

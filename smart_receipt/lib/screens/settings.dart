@@ -177,18 +177,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           value: _notifications,
                           onChanged: (bool v) => setState(() => _notifications = v),
                         ),
-                        const _Divider(),
-                        const _LinkTile(
-                          icon: Icons.payments_outlined,
-                          title: 'Mata Uang',
-                          trailingText: 'IDR (Rp)',
-                        ),
-                        const _Divider(),
-                        const _LinkTile(
-                          icon: Icons.language_outlined,
-                          title: 'Bahasa',
-                          trailingText: 'Indonesia',
-                        ),
+                        // No currency or language rows: the app formats every
+                        // amount as Rupiah and ships Indonesian text only, so a
+                        // "Mata Uang" / "Bahasa" tile could only ever be a
+                        // switch that does nothing.
                       ],
                     ),
                     const SizedBox(height: 18),
